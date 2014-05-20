@@ -115,6 +115,8 @@ class Trie
 		contents.reserve (size_hint);
 		auto vp = new int [nw];
 		vp[] = ROOT;
+		int old_size = 0;
+		int total_length = 0;
 
 		foreach (pos; 0..Board.SIZE)
 		{
@@ -127,16 +129,13 @@ class Trie
 				}
 			}
 
-			foreach (i, w; word_list)
+			int new_size = contents.length;
+			foreach (j; old_size..new_size)
 			{
-				if (pos < w.length)
-				{
-					contents[vp[i]].start =
-					    contents.length;
-					contents.length +=
-					    popcnt (contents[vp[i]].mask);
-				}
+				contents[j].start = contents.length;
+				contents.length += popcnt (contents[j].mask);
 			}
+			old_size = new_size;
 
 			foreach (i, w; word_list)
 			{
@@ -147,11 +146,13 @@ class Trie
 					if (pos + 1 == w.length)
 					{
 						contents[vp[i]].word = true;
+						total_length += w.length;
 					}
 	                	}
 			}
 		}
-		debug {writeln ("Trie: loaded ", contents.length, " words");}
+		debug {writeln ("Trie: loaded ", nw, " words of total length ",
+		    total_length, ", created ", contents.length, " nodes");}
 	}
 }
 
@@ -168,7 +169,10 @@ string [] read_all_lines (string file_name)
 
 void main ()
 {
-	auto t = new Trie (read_all_lines ("data/words.txt"), 13_734_265);
+	auto t = new Trie (read_all_lines ("data/words.txt"), 536_340);
 	auto s = new Scoring ();
 	GC.collect ();
+	while (true)
+	{
+	}
 }
