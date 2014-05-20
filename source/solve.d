@@ -11,8 +11,60 @@ struct Board
 {
 	immutable static int SIZE = 15;
 
-	char [SIZE] [SIZE] contents;
+	byte [SIZE] [SIZE] contents;
 	int score;
+}
+
+class Scoring
+{
+	enum BONUS: byte {NO, DW, TW, DL, TL};
+	immutable static string [BONUS.max - BONUS.min + 1] BONUS_NAME =
+	    ["--", "DW", "TW", "DL", "TL"];
+
+	BONUS [Board.SIZE] [Board.SIZE] board_bonus;
+	int [] tile_value;
+	int bingo;
+
+	void load_board_bonus (string file_name)
+	{
+		string [] line_list = read_all_lines (file_name);
+		enforce (line_list.length == Board.SIZE);
+		foreach (i, line; line_list)
+		{
+			auto cur = line.split ();
+			enforce (cur.length == Board.SIZE);
+			foreach (j, word; cur)
+			{
+				bool found = false;
+				for (auto b = BONUS.min; b <= BONUS.max; b++)
+				{
+					if (word == BONUS_NAME[b])
+					{
+						board_bonus[i][j] =
+						    to !(BONUS) (b);
+						found = true;
+						break;
+					}
+				}
+				enforce (found);
+			}
+		}
+		debug {writeln ("Scoring: loaded board bonus from ",
+		    file_name);}
+	}
+
+	void load_tile_values (string file_name)
+	{
+		debug {writeln ("Scoring: loaded tile values from ",
+		    file_name);}
+	}
+
+	this ()
+	{
+		load_board_bonus ("data/board-bonus.txt");
+		load_tile_values ("data/tile-values.txt");
+		bingo = 50;
+	}
 }
 
 struct TrieNode
@@ -21,6 +73,8 @@ struct TrieNode
 
 	int start;
 	int mask;
+
+	static assert (mask.sizeof * 8 - 1 >= LET);
 
 	bool word () @property
 	{
@@ -97,10 +151,11 @@ class Trie
 	                	}
 			}
 		}
+		debug {writeln ("Trie: loaded ", contents.length, " words");}
 	}
 }
 
-string [] read_words (string file_name)
+string [] read_all_lines (string file_name)
 {
 	string [] res;
 	auto fin = File (file_name, "rt");
@@ -113,6 +168,7 @@ string [] read_words (string file_name)
 
 void main ()
 {
-	auto t = new Trie (read_words ("data/words.txt"), 13_734_265);
+	auto t = new Trie (read_all_lines ("data/words.txt"), 13_734_265);
+	auto s = new Scoring ();
 	GC.collect ();
 }
