@@ -7,11 +7,58 @@ import std.exception;
 import std.stdio;
 import std.string;
 
+struct BoardCell
+{
+	immutable static int SHIFT = 5;
+	immutable static int LETTER_MASK = (1 << SHIFT) - 1;
+	immutable static int WILDCARD_SHIFT = SHIFT;
+	immutable static int CURRENT_SHIFT = SHIFT + 1;
+
+	byte contents;
+
+	static assert (LETTER_MASK > TrieNode.LET);
+
+	byte letter () @property
+	{
+		return contents & LETTER_MASK;
+	}
+
+	byte letter (byte new_letter) @property
+	{
+		contents = (contents & ~LETTER_MASK) | new_letter;
+		return new_letter;
+	}
+
+	bool wildcard () @property
+	{
+		return (contents & (1 << WILDCARD_SHIFT)) != 0;
+	}
+
+	byte wildcard (byte new_wildcard) @property
+	{
+		contents = to !(byte) ((contents & ~(1 << WILDCARD_SHIFT)) |
+		    (new_wildcard << WILDCARD_SHIFT));
+		return new_wildcard;
+	}
+
+	bool current () @property
+	{
+		return (contents & (1 << CURRENT_SHIFT)) != 0;
+	}
+
+	byte current (byte new_current) @property
+	{
+		contents = to !(byte) ((contents & ~(1 << CURRENT_SHIFT)) |
+		    (new_current << CURRENT_SHIFT));
+		return new_current;
+	}
+}
+
 struct Board
 {
 	immutable static int SIZE = 15;
 
-	byte [SIZE] [SIZE] contents;
+	BoardCell [SIZE] [SIZE] contents;
 	int score;
 }
 
@@ -20,9 +67,10 @@ class Scoring
 	enum BONUS: byte {NO, DW, TW, DL, TL};
 	immutable static string [BONUS.max - BONUS.min + 1] BONUS_NAME =
 	    ["--", "DW", "TW", "DL", "TL"];
+	immutable static int NA = -1;
 
 	BONUS [Board.SIZE] [Board.SIZE] board_bonus;
-	int [] tile_value;
+	int [TrieNode.LET + 1] tile_value;
 	int bingo;
 
 	void load_board_bonus (string file_name)
@@ -55,6 +103,26 @@ class Scoring
 
 	void load_tile_values (string file_name)
 	{
+		string [] line_list = read_all_lines (file_name);
+		enforce (line_list.length == tile_value.length);
+		tile_value[] = NA;
+		foreach (line; line_list)
+		{
+			auto cur = line.split ();
+			int i = void;
+			enforce (cur[0].length == 1);
+			if (cur[0][0] == '-')
+			{
+				i = TrieNode.LET;
+			}
+			else
+			{
+				enforce ('A' <= cur[0][0] && cur[0][0] <= 'Z');
+				i = cur[0][0] - 'A';
+			}
+			enforce (tile_value[i] == NA);
+			tile_value[i] = to !(int) (cur[1]);
+		}
 		debug {writeln ("Scoring: loaded tile values from ",
 		    file_name);}
 	}
@@ -74,7 +142,7 @@ struct TrieNode
 	int start;
 	int mask;
 
-	static assert (mask.sizeof * 8 - 1 >= LET);
+	static assert (mask.sizeof * 8 >= LET + 1);
 
 	bool word () @property
 	{
@@ -83,7 +151,7 @@ struct TrieNode
 
 	bool word (bool new_word) @property
 	{
-		mask = (mask & ~(1 << LET)) | new_word;
+		mask = (mask & ~(1 << LET)) | (new_word << LET);
 		return new_word;
 	}
 }
