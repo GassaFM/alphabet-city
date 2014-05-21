@@ -30,8 +30,9 @@ struct BoardCell
 {
 	immutable static int WILDCARD_SHIFT = LET_BITS;
 	immutable static int ACTIVE_SHIFT = LET_BITS + 1;
+	immutable static byte NONE = -1;
 
-	byte contents = LET;
+	byte contents = NONE;
 
 	alias contents this;
 
@@ -75,7 +76,7 @@ struct BoardCell
 	string toString () const
 	{
 		string res;
-		if (letter == LET)
+		if (contents == NONE)
 		{
 			res ~= '.';
 		}
@@ -541,6 +542,14 @@ struct GameMove
 	bool is_flipped;
 	int score;
 
+	this () @disable;
+
+	this (bool new_is_flipped)
+	{
+		is_flipped = new_is_flipped;
+		word.reserve (Board.SIZE);
+	}
+
 	static string row_str (const int val)
 	{
 		return to !(string) (val + 1);
@@ -588,14 +597,14 @@ class Game
 			return 0;
 		}
 		int row = row_init;
-		while (row > 0 && cur.board[row - 1][col] != LET)
+		while (row > 0 && cur.board[row - 1][col] != BoardCell.NONE)
 		{
 			row--;
 		}
 		if (row == row_init)
 		{
 			if (row == Board.SIZE - 1 ||
-			    cur.board[row + 1][col] == LET)
+			    cur.board[row + 1][col] == BoardCell.NONE)
 			{
 				return 0;
 			}
@@ -614,7 +623,8 @@ class Game
 			}
 			row++;
 		}
-		while (row < Board.SIZE && cur.board[row][col] != LET);
+		while (row < Board.SIZE &&
+		    cur.board[row][col] != BoardCell.NONE);
 		if (!trie.contents[v].word)
 		{
 			return NA;
@@ -625,7 +635,7 @@ class Game
 	void step_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
-		assert (cur.board[row][col] != LET);
+		assert (cur.board[row][col] != BoardCell.NONE);
 		vt = trie.next (vt, cur.board[row][col]);
 		if (vt == NA)
 		{
@@ -647,14 +657,16 @@ class Game
 			flags |= FLAG_CONN;
 		}
 		if (col + 1 == Board.SIZE ||
-		    cur.board[row][col + 1] == LET)
+		    cur.board[row][col + 1] == BoardCell.NONE)
 		{
-			if (flags == (FLAG_CONN | FLAG_ACT) &&
+			if (flags & FLAG_CONN &&
+			    flags >= FLAG_ACT * (1 + cur.board.is_flipped) &&
 			    trie.contents[vt].word)
 			{
 				writeln ("got ", row, ' ', col, ' ',
 				    vert, ' ', score, ' ', mult, ' ',
 				    cur.tiles.rack);
+				writeln (cur);
 			}
 		}
 		if (col + 1 < Board.SIZE)
@@ -663,7 +675,7 @@ class Game
 			    vert, score, mult, vt, flags);
 		}
 	}
-	
+
 	void move_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
@@ -674,7 +686,7 @@ class Game
 			debug {writeln ("move_recur out ",
 			    row, ' ', col, ' ', flags, ' ', score);}
 		}
-		if (cur.board[row][col] != LET)
+		if (cur.board[row][col] != BoardCell.NONE)
 		{
 			step_recur (cur, row, col,
 			    vert, score, mult, vt, flags | FLAG_CONN);
@@ -699,7 +711,7 @@ class Game
 					    (1 << BoardCell.ACTIVE_SHIFT);
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
-					    flags | FLAG_ACT);
+					    flags + FLAG_ACT);
 					continue;
 				}
 				foreach (ubyte letter; 0..LET)
@@ -709,27 +721,40 @@ class Game
 					    (1 << BoardCell.ACTIVE_SHIFT);
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
-					    flags | FLAG_ACT);
+					    flags + FLAG_ACT);
 				}
 			}
 		}
-		cur.board[row][col] = LET;
+		cur.board[row][col] = BoardCell.NONE;
 	}
 	
-	void move_start (ref GameState cur)
+	void move_horizontal (ref GameState cur)
 	{
 		foreach (row; 0..Board.SIZE)
 		{
 			foreach (col; 0..Board.SIZE)
 			{
-				if (row > 0 && cur.board[row - 1][col] != LET)
+				if (row > 0 &&
+				    cur.board[row - 1][col] != BoardCell.NONE)
 				{
 					continue;
 				}
 				
 				move_recur (cur, row, col, 0, 0, 1,
-				    Trie.ROOT, false);
+				    Trie.ROOT, 0);
 			}
+		}
+	}
+
+	void move_start (ref GameState cur)
+	{
+		move_horizontal (cur);
+		if (cur.board[Board.SIZE / 2][Board.SIZE / 2] !=
+		    BoardCell.NONE)
+		{
+			cur.board.flip ();
+			move_horizontal (cur);
+			cur.board.flip ();
 		}
 	}
 
