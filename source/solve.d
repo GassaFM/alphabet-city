@@ -128,11 +128,11 @@ struct Board
 
 class Scoring
 {
-	enum BONUS: byte {NO, DW, TW, DL, TL};
-	immutable static string [BONUS.max - BONUS.min + 1] BONUS_NAME =
+	enum Bonus: byte {NO, DW, TW, DL, TL, SIZE};
+	immutable static string [Bonus.SIZE] BONUS_NAME =
 	    ["--", "DW", "TW", "DL", "TL"];
 
-	BONUS [Board.SIZE] [Board.SIZE] board_bonus;
+	Bonus [Board.SIZE] [Board.SIZE] board_bonus;
 	int [LET + 1] tile_value;
 	int bingo;
 
@@ -147,12 +147,12 @@ class Scoring
 			foreach (j, word; cur)
 			{
 				bool found = false;
-				for (auto b = BONUS.min; b <= BONUS.max; b++)
+				foreach (b; 0..Bonus.SIZE)
 				{
 					if (word == BONUS_NAME[b])
 					{
 						board_bonus[i][j] =
-						    to !(BONUS) (b);
+						    to !(Bonus) (b);
 						found = true;
 						break;
 					}
@@ -195,6 +195,35 @@ class Scoring
 		load_board_bonus ("data/board-bonus.txt");
 		load_tile_values ("data/tile-values.txt");
 		bingo = 50;
+	}
+
+	void account (ref int score, ref int mult, const BoardCell cur,
+	    const int row, const int col)
+	{
+		int temp = cur.wildcard ? 0 : tile_value[cur.letter];
+		if (cur.active)
+		{
+			final switch (board_bonus[row][col])
+			{
+				case Bonus.NO:
+					break;
+				case Bonus.DL:
+					temp *= 2;
+					break;
+				case Bonus.TL:
+					temp *= 3;
+					break;
+				case Bonus.DW:
+					mult *= 2;
+					break;
+				case Bonus.TW:
+					mult *= 3;
+					break;
+				case Bonus.SIZE:
+					assert (false);
+			}
+		}
+		score += temp;
 	}
 }
 
@@ -287,7 +316,9 @@ class Trie
 
 struct RackEntry
 {
-	ubyte contents;
+	immutable static ubyte NONE = 0xFF;
+
+	ubyte contents = NONE;
 
 	alias contents this;
 	
@@ -334,19 +365,50 @@ struct Rack
 
 	void add (const byte letter)
 	{
-		foreach (i, ref v; contents)
+		int i = 0;
+		while ((contents[i] != RackEntry.NONE) &&
+		    (contents[i].letter < letter))
 		{
-			if (v == 0)
+			i++;
+		}
+		if (contents[i].letter == letter)
+		{
+			contents[i].inc ();
+		}
+		else
+		{
+			int j = MAX_SIZE - 2;
+			while ((j > 0) && (contents[j] == RackEntry.NONE))
 			{
-				v = letter;
+				j--;
 			}
-			if (v.letter == letter)
+			while (j >= i)
 			{
-				v.inc ();
-				break;
+				contents[j + 1] = contents[j];
+				j--;
 			}
+			contents[i] = cast (ubyte) (letter + (1 << LET_BITS));
 		}
 		total++;
+	}
+
+	void normalize ()
+	{
+		int i = 0;
+		int j = 0;
+		while (contents[i] != RackEntry.NONE)
+		{
+			if (contents[i].num != 0)
+			{
+				contents[j] = contents[i];
+				j++;
+			}
+		}
+		while (j < i)
+		{
+			contents[j] = RackEntry.NONE;
+			j++;
+		}
 	}
 
 	bool empty () @property const
@@ -359,7 +421,7 @@ struct Rack
 		string res = "Rack:";
 		foreach (c; contents)
 		{
-			if (c == 0)
+			if (c == RackEntry.NONE)
 			{
 				break;
 			}
@@ -511,20 +573,162 @@ struct GameMove
 
 class Game
 {
+	immutable static int FLAG_CONN = 1;
+	immutable static int FLAG_ACT = 2;
+
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
+
+	int check_vertical (ref GameState cur,
+	    const int row_init, const int col)
+	{
+		if (!cur.board[row_init][col].active)
+		{
+			return 0;
+		}
+		int row = row_init;
+		while (row > 0 && cur.board[row - 1][col] != LET)
+		{
+			row--;
+		}
+		if (row == row_init)
+		{
+			if (row == Board.SIZE - 1 ||
+			    cur.board[row + 1][col] == LET)
+			{
+				return 0;
+			}
+		}
+		int score = 0;
+		int mult = 1;
+		int v = Trie.ROOT;
+		do
+		{
+			v = trie.next (v, cur.board[row][col].letter);
+			scoring.account (score, mult,
+			    cur.board[row][col], row, col);
+			if (v == NA)
+			{
+				return NA;
+			}
+			row++;
+		}
+		while (row < Board.SIZE && cur.board[row][col] != LET);
+		if (!trie.contents[v].word)
+		{
+			return NA;
+		}
+		return score * mult;
+	}
+
+	void step_recur (ref GameState cur, int row, int col,
+	    int vert, int score, int mult, int vt, int flags)
+	{
+		assert (cur.board[row][col] != LET);
+		vt = trie.next (vt, cur.board[row][col]);
+		if (vt == NA)
+		{
+			return;
+		}
+		int add = check_vertical (cur, row, col);
+		if (add == NA)
+		{
+			return;
+		}
+		if (add > 0)
+		{
+			flags |= FLAG_CONN;
+		}
+		vert += add;
+		scoring.account (score, mult, cur.board[row][col], row, col);
+		if (row == Board.SIZE / 2 && col == Board.SIZE / 2)
+		{
+			flags |= FLAG_CONN;
+		}
+		if (col + 1 == Board.SIZE ||
+		    cur.board[row][col + 1] == LET)
+		{
+			if (flags == (FLAG_CONN | FLAG_ACT) &&
+			    trie.contents[vt].word)
+			{
+				writeln ("got ", row, ' ', col, ' ',
+				    vert, ' ', score, ' ', mult, ' ',
+				    cur.tiles.rack);
+			}
+		}
+		if (col + 1 < Board.SIZE)
+		{
+			move_recur (cur, row, col + 1,
+			    vert, score, mult, vt, flags);
+		}
+	}
 	
-	void move_start (const ref GameState cur)
+	void move_recur (ref GameState cur, int row, int col,
+	    int vert, int score, int mult, int vt, int flags)
+	{
+		debug {writeln ("move_recur in  ",
+		    row, ' ', col, ' ', flags, ' ', score);}
+		scope (exit)
+		{
+			debug {writeln ("move_recur out ",
+			    row, ' ', col, ' ', flags, ' ', score);}
+		}
+		if (cur.board[row][col] != LET)
+		{
+			step_recur (cur, row, col,
+			    vert, score, mult, vt, flags | FLAG_CONN);
+			return;
+		}
+		foreach (ref c; cur.tiles.rack.contents)
+		{
+			if (c == RackEntry.NONE)
+			{
+				break;
+			}
+			if (c.num != 0)
+			{
+				c -= 1 << LET_BITS;
+				scope (exit)
+				{
+					c += 1 << LET_BITS;
+				}
+				if (c.letter != LET)
+				{
+					cur.board[row][col] = c.letter |
+					    (1 << BoardCell.ACTIVE_SHIFT);
+					step_recur (cur, row, col,
+					    vert, score, mult, vt,
+					    flags | FLAG_ACT);
+					continue;
+				}
+				foreach (ubyte letter; 0..LET)
+				{
+					cur.board[row][col] = letter |
+					    (1 << BoardCell.WILDCARD_SHIFT) |
+					    (1 << BoardCell.ACTIVE_SHIFT);
+					step_recur (cur, row, col,
+					    vert, score, mult, vt,
+					    flags | FLAG_ACT);
+				}
+			}
+		}
+		cur.board[row][col] = LET;
+	}
+	
+	void move_start (ref GameState cur)
 	{
 		foreach (row; 0..Board.SIZE)
 		{
 			foreach (col; 0..Board.SIZE)
 			{
-				if (col > 0 && cur.board[row][col - 1] != LET)
+				if (row > 0 && cur.board[row - 1][col] != LET)
 				{
 					continue;
 				}
+				
+				move_recur (cur, row, col, 0, 0, 1,
+				    Trie.ROOT, false);
 			}
 		}
 	}
@@ -552,7 +756,9 @@ void main ()
 	GC.collect ();
 	auto g = new Game (ps.problem[0], t, s);
 	g.play ();
+/*
 	while (true)
 	{
 	}
+*/
 }
