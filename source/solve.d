@@ -30,7 +30,7 @@ struct BoardCell
 {
 	immutable static int WILDCARD_SHIFT = LET_BITS;
 	immutable static int ACTIVE_SHIFT = LET_BITS + 1;
-	immutable static byte NONE = -1;
+	immutable static byte NONE = LET;
 
 	byte contents = NONE;
 
@@ -528,32 +528,55 @@ struct GameState
 {
 	Board board;
 	TileBag tiles;
+	GameMove recent_move;
 
 	this (Problem new_problem)
 	{
 		tiles = TileBag (new_problem.contents);
 	}
 
-	string toString () const
+	string toString ()
 	{
-		return board.toString () ~ tiles.toString ();
+		string res = board.toString () ~ tiles.toString () ~ '\n';
+		string [] moves;
+		for (GameMove cur_move = recent_move; cur_move !is null;
+		    cur_move = cur_move.prev_move)
+		{
+			moves ~= to !(string) (cur_move);
+		}
+		reverse (moves);
+		res ~= join (moves, ",\n");
+		return res;
 	}
 }
 
-struct GameMove
+class GameMove
 {
 	BoardCell [] word;
 	byte row;
 	byte col;
 	bool is_flipped;
 	int score;
+	GameMove prev_move;
 
-	this () @disable;
+//	this () @disable;
 
-	this (bool new_is_flipped)
+	this (ref GameState cur, int new_row, int new_col, int add_score)
 	{
-		is_flipped = new_is_flipped;
-		word.reserve (Board.SIZE);
+		row = to !(byte) (new_row);
+		col = to !(byte) (new_col);
+		while (col > 0 && cur.board[row][col - 1] != BoardCell.NONE)
+		{
+			col--;
+		}
+		foreach (cur_col; col..new_col + 1)
+		{
+			word ~= cur.board[row][cur_col];
+		}
+//		writeln (col, ' ', new_col, ' ', word, ' ', add_score);
+		is_flipped = cur.board.is_flipped;
+		score = add_score;
+		prev_move = cur.recent_move;
 	}
 
 	static string row_str (const int val)
@@ -566,7 +589,7 @@ struct GameMove
 		return "" ~ to !(char) (val + 'A');
 	}
 
-	string toString () const
+	override string toString () const
 	{
 		string coord;
 		if (is_flipped)
@@ -579,9 +602,9 @@ struct GameMove
 			coord ~= row_str (row);
 			coord ~= col_str (col);
 		}
-
-		auto sink = Appender !(string) ();
-		formattedWrite (sink, "%3s %15s %4s", coord, word, score);
+ 
+		auto sink = appender !(string) ();
+		formattedWrite (sink, "%3s %(%s%) %4s", coord, word, score);
 		return sink.data;
 	}
 }
@@ -590,19 +613,22 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 50;
+	immutable static int STORE_BESTS = 200;
 
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
 	GameState [] [] gs;
+	GameState best;
 
 	void consider (ref GameState cur, int row, int col,
-	    int vert, int score, int mult)
+	    int vert, int score, int mult, int flags)
 	{
+/*
 		writeln ("got ", row, ' ', col, ' ',
 		    vert, ' ', score, ' ', mult, ' ',
 		    cur.tiles.rack);
+*/
 		int num = 0;
 		foreach (cur_row; 0..Board.SIZE)
 		{
@@ -613,18 +639,28 @@ class Game
 			}
 		}
 		int add_score = vert + score * mult +
-		    scoring.bingo * cur.tiles.rack.empty;
+		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
 		if (gs[num].length == STORE_BESTS &&
 		    gs[num][$ - 1].board.score >= cur.board.score + add_score)
 		{
 			return;
 		}
-
+		
         	auto next = cur;
+		foreach (cur_row; 0..Board.SIZE)
+		{
+			foreach (cur_col; 0..Board.SIZE)
+			{
+				next.board[cur_row][cur_col].active = false;
+			}
+		}
         	next.board.score += add_score;
         	next.tiles.rack.normalize ();
         	next.tiles.fill_rack ();
+        	next.recent_move = new GameMove (cur, row, col, add_score);
+/*
 		writeln (next);
+*/
         	int i = 0;
         	while (i < gs[num].length &&
         	       gs[num][i].board.score >= next.board.score)
@@ -633,6 +669,11 @@ class Game
         	}
         	gs[num] = gs[num][0..i] ~ next ~
         	    gs[num][i..$ - (gs[num].length == STORE_BESTS)];
+
+        	if (best.board.score < next.board.score)
+        	{
+        		best = next;
+        	}
 	}
 
 	int check_vertical (ref GameState cur,
@@ -709,7 +750,8 @@ class Game
 			    flags >= FLAG_ACT * (1 + cur.board.is_flipped) &&
 			    trie.contents[vt].word)
 			{
-				consider (cur, row, col, vert, score, mult);
+				consider (cur, row, col,
+				    vert, score, mult, flags);
 			}
 		}
 		if (col + 1 < Board.SIZE)
@@ -793,7 +835,7 @@ class Game
 
 	void move_start (ref GameState cur)
 	{
-		debug {writeln (cur);}
+//		writeln (cur);
 		move_horizontal (cur);
 		if (cur.board[Board.SIZE / 2][Board.SIZE / 2] !=
 		    BoardCell.NONE)
@@ -809,8 +851,9 @@ class Game
 		gs = new GameState [] [problem.contents.length + 1];
 		auto initial_state = GameState (problem);
 		gs[0] ~= initial_state;
-		foreach (gs_line; gs)
+		foreach (k, gs_line; gs)
 		{
+//			writeln ("filled ", k, " tiles");
 			foreach (gs_element; gs_line)
 			{
 				move_start (gs_element);
@@ -824,6 +867,18 @@ class Game
 		trie = new_trie;
 		scoring = new_scoring;
 	}
+	
+	override string toString ()
+	{
+		string [] moves;
+		for (GameMove cur_move = best.recent_move; cur_move !is null;
+		    cur_move = cur_move.prev_move)
+		{
+			moves ~= to !(string) (cur_move);
+		}
+		reverse (moves);
+		return join (moves, ",\n");
+	}
 }
 
 void main ()
@@ -832,8 +887,16 @@ void main ()
 	auto s = new Scoring ();
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	GC.collect ();
-	auto g = new Game (ps.problem[0], t, s);
-	g.play ();
+	foreach (i; 0..26)
+	{
+		auto g = new Game (ps.problem[i], t, s);
+		g.play ();
+		writeln ("" ~ to !(char) (i + 'A') ~ ':');
+		writeln (g);
+		writeln (';');
+		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
+			to !(string) (g.best.board.score));
+	}
 /*
 	while (true)
 	{
