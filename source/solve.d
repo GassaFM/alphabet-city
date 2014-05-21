@@ -123,6 +123,8 @@ struct Board
 			}
 			res ~= '\n';
 		}
+		res ~= to !(string) (score) ~ ' ';
+		res ~= to !(string) (is_flipped) ~ '\n';
 		return res;
 	}
 }
@@ -397,13 +399,17 @@ struct Rack
 	{
 		int i = 0;
 		int j = 0;
-		while (contents[i] != RackEntry.NONE)
+		total = 0;
+		while (i < MAX_SIZE &&
+		    contents[i] != RackEntry.NONE)
 		{
 			if (contents[i].num != 0)
 			{
+				total += contents[i].num;
 				contents[j] = contents[i];
 				j++;
 			}
+			i++;
 		}
 		while (j < i)
 		{
@@ -584,10 +590,12 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
+	immutable static int STORE_BESTS = 50;
 
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
+	GameState [] [] gs;
 
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult)
@@ -595,7 +603,36 @@ class Game
 		writeln ("got ", row, ' ', col, ' ',
 		    vert, ' ', score, ' ', mult, ' ',
 		    cur.tiles.rack);
-		writeln (cur);
+		int num = 0;
+		foreach (cur_row; 0..Board.SIZE)
+		{
+			foreach (cur_col; 0..Board.SIZE)
+			{
+				num += (cur.board[cur_row][cur_col] !=
+				    BoardCell.NONE);
+			}
+		}
+		int add_score = vert + score * mult +
+		    scoring.bingo * cur.tiles.rack.empty;
+		if (gs[num].length == STORE_BESTS &&
+		    gs[num][$ - 1].board.score >= cur.board.score + add_score)
+		{
+			return;
+		}
+
+        	auto next = cur;
+        	next.board.score += add_score;
+        	next.tiles.rack.normalize ();
+        	next.tiles.fill_rack ();
+		writeln (next);
+        	int i = 0;
+        	while (i < gs[num].length &&
+        	       gs[num][i].board.score >= next.board.score)
+        	{
+        		i++;
+        	}
+        	gs[num] = gs[num][0..i] ~ next ~
+        	    gs[num][i..$ - (gs[num].length == STORE_BESTS)];
 	}
 
 	int check_vertical (ref GameState cur,
@@ -685,6 +722,7 @@ class Game
 	void move_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
+/*
 		debug {writeln ("move_recur in  ",
 		    row, ' ', col, ' ', flags, ' ', score);}
 		scope (exit)
@@ -692,6 +730,7 @@ class Game
 			debug {writeln ("move_recur out ",
 			    row, ' ', col, ' ', flags, ' ', score);}
 		}
+*/
 		if (cur.board[row][col] != BoardCell.NONE)
 		{
 			step_recur (cur, row, col,
@@ -740,12 +779,12 @@ class Game
 		{
 			foreach (col; 0..Board.SIZE)
 			{
-				if (row > 0 &&
-				    cur.board[row - 1][col] != BoardCell.NONE)
+				if (col > 0 &&
+				    cur.board[row][col - 1] != BoardCell.NONE)
 				{
 					continue;
 				}
-				
+
 				move_recur (cur, row, col, 0, 0, 1,
 				    Trie.ROOT, 0);
 			}
@@ -754,6 +793,7 @@ class Game
 
 	void move_start (ref GameState cur)
 	{
+		debug {writeln (cur);}
 		move_horizontal (cur);
 		if (cur.board[Board.SIZE / 2][Board.SIZE / 2] !=
 		    BoardCell.NONE)
@@ -766,9 +806,16 @@ class Game
 
 	void play ()
 	{
-		auto game_state = GameState (problem);
-		debug {writeln (game_state);}
-		move_start (game_state);
+		gs = new GameState [] [problem.contents.length + 1];
+		auto initial_state = GameState (problem);
+		gs[0] ~= initial_state;
+		foreach (gs_line; gs)
+		{
+			foreach (gs_element; gs_line)
+			{
+				move_start (gs_element);
+			}
+		}
 	}
 
 	this (Problem new_problem, Trie new_trie, Scoring new_scoring)
