@@ -589,6 +589,15 @@ class Game
 	Trie trie;
 	Scoring scoring;
 
+	void consider (ref GameState cur, int row, int col,
+	    int vert, int score, int mult)
+	{
+		writeln ("got ", row, ' ', col, ' ',
+		    vert, ' ', score, ' ', mult, ' ',
+		    cur.tiles.rack);
+		writeln (cur);
+	}
+
 	int check_vertical (ref GameState cur,
 	    const int row_init, const int col)
 	{
@@ -659,14 +668,11 @@ class Game
 		if (col + 1 == Board.SIZE ||
 		    cur.board[row][col + 1] == BoardCell.NONE)
 		{
-			if (flags & FLAG_CONN &&
+			if ((flags & FLAG_CONN) &&
 			    flags >= FLAG_ACT * (1 + cur.board.is_flipped) &&
 			    trie.contents[vt].word)
 			{
-				writeln ("got ", row, ' ', col, ' ',
-				    vert, ' ', score, ' ', mult, ' ',
-				    cur.tiles.rack);
-				writeln (cur);
+				consider (cur, row, col, vert, score, mult);
 			}
 		}
 		if (col + 1 < Board.SIZE)
