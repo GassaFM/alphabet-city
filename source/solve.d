@@ -924,6 +924,7 @@ void main ()
 		{
 			writeln (';');
 		}
+		stdout.flush ();
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
 			to !(string) (g.best.board.score));
 	}
