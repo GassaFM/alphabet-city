@@ -535,6 +535,11 @@ struct GameState
 		tiles = TileBag (new_problem.contents);
 	}
 
+	bool opEquals (const ref GameState other) const
+	{
+		return board == other.board;
+	}
+
 	string toString ()
 	{
 		string res = board.toString () ~ tiles.toString () ~ '\n';
@@ -613,7 +618,7 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 200;
+	immutable static int STORE_BESTS = 20;
 
 	Problem problem;
 	Trie trie;
@@ -646,7 +651,7 @@ class Game
 			return;
 		}
 		
-        	auto next = cur;
+		auto next = cur;
 		foreach (cur_row; 0..Board.SIZE)
 		{
 			foreach (cur_col; 0..Board.SIZE)
@@ -654,26 +659,48 @@ class Game
 				next.board[cur_row][cur_col].active = false;
 			}
 		}
-        	next.board.score += add_score;
-        	next.tiles.rack.normalize ();
-        	next.tiles.fill_rack ();
-        	next.recent_move = new GameMove (cur, row, col, add_score);
+		next.board.score += add_score;
+		next.tiles.rack.normalize ();
+		next.tiles.fill_rack ();
+		next.recent_move = new GameMove (cur, row, col, add_score);
 /*
 		writeln (next);
 */
-        	int i = 0;
-        	while (i < gs[num].length &&
-        	       gs[num][i].board.score >= next.board.score)
-        	{
-        		i++;
-        	}
-        	gs[num] = gs[num][0..i] ~ next ~
-        	    gs[num][i..$ - (gs[num].length == STORE_BESTS)];
+		int i = 0;
+		while (i < gs[num].length &&
+		    gs[num][i].board.score >= next.board.score)
+		{
+			if (gs[num][i].board.contents == next.board.contents)
+			{
+				return;
+			}
+			i++;
+		}
 
-        	if (best.board.score < next.board.score)
-        	{
-        		best = next;
-        	}
+		scope (exit)
+		{
+			if (best.board.score < next.board.score)
+			{
+				best = next;
+			}
+		}
+
+		int j = i;
+		while (j < gs[num].length)
+		{
+			if (gs[num][j].board.contents == next.board.contents)
+			{
+				foreach_reverse (k; i..j)
+				{
+					gs[num][k + 1] = gs[num][k];
+				}
+				gs[num][i] = next;
+				return;
+			}
+			j++;
+		}
+		gs[num] = gs[num][0..i] ~ next ~
+		    gs[num][i..$ - (gs[num].length == STORE_BESTS)];
 	}
 
 	int check_vertical (ref GameState cur,
@@ -893,7 +920,10 @@ void main ()
 		g.play ();
 		writeln ("" ~ to !(char) (i + 'A') ~ ':');
 		writeln (g);
-		writeln (';');
+		if (i + 1 < 26)
+		{
+			writeln (';');
+		}
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
 			to !(string) (g.best.board.score));
 	}
