@@ -5,6 +5,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.format;
+import std.random;
 import std.stdio;
 import std.string;
 
@@ -93,8 +94,21 @@ struct BoardCell
 struct Board
 {
 	immutable static int SIZE = 15;
+	immutable static ulong [SIZE] [SIZE] hash_mults;
+
+	static this ()
+	{
+		foreach (row; 0..SIZE)
+		{
+			foreach (col; 0..SIZE)
+			{
+				hash_mults[row][col] = uniform !(ulong) ();
+			}
+		}
+	}
 
 	BoardCell [SIZE] [SIZE] contents;
+	ulong contents_hash;
 	int score;
 	bool is_flipped;
 
@@ -110,6 +124,30 @@ struct Board
 			}
 		}
 		is_flipped ^= true;
+	}
+
+	void normalize ()
+	{
+		if (is_flipped)
+		{
+			flip ();
+		}
+		foreach (row; 0..SIZE)
+		{
+			foreach (col; 0..SIZE)
+			{
+				contents[row][col].active = false;
+			}
+		}
+		contents_hash = 0;
+		foreach (row; 0..SIZE)
+		{
+			foreach (col; 0..SIZE)
+			{
+				contents_hash += hash_mults[row][col] *
+				    contents[row][col];
+			}
+		}
 	}
 
 	string toString () const
@@ -533,6 +571,7 @@ struct GameState
 	this (Problem new_problem)
 	{
 		tiles = TileBag (new_problem.contents);
+		board.normalize ();
 	}
 
 	bool opEquals (const ref GameState other) const
@@ -618,12 +657,13 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 20;
+	immutable static int STORE_BESTS = 100;
 
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
 	GameState [] [] gs;
+	int [] [] gsp;
 	GameState best;
 
 	void consider (ref GameState cur, int row, int col,
@@ -645,32 +685,32 @@ class Game
 		}
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
-		if (gs[num].length == STORE_BESTS &&
-		    gs[num][$ - 1].board.score >= cur.board.score + add_score)
+		if (gsp[num].length == STORE_BESTS &&
+		    gs[num][gsp[num][$ - 1]].board.score >=
+		    cur.board.score + add_score)
 		{
 			return;
 		}
 		
 		auto next = cur;
-		foreach (cur_row; 0..Board.SIZE)
-		{
-			foreach (cur_col; 0..Board.SIZE)
-			{
-				next.board[cur_row][cur_col].active = false;
-			}
-		}
+		next.board.normalize ();
 		next.board.score += add_score;
 		next.tiles.rack.normalize ();
 		next.tiles.fill_rack ();
 		next.recent_move = new GameMove (cur, row, col, add_score);
-/*
-		writeln (next);
-*/
+//		debug {writeln (next);}
 		int i = 0;
-		while (i < gs[num].length &&
-		    gs[num][i].board.score >= next.board.score)
+		while (i < gsp[num].length &&
+		    gs[num][gsp[num][i]].board.score >= next.board.score)
 		{
-			if (gs[num][i].board.contents == next.board.contents)
+			if (gs[num][gsp[num][i]].board.contents_hash ==
+			    next.board.contents_hash)
+			{
+				return;
+			}
+			if (gsp[num].length >= (STORE_BESTS >> 1) &&
+			    gs[num][gsp[num][i]].board.score ==
+			    next.board.score)
 			{
 				return;
 			}
@@ -688,19 +728,43 @@ class Game
 		int j = i;
 		while (j < gs[num].length)
 		{
-			if (gs[num][j].board.contents == next.board.contents)
+			if (gs[num][gsp[num][j]].board.contents_hash ==
+			    next.board.contents_hash)
 			{
+				gs[num][j] = next;
 				foreach_reverse (k; i..j)
 				{
-					gs[num][k + 1] = gs[num][k];
+					gsp[num][k + 1] = gsp[num][k];
 				}
-				gs[num][i] = next;
+				gsp[num][i] = j;
 				return;
 			}
 			j++;
 		}
-		gs[num] = gs[num][0..i] ~ next ~
-		    gs[num][i..$ - (gs[num].length == STORE_BESTS)];
+
+		if (gsp[num].length < STORE_BESTS)
+		{
+			int d = gs[num].length;
+			gs[num].assumeSafeAppend ();
+			gs[num] ~= next;
+			gsp[num].assumeSafeAppend ();
+			gsp[num] ~= NA;
+			foreach_reverse (k; i..d)
+			{
+				gsp[num][k + 1] = gsp[num][k];
+			}
+			gsp[num][i] = d;
+		}
+		else
+		{
+			int d = gsp[num][$ - 1];
+			gs[num][d] = next;
+			foreach_reverse (k; i..gsp[num].length - 1)
+			{
+				gsp[num][k + 1] = gsp[num][k];
+			}
+			gsp[num][i] = d;
+		}
 	}
 
 	int check_vertical (ref GameState cur,
@@ -876,16 +940,27 @@ class Game
 	void play ()
 	{
 		gs = new GameState [] [problem.contents.length + 1];
+		gsp = new int [] [problem.contents.length + 1];
+		foreach (k, gsp_line; gsp)
+		{
+			gs[k].reserve (STORE_BESTS);
+			gsp[k].reserve (STORE_BESTS);
+		}
 		auto initial_state = GameState (problem);
 		gs[0] ~= initial_state;
-		foreach (k, gs_line; gs)
+		gsp[0] ~= 0;
+		foreach (k, gsp_line; gsp)
 		{
-//			writeln ("filled ", k, " tiles");
-			foreach (gs_element; gs_line)
+			debug {writeln ("filled ", k, " tiles");}
+			foreach (gsp_element; gsp_line)
 			{
-				move_start (gs_element);
+				debug {writeln ("at:");}
+				debug {writeln (gs[k][gsp_element]);}
+				move_start (gs[k][gsp_element]);
 			}
 		}
+		gs = null;
+		gsp = null;
 	}
 
 	this (Problem new_problem, Trie new_trie, Scoring new_scoring)
@@ -914,16 +989,16 @@ void main ()
 	auto s = new Scoring ();
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	GC.collect ();
-	foreach (i; 0..26)
+	foreach (i; 0..LET)
 	{
 		auto g = new Game (ps.problem[i], t, s);
 		g.play ();
-		writeln ("" ~ to !(char) (i + 'A') ~ ':');
-		writeln (g);
-		if (i + 1 < 26)
+		if (i > 0)
 		{
 			writeln (';');
 		}
+		writeln ("" ~ to !(char) (i + 'A') ~ ':');
+		writeln (g);
 		stdout.flush ();
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
 			to !(string) (g.best.board.score));
