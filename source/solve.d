@@ -657,7 +657,7 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 100;
+	immutable static int STORE_BESTS = 1000;
 
 	Problem problem;
 	Trie trie;
@@ -708,7 +708,7 @@ class Game
 			{
 				return;
 			}
-			if (gsp[num].length >= (STORE_BESTS >> 1) &&
+			if (gsp[num].length >= (STORE_BESTS - 100) &&
 			    gs[num][gsp[num][i]].board.score ==
 			    next.board.score)
 			{
@@ -1002,6 +1002,7 @@ void main ()
 		stdout.flush ();
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
 			to !(string) (g.best.board.score));
+		GC.collect ();
 	}
 /*
 	while (true)
