@@ -686,7 +686,7 @@ class Game
 		}
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
-		if (gsp[num].length == STORE_BESTS &&
+		if (depth == 0 && gsp[num].length == STORE_BESTS &&
 		    gs[num][gsp[num][$ - 1]].board.score >=
 		    cur.board.score + add_score)
 		{
@@ -706,6 +706,12 @@ class Game
 			depth--;
 			move_start (next);
 			depth++;
+		}
+
+		if (gsp[num].length == STORE_BESTS &&
+		    gs[num][gsp[num][$ - 1]].board.score >= next.board.score)
+		{
+			return;
 		}
 
 		int i = 0;
