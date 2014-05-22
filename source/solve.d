@@ -657,7 +657,7 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 1000;
+	immutable static int STORE_BESTS = 250;
 
 	Problem problem;
 	Trie trie;
@@ -665,6 +665,7 @@ class Game
 	GameState [] [] gs;
 	int [] [] gsp;
 	GameState best;
+	int depth;
 
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int flags)
@@ -699,6 +700,14 @@ class Game
 		next.tiles.fill_rack ();
 		next.recent_move = new GameMove (cur, row, col, add_score);
 //		debug {writeln (next);}
+
+		if (depth > 0)
+		{
+			depth--;
+			move_start (next);
+			depth++;
+		}
+
 		int i = 0;
 		while (i < gsp[num].length &&
 		    gs[num][gsp[num][i]].board.score >= next.board.score)
@@ -708,12 +717,14 @@ class Game
 			{
 				return;
 			}
-			if (gsp[num].length >= (STORE_BESTS - 100) &&
+/*
+			if (gsp[num].length >= (STORE_BESTS - 5) &&
 			    gs[num][gsp[num][i]].board.score ==
 			    next.board.score)
 			{
 				return;
 			}
+*/
 			i++;
 		}
 
@@ -947,8 +958,11 @@ class Game
 			gsp[k].reserve (STORE_BESTS);
 		}
 		auto initial_state = GameState (problem);
+		gs.assumeSafeAppend ();
 		gs[0] ~= initial_state;
+		gsp.assumeSafeAppend ();
 		gsp[0] ~= 0;
+		depth = 3;
 		foreach (k, gsp_line; gsp)
 		{
 			debug {writeln ("filled ", k, " tiles");}
@@ -956,6 +970,7 @@ class Game
 			{
 				debug {writeln ("at:");}
 				debug {writeln (gs[k][gsp_element]);}
+				debug {stdout.flush ();}
 				move_start (gs[k][gsp_element]);
 			}
 		}
