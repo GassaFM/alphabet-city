@@ -657,7 +657,7 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 250;
+	immutable static int STORE_BESTS = 25;
 
 	Problem problem;
 	Trie trie;
@@ -743,17 +743,18 @@ class Game
 		}
 
 		int j = i;
-		while (j < gs[num].length)
+		while (j < gsp[num].length)
 		{
-			if (gs[num][gsp[num][j]].board.contents_hash ==
+			int d = gsp[num][j];
+			if (gs[num][d].board.contents_hash ==
 			    next.board.contents_hash)
 			{
-				gs[num][j] = next;
+				gs[num][d] = next;
 				foreach_reverse (k; i..j)
 				{
 					gsp[num][k + 1] = gsp[num][k];
 				}
-				gsp[num][i] = j;
+				gsp[num][i] = d;
 				return;
 			}
 			j++;
@@ -761,7 +762,7 @@ class Game
 
 		if (gsp[num].length < STORE_BESTS)
 		{
-			int d = gs[num].length;
+			int d = gsp[num].length;
 			gs[num].assumeSafeAppend ();
 			gs[num] ~= next;
 			gsp[num].assumeSafeAppend ();
@@ -968,7 +969,7 @@ class Game
 		gs[0] ~= initial_state;
 		gsp.assumeSafeAppend ();
 		gsp[0] ~= 0;
-		depth = 3;
+		depth = 1;
 		foreach (k, gsp_line; gsp)
 		{
 			debug {writeln ("filled ", k, " tiles");}
