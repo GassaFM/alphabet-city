@@ -77,7 +77,7 @@ struct BoardCell
 	string toString () const
 	{
 		string res;
-		if (contents == NONE)
+		if (empty)
 		{
 			res ~= '.';
 		}
@@ -89,11 +89,17 @@ struct BoardCell
 		}
 		return res;
 	}
+
+	bool empty () @property const
+	{
+		return letter == NONE;
+	}
 }
 
 struct Board
 {
 	immutable static int SIZE = 15;
+	immutable static int CENTER = SIZE >> 1;
 	immutable static ulong [SIZE] [SIZE] hash_mults;
 
 	static this ()
@@ -113,6 +119,61 @@ struct Board
 	bool is_flipped;
 
 	alias contents this;
+
+	bool can_start_move (int row, int col, int len = Rack.MAX_SIZE)
+	{
+		// 1. Correctness part, can not be skipped.
+		// non-empty tile immediately preceding the path
+		if (col > 0 && !contents[row][col - 1].empty)
+		{
+			return false;
+		}
+		// version to check against
+//		return true;
+		// 2. Optimization part, can be skipped.
+		// one tile only
+		if (col + 1 == SIZE)
+		{
+			return false;
+		}
+		// no free tiles on the path
+		if (!contents[row][col].empty)
+		{
+			foreach (cur_col; col + 1..SIZE)
+			{
+				if (contents[row][cur_col].empty)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		// path connected with the center
+		if (row == CENTER && col <= CENTER && CENTER < col + len)
+		{
+			return true;
+		}
+		// path connected with a non-empty tile
+		int row_lo = max (0, row - 1);
+		int row_hi = min (row + 1, SIZE - 1);
+		int col_hi = min (col + len, SIZE);
+		foreach (cur_col; col..col_hi)
+		{
+			foreach (cur_row; row_lo..row_hi + 1)
+			{
+				if (!contents[cur_row][cur_col].empty)
+				{
+					return true;
+				}
+			}
+		}
+		// non-empty tile immediately after len empty tiles
+		if (col_hi < SIZE && !contents[row][col_hi].empty)
+		{
+			return true;
+		}
+		return false;
+	}
 
 	void flip ()
 	{
@@ -270,8 +331,8 @@ class Scoring
 
 struct TrieNode
 {
-	int start;
 	int mask;
+	int start;
 
 	static assert (mask.sizeof * 8 >= LET + 1);
 
@@ -285,6 +346,16 @@ struct TrieNode
 		mask = (mask & ~(1 << LET)) | (new_word << LET);
 		return new_word;
 	}
+
+	int next (const int ch) const
+	{
+		int ch_bit = 1 << ch;
+		if (!(mask & ch_bit))
+		{
+			return NA;
+		}
+		return start + popcnt (mask & (ch_bit - 1));
+	}
 }
 
 class Trie
@@ -294,16 +365,10 @@ class Trie
 	immutable static char BASE = 'a';
 
 	TrieNode [] contents;
-
-	int next (const int pos, const int ch) const
+	
+	deprecated int next (const int pos, const int ch) const
 	{
-		int cur_mask = contents[pos].mask;
-		if (!(cur_mask & (1 << ch)))
-		{
-			return NA;
-		}
-		return contents[pos].start +
-		       popcnt (cur_mask & ((1 << ch) - 1));
+		return contents[pos].next (ch);
 	}
 
 	this (const char [] [] word_list, const int size_hint = 1)
@@ -323,8 +388,8 @@ class Trie
 			{
 				if (pos < w.length)
 				{
-					contents[vp[i]].mask |=
-					    1 << (w[pos] - BASE);
+					int ch = w[pos] - BASE;
+					contents[vp[i]].mask |= 1 << ch;
 				}
 			}
 
@@ -340,7 +405,8 @@ class Trie
 			{
 				if (pos < w.length)
 				{
-					vp[i] = next (vp[i], w[pos] - BASE);
+					int ch = w[pos] - BASE;
+					vp[i] = contents[vp[i]].next (ch);
 					assert (vp[i] != NA);
 					if (pos + 1 == w.length)
 					{
@@ -386,6 +452,11 @@ struct RackEntry
 		return new_num;
 	}
 
+	bool empty () @property const
+	{
+		return contents == NONE;
+	}
+
 	void inc ()
 	{
 		contents += (1 << LET_BITS);
@@ -407,8 +478,7 @@ struct Rack
 	void add (const byte letter)
 	{
 		int i = 0;
-		while ((contents[i] != RackEntry.NONE) &&
-		    (contents[i].letter < letter))
+		while (!contents[i].empty && (contents[i].letter < letter))
 		{
 			i++;
 		}
@@ -418,15 +488,9 @@ struct Rack
 		}
 		else
 		{
-			int j = MAX_SIZE - 2;
-			while ((j > 0) && (contents[j] == RackEntry.NONE))
-			{
-				j--;
-			}
-			while (j >= i)
+			foreach_reverse (j; i..MAX_SIZE - 1)
 			{
 				contents[j + 1] = contents[j];
-				j--;
 			}
 			contents[i] = cast (ubyte) (letter + (1 << LET_BITS));
 		}
@@ -438,8 +502,7 @@ struct Rack
 		int i = 0;
 		int j = 0;
 		total = 0;
-		while (i < MAX_SIZE &&
-		    contents[i] != RackEntry.NONE)
+		while (i < MAX_SIZE && !contents[i].empty)
 		{
 			if (contents[i].num != 0)
 			{
@@ -466,7 +529,7 @@ struct Rack
 		string res = "Rack:";
 		foreach (c; contents)
 		{
-			if (c == RackEntry.NONE)
+			if (c.empty)
 			{
 				break;
 			}
@@ -609,7 +672,7 @@ class GameMove
 	{
 		row = to !(byte) (new_row);
 		col = to !(byte) (new_col);
-		while (col > 0 && cur.board[row][col - 1] != BoardCell.NONE)
+		while (col > 0 && !cur.board[row][col - 1].empty)
 		{
 			col--;
 		}
@@ -657,7 +720,6 @@ class Game
 {
 	immutable static int FLAG_CONN = 1;
 	immutable static int FLAG_ACT = 2;
-	immutable static int STORE_BESTS = 25;
 
 	Problem problem;
 	Trie trie;
@@ -665,6 +727,7 @@ class Game
 	GameState [] [] gs;
 	int [] [] gsp;
 	GameState best;
+	int bests_num;
 	int depth;
 
 	void consider (ref GameState cur, int row, int col,
@@ -680,13 +743,12 @@ class Game
 		{
 			foreach (cur_col; 0..Board.SIZE)
 			{
-				num += (cur.board[cur_row][cur_col] !=
-				    BoardCell.NONE);
+				num += !cur.board[cur_row][cur_col].empty;
 			}
 		}
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
-		if (depth == 0 && gsp[num].length == STORE_BESTS &&
+		if (depth == 0 && gsp[num].length == bests_num &&
 		    gs[num][gsp[num][$ - 1]].board.score >=
 		    cur.board.score + add_score)
 		{
@@ -708,7 +770,7 @@ class Game
 			depth++;
 		}
 
-		if (gsp[num].length == STORE_BESTS &&
+		if (gsp[num].length == bests_num &&
 		    gs[num][gsp[num][$ - 1]].board.score >= next.board.score)
 		{
 			return;
@@ -724,7 +786,7 @@ class Game
 				return;
 			}
 /*
-			if (gsp[num].length >= (STORE_BESTS - 5) &&
+			if (gsp[num].length >= (bests_num - 5) &&
 			    gs[num][gsp[num][i]].board.score ==
 			    next.board.score)
 			{
@@ -760,7 +822,7 @@ class Game
 			j++;
 		}
 
-		if (gsp[num].length < STORE_BESTS)
+		if (gsp[num].length < bests_num)
 		{
 			int d = gsp[num].length;
 			gs[num].assumeSafeAppend ();
@@ -793,14 +855,14 @@ class Game
 			return 0;
 		}
 		int row = row_init;
-		while (row > 0 && cur.board[row - 1][col] != BoardCell.NONE)
+		while (row > 0 && !cur.board[row - 1][col].empty)
 		{
 			row--;
 		}
 		if (row == row_init)
 		{
 			if (row == Board.SIZE - 1 ||
-			    cur.board[row + 1][col] == BoardCell.NONE)
+			    cur.board[row + 1][col].empty)
 			{
 				return 0;
 			}
@@ -810,7 +872,7 @@ class Game
 		int v = Trie.ROOT;
 		do
 		{
-			v = trie.next (v, cur.board[row][col].letter);
+			v = trie.contents[v].next (cur.board[row][col].letter);
 			scoring.account (score, mult,
 			    cur.board[row][col], row, col);
 			if (v == NA)
@@ -819,8 +881,7 @@ class Game
 			}
 			row++;
 		}
-		while (row < Board.SIZE &&
-		    cur.board[row][col] != BoardCell.NONE);
+		while (row < Board.SIZE && !cur.board[row][col].empty);
 		if (!trie.contents[v].word)
 		{
 			return NA;
@@ -831,8 +892,8 @@ class Game
 	void step_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
-		assert (cur.board[row][col] != BoardCell.NONE);
-		vt = trie.next (vt, cur.board[row][col]);
+		assert (!cur.board[row][col].empty);
+		vt = trie.contents[vt].next (cur.board[row][col]);
 		if (vt == NA)
 		{
 			return;
@@ -848,12 +909,11 @@ class Game
 		}
 		vert += add;
 		scoring.account (score, mult, cur.board[row][col], row, col);
-		if (row == Board.SIZE / 2 && col == Board.SIZE / 2)
+		if (row == Board.CENTER && col == Board.CENTER)
 		{
 			flags |= FLAG_CONN;
 		}
-		if (col + 1 == Board.SIZE ||
-		    cur.board[row][col + 1] == BoardCell.NONE)
+		if (col + 1 == Board.SIZE || cur.board[row][col + 1].empty)
 		{
 			if ((flags & FLAG_CONN) &&
 			    flags >= FLAG_ACT * (1 + cur.board.is_flipped) &&
@@ -882,7 +942,7 @@ class Game
 			    row, ' ', col, ' ', flags, ' ', score);}
 		}
 */
-		if (cur.board[row][col] != BoardCell.NONE)
+		if (!cur.board[row][col].empty)
 		{
 			step_recur (cur, row, col,
 			    vert, score, mult, vt, flags | FLAG_CONN);
@@ -890,16 +950,16 @@ class Game
 		}
 		foreach (ref c; cur.tiles.rack.contents)
 		{
-			if (c == RackEntry.NONE)
+			if (c.empty)
 			{
 				break;
 			}
 			if (c.num != 0)
 			{
-				c -= 1 << LET_BITS;
+				c.dec ();
 				scope (exit)
 				{
-					c += 1 << LET_BITS;
+					c.inc ();
 				}
 				if (c.letter != LET)
 				{
@@ -923,21 +983,19 @@ class Game
 		}
 		cur.board[row][col] = BoardCell.NONE;
 	}
-	
+
 	void move_horizontal (ref GameState cur)
 	{
 		foreach (row; 0..Board.SIZE)
 		{
 			foreach (col; 0..Board.SIZE)
 			{
-				if (col > 0 &&
-				    cur.board[row][col - 1] != BoardCell.NONE)
+				if (cur.board.can_start_move (row, col,
+				    cur.tiles.rack.total))
 				{
-					continue;
+					move_recur (cur, row, col, 0, 0, 1,
+					    Trie.ROOT, 0);
 				}
-
-				move_recur (cur, row, col, 0, 0, 1,
-				    Trie.ROOT, 0);
 			}
 		}
 	}
@@ -946,8 +1004,7 @@ class Game
 	{
 //		writeln (cur);
 		move_horizontal (cur);
-		if (cur.board[Board.SIZE / 2][Board.SIZE / 2] !=
-		    BoardCell.NONE)
+		if (!cur.board[Board.CENTER][Board.CENTER].empty)
 		{
 			cur.board.flip ();
 			move_horizontal (cur);
@@ -955,21 +1012,23 @@ class Game
 		}
 	}
 
-	void play ()
+	void play (int new_bests_num, int new_depth)
 	{
+		bests_num = new_bests_num;
+		depth = new_depth;
+
 		gs = new GameState [] [problem.contents.length + 1];
 		gsp = new int [] [problem.contents.length + 1];
 		foreach (k, gsp_line; gsp)
 		{
-			gs[k].reserve (STORE_BESTS);
-			gsp[k].reserve (STORE_BESTS);
+			gs[k].reserve (bests_num);
+			gsp[k].reserve (bests_num);
 		}
 		auto initial_state = GameState (problem);
 		gs.assumeSafeAppend ();
 		gs[0] ~= initial_state;
 		gsp.assumeSafeAppend ();
 		gsp[0] ~= 0;
-		depth = 1;
 		foreach (k, gsp_line; gsp)
 		{
 			debug {writeln ("filled ", k, " tiles");}
@@ -1007,14 +1066,14 @@ class Game
 
 void main ()
 {
-	auto t = new Trie (read_all_lines ("data/words.txt"), 540_159);
+	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	GC.collect ();
-	foreach (i; 0..LET)
+	foreach (i; 0..1)
 	{
 		auto g = new Game (ps.problem[i], t, s);
-		g.play ();
+		g.play (10, 0);
 		if (i > 0)
 		{
 			writeln (';');
