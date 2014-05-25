@@ -304,9 +304,12 @@ class Game
 		}
 		if (col + 1 == Board.SIZE || cur.board[row][col + 1].empty)
 		{
-			if ((flags & FLAG_CONN) &&
-			    flags >= FLAG_ACT * (1 + cur.board.is_flipped) &&
-			    trie.contents[vt].word)
+			if (trie.contents[vt].word &&
+			    (flags & FLAG_CONN) &&
+//			    (flags >= FLAG_ACT * (1 + cur.board.is_flipped)))
+//			    (flags >= FLAG_ACT))
+			    (flags >= FLAG_ACT *
+			    (1 + (cur.board.is_flipped && (vert > 0)))))
 			{
 				consider (cur, row, col,
 				    vert, score, mult, flags);
@@ -420,14 +423,19 @@ class Game
 		gsp[0] ~= 0;
 		foreach (k, gsp_line; gsp)
 		{
-			debug {writeln ("filled ", k, " tiles");}
-			foreach (gsp_element; gsp_line)
+			writeln ("filled ", k, " tiles");
+			foreach (i, gsp_element; gsp_line)
 			{
-				debug {writeln ("at:");}
-				debug {writeln (gs[k][gsp_element]);}
-				debug {stdout.flush ();}
+				if (min (i, gsp_line.length - i) < 10)
+				{
+					writeln ("at:");
+					writeln (gs[k][gsp_element]);
+					stdout.flush ();
+				}
 				move_start (gs[k][gsp_element]);
 			}
+			gs[k] = null;
+			gsp[k] = null;
 		}
 		gs = null;
 		gsp = null;

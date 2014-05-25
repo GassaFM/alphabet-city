@@ -8,11 +8,16 @@ struct Problem
 {
 	string name;
 	string contents;
-	
+
 	this (const string new_name, const string new_contents)
 	{
 		name = new_name;
 		contents = new_contents;
+	}
+
+	string toString () const
+	{
+		return name ~ ' ' ~ contents;
 	}
 }
 

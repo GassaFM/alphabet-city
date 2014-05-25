@@ -2,6 +2,7 @@ module general;
 
 import std.conv;
 import std.stdio;
+import std.typecons;
 
 immutable static int LET = 26;
 immutable static int LET_BITS = 5;
@@ -19,4 +20,15 @@ string [] read_all_lines (const string file_name)
 		res ~= to !(string) (w);
 	}
 	return res;
+}
+
+struct Pair
+{
+	int x;
+	int y;
+
+	string toString () const
+	{
+		return "(" ~ to !(string) (x) ~ ", " ~ to !(string) (y) ~ ")";
+	}
 }
