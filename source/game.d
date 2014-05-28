@@ -57,7 +57,7 @@ class GameMove
 
 //	this () @disable;
 
-	this (ref GameState cur, int new_row, int new_col, int add_score)
+	this (ref GameState cur, int new_row, int new_col, int add_score = NA)
 	{
 		row = to !(byte) (new_row);
 		col = to !(byte) (new_col);
@@ -98,9 +98,13 @@ class GameMove
 			coord ~= row_str (row);
 			coord ~= col_str (col);
 		}
- 
+
 		auto sink = appender !(string) ();
-		formattedWrite (sink, "%3s %(%s%) %4s", coord, word, score);
+		formattedWrite (sink, "%3s %(%s%)", coord, word);
+		if (score != NA)
+		{
+			formattedWrite (sink, " %4s", score);
+		}
 		return sink.data;
 	}
 }
@@ -173,7 +177,7 @@ class Game
 			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
 			    next.board.contents_hash[0]) ||
 			    (gs[num][gsp[num][i]].board.contents_hash[0] ==
-			    next.board.contents_hash[1]))
+			    next.board.contents_hash[0]))
 			{
 				return;
 			}
@@ -216,7 +220,7 @@ class Game
 
 		if (gsp[num].length < bests_num)
 		{
-			int d = gsp[num].length;
+			int d = to !(int) (gsp[num].length);
 			gs[num].assumeSafeAppend ();
 			gs[num] ~= next;
 			gsp[num].assumeSafeAppend ();
@@ -426,14 +430,21 @@ class Game
 		gsp[0] ~= 0;
 		foreach (k, gsp_line; gsp)
 		{
-			writeln ("filled ", k, " tiles");
+			version (verbose)
+			{
+				writeln ("filled ", k, " tiles");
+				stdout.flush ();
+			}
 			foreach (i, gsp_element; gsp_line)
 			{
-				if (min (i, gsp_line.length - i) < 10)
+				version (verbose)
 				{
-					writeln ("at:");
-					writeln (gs[k][gsp_element]);
-					stdout.flush ();
+					if (min (i, gsp_line.length - i) < 10)
+					{
+						writeln ("at:");
+						writeln (gs[k][gsp_element]);
+						stdout.flush ();
+					}
 				}
 				move_start (gs[k][gsp_element]);
 			}

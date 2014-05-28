@@ -15,7 +15,7 @@ struct LongWord
 {
 	immutable static int LENGTH = 15;
 
-	ByteString [] contents;
+	ByteString contents;
 	int value = NA;
 	int least = NA;
 	Pair [] subwords;
@@ -45,7 +45,7 @@ main_loop:
 				if (d == c)
 				{
 					d = LET + 1;
-					res ~= i;
+					res ~= to !(int) (i);
 					continue main_loop;
 				}
 			}
@@ -56,7 +56,7 @@ main_loop:
 					if (d == LET)
 					{
 						d = LET + 1;
-						res ~= i;
+						res ~= to !(int) (i);
 						wildcards--;
 						continue main_loop;
 					}

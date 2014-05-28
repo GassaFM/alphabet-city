@@ -4,12 +4,13 @@ import std.conv;
 import std.stdio;
 import std.typecons;
 
-alias ByteString = immutable (byte);
+alias ByteString = immutable (byte) [];
 
 immutable static int LET = 26;
 immutable static int LET_BITS = 5;
 immutable static int LET_MASK = (1 << LET_BITS) - 1;
 immutable static int NA = -1;
+immutable static int TOTAL_TILES = 100;
 
 static assert ((LET + 1) <= (1 << LET_BITS));
 

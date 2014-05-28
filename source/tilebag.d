@@ -132,21 +132,22 @@ struct Rack
 struct TileBag
 {
 	Rack rack;
+	ByteString contents;
+	int cursor;
 
-	ByteString [] contents;
-	
 	void fill_rack ()
 	{
-		while ((contents.length > 0) && (rack.total < Rack.MAX_SIZE))
+		while ((cursor < contents.length) &&
+		    (rack.total < Rack.MAX_SIZE))
 		{
-			rack.add (contents[0]);
-			contents = contents[1..$];
+			rack.add (contents[cursor]);
+			cursor++;
 		}
 	}
 
 	bool empty () @property const
 	{
-		return (contents.length == 0) && rack.empty;
+		return (cursor >= contents.length) && rack.empty;
 	}
 
 	this (const string data)
@@ -165,6 +166,7 @@ struct TileBag
 			}
 		}
 		contents = temp.idup;
+		cursor = 0;
 
 		fill_rack ();
 	}
@@ -172,7 +174,7 @@ struct TileBag
 	string toString () const
 	{
 		string res = rack.toString () ~ "\nFuture tiles: ";
-		foreach (c; contents)
+		foreach (c; contents[cursor..$])
 		{
 			res ~= (c == LET) ? '?' : (c + 'A');
 		}

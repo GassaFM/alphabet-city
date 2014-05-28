@@ -98,10 +98,11 @@ class Trie
 				}
 			}
 
-			int new_size = contents.length;
+			int new_size = to !(int) (contents.length);
 			foreach (j; old_size..new_size)
 			{
-				contents[j].start = contents.length;
+				contents[j].start =
+				    to !(int) (contents.length);
 				contents.length += popcnt (contents[j].mask);
 			}
 			old_size = new_size;
