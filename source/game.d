@@ -9,6 +9,7 @@ import std.string;
 
 import board;
 import general;
+import goal;
 import problem;
 import scoring;
 import tilebag;
@@ -112,11 +113,12 @@ class GameMove
 class Game
 {
 	immutable static int FLAG_CONN = 1;
-	immutable static int FLAG_ACT = 2;
+	immutable static int MULT_ACT = 2;
 
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
+	Goal [] goals;
 	GameState [] [] gs;
 	int [] [] gsp;
 	GameState best;
@@ -140,20 +142,33 @@ class Game
 			}
 		}
 		int add_score = vert + score * mult +
-		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
+		    scoring.bingo * (flags >= Rack.MAX_SIZE * MULT_ACT);
 		if (depth == 0 && gsp[num].length == bests_num &&
 		    gs[num][gsp[num][$ - 1]].board.value >=
 		    cur.board.value + add_score)
 		{
 			return;
 		}
-		
+
 		auto next = cur;
-		next.board.normalize ();
+		next.board.normalize_flip ();
 		next.board.score += add_score;
-		next.board.value += add_score;
+//		next.board.value += add_score;
 		next.tiles.rack.normalize ();
 		next.tiles.fill_rack ();
+
+		next.board.value = next.board.score;
+		foreach (goal; goals)
+		{
+			int cur_value = calc_goal_value (next, goal);
+			if (cur_value == NA)
+			{
+				return;
+			}
+			next.board.value += cur_value;
+		}
+
+		next.board.normalize ();
 		next.recent_move = new GameMove (cur, row, col, add_score);
 //		debug {writeln (next);}
 
@@ -243,6 +258,47 @@ class Game
 		}
 	}
 
+	int calc_goal_value (ref GameState cur, Goal goal)
+	{
+		if (cur.board.is_flipped != goal.is_flipped)
+		{
+			cur.board.flip ();
+		}
+		int row = goal.row;
+		int col = goal.col;
+		assert (col == 0);
+		// else: check to the left not implemented
+		assert (col + goal.word.length == Board.SIZE);
+		// else: check to the right not implemented
+
+		foreach (pos, letter; goal.word)
+		{
+			if (((goal.mask_forbidden & (1 << pos)) != 0) &&
+			    (cur.board[row][col] != EMPTY))
+			{
+				return NA;
+			}
+		}
+
+		int res = 0;
+		foreach (pos, letter; goal.word)
+		{
+			bool is_empty = (cur.board[row][col] == EMPTY);
+			if (is_empty)
+			{
+				cur.board[row][col] = letter |
+				    (1 << BoardCell.ACTIVE_SHIFT);
+			}
+			int add = check_vertical (cur, row, col);
+			if (add == NA)
+			{
+				return NA;
+			}
+			res += add;
+		}
+		return res;
+	}
+
 	int check_vertical (ref GameState cur,
 	    const int row_init, const int col)
 	{
@@ -313,9 +369,9 @@ class Game
 		{
 			if (trie.contents[vt].word &&
 			    (flags & FLAG_CONN) &&
-//			    (flags >= FLAG_ACT * (1 + cur.board.is_flipped)))
-//			    (flags >= FLAG_ACT))
-			    (flags >= FLAG_ACT *
+//			    (flags >= MULT_ACT * (1 + cur.board.is_flipped)))
+//			    (flags >= MULT_ACT))
+			    (flags >= MULT_ACT *
 			    (1 + (cur.board.is_flipped && (vert > 0)))))
 			{
 				consider (cur, row, col,
@@ -366,7 +422,7 @@ class Game
 					    (1 << BoardCell.ACTIVE_SHIFT);
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
-					    flags + FLAG_ACT);
+					    flags + MULT_ACT);
 					continue;
 				}
 				foreach (ubyte letter; 0..LET)
@@ -376,7 +432,7 @@ class Game
 					    (1 << BoardCell.ACTIVE_SHIFT);
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
-					    flags + FLAG_ACT);
+					    flags + MULT_ACT);
 				}
 			}
 		}

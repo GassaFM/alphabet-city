@@ -159,10 +159,13 @@ struct TileBag
 			{
 				temp ~= LET;
 			}
+			else if ('A' <= c && c <= 'Z')
+			{
+				temp ~= to !(byte) (c - 'A');
+			}
 			else
 			{
-				enforce ('A' <= c && c <= 'Z');
-				temp ~= to !(byte) (c - 'A');
+				enforce (false);
 			}
 		}
 		contents = temp.idup;

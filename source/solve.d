@@ -1,6 +1,7 @@
 module main;
 
 import core.memory;
+import std.algorithm;
 import std.conv;
 import std.stdio;
 
@@ -23,6 +24,71 @@ void main ()
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
 /*
+	foreach (p; ps.problem)
+	{
+		alias Tuple !(int [], "s", Goal, "g") LocalPair;
+		LocalPair [] gt;
+		foreach (goal; goals)
+		{
+			gt ~= LocalPair (goal.calc_times
+			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT),
+			    goal);
+		}
+		sort (gt);
+		reverse (gt);
+		writeln (p);
+		foreach (
+		writefln ("%(%s\n%)", filter
+		    !(a => a.s.length == 7 &&
+		    a.s[0] >= UPPER_LIMIT - 1 &&
+		    a.s[6] >= UPPER_LIMIT - 7) (gt));
+		stdout.flush ();
+	}
+*/
+	GC.collect ();
+	bool started_output = false;
+
+	immutable int UPPER_LIMIT = TOTAL_TILES;
+	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
+	foreach (i; 2..3)
+	{
+		auto p = ps.problem[i];
+		alias Tuple !(int [], "s", Goal, "g") LocalPair;
+		LocalPair [] gt;
+		foreach (goal; goals)
+		{
+			gt ~= LocalPair (goal.calc_times
+			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT),
+			    goal);
+		}
+		sort (gt);
+		reverse (gt);
+
+		foreach (gte; filter
+		    !(a => a.s.length == 7 &&
+		    a.s[0] >= UPPER_LIMIT - 1 &&
+		    a.s[6] >= UPPER_LIMIT - 7) (gt))
+		{
+			auto p_reduced = Problem (p.name,
+			    p.contents[0..LOWER_LIMIT]);
+			auto g = new Game (p_reduced, t, s);
+			g.goals = [gte.g];
+			g.play (10, 0);
+			if (started_output)
+			{
+				writeln (';');
+			}
+			started_output = true;
+			writeln (p.name);
+			writeln (g);
+			stdout.flush ();
+			stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
+			    to !(string) (g.best.board.score) ~ " " ~
+			    to !(string) (g.best.board.value));
+			GC.collect ();
+		}
+	}
+/*
 	auto goals = GoalBuilder.build_goals (t);
 	writefln ("%(%s\n%)", goals);
 */
@@ -41,21 +107,23 @@ void main ()
 		}
 	}
 */
-	GC.collect ();
-	foreach (i; 0..1)
+/*
+	foreach (i; 2..3)
 	{
 		auto g = new Game (ps.problem[i], t, s);
 		g.play (10, 0);
-		if (i > 0)
+		if (started_output)
 		{
 			writeln (';');
 		}
+		started_output = true;
 		writeln (ps.problem[i].name);
 		writeln (g);
 		stdout.flush ();
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
-			to !(string) (g.best.board.score) ~ " " ~
-			to !(string) (g.best.board.value));
+		    to !(string) (g.best.board.score) ~ " " ~
+		    to !(string) (g.best.board.value));
 		GC.collect ();
 	}
+*/
 }

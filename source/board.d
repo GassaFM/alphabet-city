@@ -167,12 +167,17 @@ struct Board
 		is_flipped ^= true;
 	}
 
-	void normalize ()
+	void normalize_flip ()
 	{
 		if (is_flipped)
 		{
 			flip ();
 		}
+	}
+
+	void normalize ()
+	{
+		normalize_flip ();
 		foreach (row; 0..SIZE)
 		{
 			foreach (col; 0..SIZE)

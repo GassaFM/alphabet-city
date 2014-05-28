@@ -20,8 +20,8 @@ class Goal
 	byte col;
 	bool is_flipped;
 
-	int [] get_times (TileBag tile_bag,
-	    int upper_limit = TOTAL_TILES - 1, int wildcards = 0)
+	int [] calc_times (TileBag tile_bag, int lower_limit = 0,
+	    int upper_limit = TOTAL_TILES, int wildcards = 0)
 	{
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
@@ -32,9 +32,10 @@ class Goal
 			if ((mask_forbidden & (1 << pos)) != 0)
 			{
 				ok = false;
-				foreach_reverse (num, tile;
-				    word[0..upper_limit])
+				for (int num = upper_limit - 1;
+				    num >= lower_limit; num--)
 				{
+					auto tile = tile_bag.contents[num];
 					if (!taken[num] && tile == letter)
 					{
 						res ~= to !(int) (num);
@@ -51,7 +52,8 @@ class Goal
 		}
 		if (ok)
 		{
-			sort !((a, b) => a.toLower () < b.toLower ()) (res);
+		        sort (res);
+		        reverse (res);
 			return res;
 		}
 		else
@@ -82,6 +84,11 @@ class Goal
 		res ~= ' ' ~ to !(string) (col);
 		res ~= ' ' ~ to !(string) (is_flipped);
 		return res;
+	}
+
+	override int opCmp (Object other)
+	{
+		return false;
 	}
 }
 
@@ -138,6 +145,8 @@ static class GoalBuilder
 		}
 
 		recur (0, 0, 0, 0, 0);
+		sort !((a, b) => toLower (to !(string) (a.word)) <
+		    toLower (to !(string) (b.word))) (res);
 
 		debug {writeln ("GoalBuilder: built ", res.length, " goals");}
 		return res;
