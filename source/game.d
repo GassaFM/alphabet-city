@@ -265,6 +265,17 @@ class Game
 		{
 			cur.board.flip ();
 		}
+		int delta = 0;
+		foreach (row; 0..Board.CENTER)
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				if (!cur.board[row][col].empty)
+				{
+					delta += Board.CENTER - row;
+				}
+			}
+		}
 		int row = goal.row;
 		int col = goal.col;
 		assert (col == 0);
@@ -283,6 +294,7 @@ class Game
 		}
 
 		int res = 0;
+		res += delta * 5;
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;

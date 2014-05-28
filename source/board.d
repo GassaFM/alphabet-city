@@ -211,6 +211,7 @@ struct Board
 			res ~= '\n';
 		}
 		res ~= to !(string) (score) ~ ' ';
+		res ~= to !(string) (value) ~ ' ';
 		res ~= to !(string) (is_flipped) ~ '\n';
 		return res;
 	}
