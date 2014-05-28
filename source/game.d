@@ -161,6 +161,7 @@ class Game
 		foreach (goal; goals)
 		{
 			int cur_value = calc_goal_value (next, goal);
+//			writeln (cur_value);
 			if (cur_value == NA)
 			{
 				return;
@@ -192,7 +193,7 @@ class Game
 			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
 			    next.board.contents_hash[0]) ||
 			    (gs[num][gsp[num][i]].board.contents_hash[0] ==
-			    next.board.contents_hash[0]))
+			    next.board.contents_hash[1]))
 			{
 				return;
 			}
@@ -273,23 +274,32 @@ class Game
 
 		foreach (pos, letter; goal.word)
 		{
-			if (((goal.mask_forbidden & (1 << pos)) != 0) &&
-			    (cur.board[row][col] != EMPTY))
+			if (!cur.board[row][col + pos].empty &&
+			    ((cur.board[row][col + pos].letter != letter) ||
+			    ((goal.mask_forbidden & (1 << pos)) != 0)))
 			{
 				return NA;
 			}
 		}
 
 		int res = 0;
-		foreach (pos, letter; goal.word)
+		foreach (int pos, letter; goal.word)
 		{
-			bool is_empty = (cur.board[row][col] == EMPTY);
+			bool is_empty = cur.board[row][col + pos].empty;
 			if (is_empty)
 			{
-				cur.board[row][col] = letter |
+				cur.board[row][col + pos] = letter |
 				    (1 << BoardCell.ACTIVE_SHIFT);
 			}
-			int add = check_vertical (cur, row, col);
+			else
+			{
+				res += goal.letter_bonus;
+			}
+			int add = check_vertical (cur, row, col + pos);
+			if (is_empty)
+			{
+				cur.board[row][col + pos] = BoardCell.NONE;
+			}
 			if (add == NA)
 			{
 				return NA;

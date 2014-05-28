@@ -73,12 +73,13 @@ void main ()
 			    p.contents[0..LOWER_LIMIT]);
 			auto g = new Game (p_reduced, t, s);
 			g.goals = [gte.g];
-			g.play (10, 0);
+			g.play (50, 1);
 			if (started_output)
 			{
 				writeln (';');
 			}
 			started_output = true;
+			writeln (gte);
 			writeln (p.name);
 			writeln (g);
 			stdout.flush ();

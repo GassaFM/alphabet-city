@@ -19,6 +19,7 @@ class Goal
 	byte row;
 	byte col;
 	bool is_flipped;
+	int letter_bonus;
 
 	int [] calc_times (TileBag tile_bag, int lower_limit = 0,
 	    int upper_limit = TOTAL_TILES, int wildcards = 0)
@@ -63,13 +64,15 @@ class Goal
 	}
 
 	this (const byte [] new_word, int new_mask_forbidden,
-	    byte new_row, byte new_col, bool new_is_flipped)
+	    byte new_row, byte new_col, bool new_is_flipped,
+	    int new_letter_bonus = 100)
 	{
 		word = new_word.idup;
 		mask_forbidden = new_mask_forbidden;
 		row = new_row;
 		col = new_col;
 		is_flipped = new_is_flipped;
+		letter_bonus = new_letter_bonus;
 	}
 
 	override string toString () const
