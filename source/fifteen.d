@@ -15,7 +15,7 @@ struct LongWord
 {
 	immutable static int LENGTH = 15;
 
-	immutable (byte) [] contents;
+	ByteString [] contents;
 	int value = NA;
 	int least = NA;
 	Pair [] subwords;

@@ -133,7 +133,7 @@ struct TileBag
 {
 	Rack rack;
 
-	immutable (byte) [] contents;
+	ByteString [] contents;
 	
 	void fill_rack ()
 	{
