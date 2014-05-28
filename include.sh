@@ -9,4 +9,5 @@ export SOURCES=`ls source/*.d`
 export DEBUG_OPTIONS="-debug -unittest"
 export RELEASE_OPTIONS="-O -release -inline -noboundscheck"
 export COMMON_OPTIONS="-O -inline -wi -odobject"
-#-L/SUBSYSTEM:WINDOWS
+#-L/SUBSYSTEM:CONSOLE:4.0
+#-L/SUBSYSTEM:WINDOWS:4.0

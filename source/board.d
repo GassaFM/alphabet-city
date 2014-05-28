@@ -93,8 +93,9 @@ struct Board
 	}
 
 	BoardCell [SIZE] [SIZE] contents;
-	ulong contents_hash;
+	ulong [2] contents_hash;
 	int score;
+	int value;
 	bool is_flipped;
 
 	alias contents this;
@@ -179,13 +180,16 @@ struct Board
 				contents[row][col].active = false;
 			}
 		}
-		contents_hash = 0;
+		contents_hash[0] = 0;
+		contents_hash[1] = 0;
 		foreach (row; 0..SIZE)
 		{
 			foreach (col; 0..SIZE)
 			{
-				contents_hash += hash_mults[row][col] *
+				contents_hash[0] += hash_mults[row][col] *
 				    contents[row][col];
+				contents_hash[1] += hash_mults[row][col] *
+				    contents[col][row];
 			}
 		}
 	}

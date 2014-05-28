@@ -138,8 +138,8 @@ class Game
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * FLAG_ACT);
 		if (depth == 0 && gsp[num].length == bests_num &&
-		    gs[num][gsp[num][$ - 1]].board.score >=
-		    cur.board.score + add_score)
+		    gs[num][gsp[num][$ - 1]].board.value >=
+		    cur.board.value + add_score)
 		{
 			return;
 		}
@@ -147,6 +147,7 @@ class Game
 		auto next = cur;
 		next.board.normalize ();
 		next.board.score += add_score;
+		next.board.value += add_score;
 		next.tiles.rack.normalize ();
 		next.tiles.fill_rack ();
 		next.recent_move = new GameMove (cur, row, col, add_score);
@@ -160,24 +161,26 @@ class Game
 		}
 
 		if (gsp[num].length == bests_num &&
-		    gs[num][gsp[num][$ - 1]].board.score >= next.board.score)
+		    gs[num][gsp[num][$ - 1]].board.value >= next.board.value)
 		{
 			return;
 		}
 
 		int i = 0;
 		while (i < gsp[num].length &&
-		    gs[num][gsp[num][i]].board.score >= next.board.score)
+		    gs[num][gsp[num][i]].board.value >= next.board.value)
 		{
-			if (gs[num][gsp[num][i]].board.contents_hash ==
-			    next.board.contents_hash)
+			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
+			    next.board.contents_hash[0]) ||
+			    (gs[num][gsp[num][i]].board.contents_hash[0] ==
+			    next.board.contents_hash[1]))
 			{
 				return;
 			}
 /*
 			if (gsp[num].length >= (bests_num - 5) &&
-			    gs[num][gsp[num][i]].board.score ==
-			    next.board.score)
+			    gs[num][gsp[num][i]].board.value ==
+			    next.board.value)
 			{
 				return;
 			}
@@ -187,7 +190,7 @@ class Game
 
 		scope (exit)
 		{
-			if (best.board.score < next.board.score)
+			if (best.board.value < next.board.value)
 			{
 				best = next;
 			}

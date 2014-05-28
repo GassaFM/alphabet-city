@@ -35,10 +35,10 @@ void main ()
 	}
 */
 	GC.collect ();
-	foreach (i; 1..2)
+	foreach (i; 0..1)
 	{
 		auto g = new Game (ps.problem[i], t, s);
-		g.play (20000, 0);
+		g.play (10, 0);
 		if (i > 0)
 		{
 			writeln (';');
@@ -47,7 +47,8 @@ void main ()
 		writeln (g);
 		stdout.flush ();
 		stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
-			to !(string) (g.best.board.score));
+			to !(string) (g.best.board.score) ~ " " ~
+			to !(string) (g.best.board.value));
 		GC.collect ();
 	}
 }
