@@ -136,6 +136,8 @@ struct TileBag
 	ByteString contents;
 	int cursor;
 
+	alias contents this;
+
 	void fill_rack ()
 	{
 		while ((cursor < contents.length) &&
@@ -177,7 +179,7 @@ struct TileBag
 //		writeln (rack.total);
 	}
 
-	this (const string data)
+	this (const char [] data)
 	{
 		byte [] temp;
 		foreach (c; data)
@@ -209,5 +211,48 @@ struct TileBag
 			res ~= (c == LET) ? '?' : (c + 'A');
 		}
 		return res;
+	}
+}
+
+struct TileCounter
+{
+	byte [LET + 1] contents;
+
+	alias contents this;
+
+	this (const char [] data)
+	{
+		foreach (c; data)
+		{
+			if (c == '?')
+			{
+				contents[LET]++;
+			}
+			else if ('A' <= c && c <= 'Z')
+			{
+				contents[c - 'A']++;
+			}
+			else if ('a' <= c && c <= 'z')
+			{
+				contents[c - 'a']++;
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+	}
+
+	bool opBinary (string op) (ref const TileCounter other) const
+	    if (op == "<<")
+	{
+		foreach (i; 0..LET + 1)
+		{
+			if (contents[i] > other.contents[i])
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 }

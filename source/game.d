@@ -172,7 +172,22 @@ class Game
 		next.board.value = next.board.score;
 		foreach (goal; goals)
 		{
-			int cur_value = calc_goal_value (next, goal);
+			int cur_value;
+			final switch (goal.stage)
+			{
+				case Goal.Stage.PREPARE:
+					cur_value = calc_goal_value_prepare
+					    (next, goal);
+					break;
+				case Goal.Stage.MAIN:
+					cur_value = calc_goal_value_main
+					    (next, goal);
+					break;
+				case Goal.Stage.DONE:
+					cur_value = calc_goal_value_done
+					    (next, goal);
+					break;
+			}
 //			writeln (cur_value);
 			if (cur_value == NA)
 			{
@@ -271,7 +286,7 @@ class Game
 		}
 	}
 
-	int calc_goal_value (ref GameState cur, Goal goal)
+	int calc_goal_value_prepare (ref GameState cur, Goal goal)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -309,7 +324,8 @@ class Game
 			}
 			else
 			{
-				res += goal.letter_bonus;
+				res += goal.letter_bonus >>
+				    cur.board[row][col + pos].wildcard;
 			}
 			int add = check_vertical (cur, row, col + pos);
 			if (is_empty)
@@ -323,6 +339,67 @@ class Game
 			res += add;
 		}
 		return res;
+	}
+
+	int calc_goal_value_main (ref GameState cur, Goal goal)
+	{
+		if (cur.board.is_flipped != goal.is_flipped)
+		{
+			cur.board.flip ();
+		}
+		int row = goal.row;
+		int col = goal.col;
+		assert (col == 0);
+		// else: check to the left not implemented
+		assert (col + goal.word.length == Board.SIZE);
+		// else: check to the right not implemented
+
+		bool has_empty = false;
+		bool has_full = false;
+		foreach (pos, letter; goal.word)
+		{
+			if ((goal.mask_forbidden & (1 << pos)) != 0)
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					has_empty = true;
+				}
+				else
+				{
+					has_full = true;
+				}
+				if (has_empty && has_full)
+				{
+					return NA;
+				}
+			}
+			else if (cur.board[row][col + pos].empty)
+			{
+				return NA;
+			}
+		}
+
+		return 0;
+	}
+
+	int calc_goal_value_done (ref GameState cur, Goal goal)
+	{
+		if (cur.board.is_flipped != goal.is_flipped)
+		{
+			cur.board.flip ();
+		}
+		int row = goal.row;
+		int col = goal.col;
+
+		foreach (pos, letter; goal.word)
+		{
+			if (cur.board[row][col + pos].empty)
+			{
+				return NA;
+			}
+		}
+
+		return 0;
 	}
 
 	int bias_value (ref GameState cur, int bias)
@@ -527,9 +604,9 @@ class Game
 		}
 	}
 
-	void go (int hi, Keep keep)
+	void go (int upper_limit, Keep keep)
 	{
-		foreach (k; resume_step..hi)
+		foreach (k; resume_step..upper_limit)
 		{
 			version (verbose)
 			{
@@ -555,7 +632,7 @@ class Game
 				gsp[k] = null;
 			}
 		}
-		resume_step = hi;
+		resume_step = upper_limit;
 	}
 
 	void cleanup (Keep keep)
@@ -565,6 +642,11 @@ class Game
 			resume_step = NA;
 			gs = null;
 			gsp = null;
+			foreach (k, gsp_line; gsp)
+			{
+				gs[k] = null;
+				gsp[k] = null;
+			}
 		}
 	}
 
@@ -603,7 +685,11 @@ class Game
 
 		enforce (gs != null);
 		enforce (gsp != null);
-		best.board.value = NA;
+		if (resume_step < problem.contents.length)
+		{
+			best.board.value = NA;
+		}
+/*
 		if (!keep)
 		{
 			foreach (k; 0..resume_step)
@@ -612,8 +698,9 @@ class Game
 				gsp[k] = null;
 			}
 		}
-		gs.length = problem.contents.length + 1;
-		gsp.length = problem.contents.length + 1;
+*/
+		gs.length = max (gs.length, problem.contents.length + 1);
+		gsp.length = max (gsp.length, problem.contents.length + 1);
 		foreach (k; resume_step..gs.length)
 		{
 			gs[k].reserve (bests_num);
@@ -621,8 +708,12 @@ class Game
 			foreach (ref gs_element; gs[k])
 			{
 				gs_element.tiles.update (problem.contents);
+				// TODO: should clean up the following line
+				gs_element.board.value =
+				    gs_element.board.score;
 			}
 		}
+		resume_step = max (0, resume_step - 6);
 		go (to !(int) (problem.contents.length), keep);
 		cleanup (keep);
 	}

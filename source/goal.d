@@ -15,6 +15,8 @@ import trie;
 
 class Goal
 {
+	enum Stage: byte {PREPARE, MAIN, DONE};
+
 	ByteString word;
 	int mask_forbidden;
 	byte row;
@@ -25,6 +27,8 @@ class Goal
 	int stored_score_rating = NA;
 	int stored_holes_rating = NA;
 	int [] stored_times;
+	Pair stored_best_times;
+	Stage stage;
 
 	int calc_score_rating (Scoring scoring = global_scoring) const
 	{
@@ -147,6 +151,57 @@ class Goal
 		return stored_times;
 	}
 
+	Pair calc_best_times (TileBag tile_bag, int lower_limit = 0,
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
+	{
+		assert (wildcards == 0); // wildcards > 0: not implemented yet
+		auto taken = new bool [tile_bag.contents.length];
+		lower_limit = max (lower_limit, Board.CENTER);
+		TileCounter total_counter;
+		TileCounter forbidden_counter;
+		foreach (pos, letter; word)
+		{
+			total_counter[letter]++;
+			if ((mask_forbidden & (1 << pos)) != 0)
+			{
+				forbidden_counter[letter]++;
+			}
+		}
+		TileCounter cur_counter;
+		bool got_total = false;
+		auto res = Pair (NA, TOTAL_TILES);
+		int start = lower_limit;
+		foreach (tile_num; lower_limit..upper_limit)
+		{
+			cur_counter[tile_bag.contents[tile_num]]++;
+			if (!got_total && total_counter << cur_counter)
+			{
+				got_total = true;
+			}
+			if (got_total)
+			{
+				do
+				{
+					if (res.y - res.x >
+					    tile_num + 1 - start)
+					{
+						res = Pair (start,
+						    tile_num + 1);
+					}
+					cur_counter[tile_bag[start]]--;
+					start++;
+				}
+				while (forbidden_counter << cur_counter);
+			}
+		}
+		return res;
+	}
+
+	Pair get_best_times () @property
+	{
+		return stored_best_times;
+	}
+
 	this (const byte [] new_word, int new_mask_forbidden,
 	    byte new_row, byte new_col, bool new_is_flipped,
 	    int new_letter_bonus = 100)
@@ -167,12 +222,13 @@ class Goal
 			res ~= c +
 			    (((mask_forbidden & (1 << i)) > 0) ? 'A' : 'a');
 		}
-		res ~= ' ' ~ to !(string) (row);
-		res ~= ' ' ~ to !(string) (col);
-		res ~= ' ' ~ to !(string) (is_flipped);
-		res ~= ' ' ~ to !(string) (letter_bonus);
+//		res ~= ' ' ~ to !(string) (row);
+//		res ~= ' ' ~ to !(string) (col);
+//		res ~= ' ' ~ to !(string) (is_flipped);
+//		res ~= ' ' ~ to !(string) (letter_bonus);
 		res ~= ' ' ~ to !(string) (stored_score_rating);
 		res ~= ' ' ~ to !(string) (stored_holes_rating);
+		res ~= ' ' ~ to !(string) (stored_best_times);
 		res ~= ' ' ~ to !(string) (stored_times);
 		return res;
 	}

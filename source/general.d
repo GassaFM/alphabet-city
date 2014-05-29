@@ -34,4 +34,13 @@ struct Pair
 	{
 		return "(" ~ to !(string) (x) ~ ", " ~ to !(string) (y) ~ ")";
 	}
+
+	int opCmp () (auto ref const Pair other) const
+	{
+		if (x != other.x)
+		{
+			return (x > other.x) - (x < other.x);
+		}
+		return (y > other.y) - (y < other.y);
+	}
 }
