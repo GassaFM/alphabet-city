@@ -20,9 +20,57 @@ class Goal
 	byte col;
 	bool is_flipped;
 	int letter_bonus;
+	int stored_holes_rating = NA;
+	int [] stored_times;
+
+	int calc_holes_rating () const
+	{
+		immutable int HOLE = 10;
+		immutable int EDGE_CLOSE = 3;
+		immutable int CENTER_CLOSE = 1;
+
+		int res = 0;
+		int cur = 0;
+		foreach (i; 0..word.length + 1)
+		{
+			if (mask_forbidden & (1 << i))
+			{
+				if (cur)
+				{
+					res += HOLE;
+					if (cur == 1)
+					{
+						if (i == 2 || i == 14)
+						{
+							res += EDGE_CLOSE;
+						}
+						else if (i == 7 || i == 9)
+						{
+							res += CENTER_CLOSE;
+						}
+					}
+					cur = 0;
+				}
+			}
+			else
+			{
+				cur++;
+			}
+		}
+		return res;
+	}
+
+	int holes_rating () @property
+	{
+		if (stored_holes_rating == NA)
+		{
+			stored_holes_rating = calc_holes_rating ();
+		}
+		return stored_holes_rating;
+	}
 
 	int [] calc_times (TileBag tile_bag, int lower_limit = 0,
-	    int upper_limit = TOTAL_TILES, int wildcards = 0)
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
 	{
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
@@ -63,6 +111,11 @@ class Goal
 		}
 	}
 
+	int [] get_times () @property
+	{
+		return stored_times;
+	}
+
 	this (const byte [] new_word, int new_mask_forbidden,
 	    byte new_row, byte new_col, bool new_is_flipped,
 	    int new_letter_bonus = 100)
@@ -86,6 +139,9 @@ class Goal
 		res ~= ' ' ~ to !(string) (row);
 		res ~= ' ' ~ to !(string) (col);
 		res ~= ' ' ~ to !(string) (is_flipped);
+		res ~= ' ' ~ to !(string) (letter_bonus);
+		res ~= ' ' ~ to !(string) (stored_holes_rating);
+		res ~= ' ' ~ to !(string) (stored_times);
 		return res;
 	}
 

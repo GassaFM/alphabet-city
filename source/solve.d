@@ -23,33 +23,35 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
-/*
+
+	immutable int UPPER_LIMIT = TOTAL_TILES;
+//	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
+	immutable int LOWER_LIMIT = UPPER_LIMIT - 10;
+
 	foreach (p; ps.problem)
 	{
-		alias Tuple !(int [], "s", Goal, "g") LocalPair;
-		LocalPair [] gt;
-		foreach (goal; goals)
+		foreach (ref goal; goals)
 		{
-			gt ~= LocalPair (goal.calc_times
-			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT),
-			    goal);
+			goal.stored_times = goal.calc_times
+			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT);
 		}
-		sort (gt);
-		reverse (gt);
+		sort !((a, b) => a.holes_rating < b.holes_rating,
+		    SwapStrategy.stable) (goals);
 		writeln (p);
-		foreach (
-		writefln ("%(%s\n%)", filter
-		    !(a => a.s.length == 7 &&
-		    a.s[0] >= UPPER_LIMIT - 1 &&
-		    a.s[6] >= UPPER_LIMIT - 7) (gt));
+//		writefln ("%(%s\n%)", goals.filter
+//		    !(a => a.get_times.length > 1));
+		writefln ("%(%s\n%)", goals.filter
+		    !(a => a.get_times.length == 7));
+//		writefln ("%(%s\n%)", goals.filter
+//		    !(a => a.get_times.length == Rack.MAX_SIZE &&
+//		    a.get_times[0] >= UPPER_LIMIT - 1 &&
+//		    a.get_times[$ - 1] >= LOWER_LIMIT));
 		stdout.flush ();
 	}
-*/
+/*
 	GC.collect ();
 	bool started_output = false;
 
-	immutable int UPPER_LIMIT = TOTAL_TILES;
-	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
@@ -64,31 +66,37 @@ void main ()
 		sort (gt);
 		reverse (gt);
 
-		foreach (gte; filter
-		    !(a => a.s.length == 7 &&
-		    a.s[0] >= UPPER_LIMIT - 1 &&
-		    a.s[6] >= UPPER_LIMIT - 7) (gt))
+		foreach (gte; gt.filter !(a => a.s.length == 7).take (10))
+//		foreach (gte; filter
+//		    !(a => a.s.length == 7 &&
+//		    a.s[0] >= UPPER_LIMIT - 1 &&
+//		    a.s[6] >= UPPER_LIMIT - 7) (gt))
 		{
 			auto p_reduced = Problem (p.name,
 			    p.contents[0..LOWER_LIMIT]);
 			auto g = new Game (p_reduced, t, s);
 			g.goals = [gte.g];
-			g.play (100, 0);
+			g.play (50, 1, Game.Keep.True);
+			g.problem = p;
+			g.goals = [];
+			g.resume (NA, NA);
 			if (started_output)
 			{
 				writeln (';');
 			}
 			started_output = true;
-			writeln (gte);
 			writeln (p.name);
 			writeln (g);
 			stdout.flush ();
+			stderr.writeln (gte);
 			stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
 			    to !(string) (g.best.board.score) ~ " " ~
 			    to !(string) (g.best.board.value));
+			stderr.flush ();
 			GC.collect ();
 		}
 	}
+*/
 /*
 	auto goals = GoalBuilder.build_goals (t);
 	writefln ("%(%s\n%)", goals);

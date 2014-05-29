@@ -2,6 +2,7 @@ module tilebag;
 
 import std.conv;
 import std.exception;
+import std.stdio;
 
 import general;
 
@@ -150,6 +151,32 @@ struct TileBag
 		return (cursor >= contents.length) && rack.empty;
 	}
 
+	void update (const string data)
+	{
+		byte [] temp;
+		foreach (c; data[contents.length..$])
+		{
+			if (c == '?')
+			{
+				temp ~= LET;
+			}
+			else if ('A' <= c && c <= 'Z')
+			{
+				temp ~= to !(byte) (c - 'A');
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+//		writeln (contents.length, ' ', temp.length);
+		contents ~= temp.idup;
+
+//		writeln (rack.total);
+		fill_rack ();
+//		writeln (rack.total);
+	}
+
 	this (const string data)
 	{
 		byte [] temp;
@@ -173,7 +200,7 @@ struct TileBag
 
 		fill_rack ();
 	}
-	
+
 	string toString () const
 	{
 		string res = rack.toString () ~ "\nFuture tiles: ";

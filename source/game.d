@@ -3,6 +3,7 @@ module game;
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.exception;
 import std.format;
 import std.stdio;
 import std.string;
@@ -112,6 +113,8 @@ class GameMove
 
 class Game
 {
+	enum Keep: bool {False, True};
+
 	immutable static int FLAG_CONN = 1;
 	immutable static int MULT_ACT = 2;
 
@@ -124,6 +127,7 @@ class Game
 	GameState best;
 	int bests_num;
 	int depth;
+	int resume_step = NA;
 
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int flags)
@@ -294,7 +298,7 @@ class Game
 		}
 
 		int res = 0;
-		res += delta * 1;
+		res += delta * 6;
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;
@@ -489,7 +493,48 @@ class Game
 		}
 	}
 
-	void play (int new_bests_num, int new_depth)
+	void go (int hi, Keep keep)
+	{
+		foreach (k; resume_step..hi)
+		{
+			version (verbose)
+			{
+				writeln ("filled ", k, " tiles");
+				stdout.flush ();
+			}
+			foreach (i, gsp_element; gsp[k])
+			{
+				version (verbose)
+				{
+					if (min (i, gsp[k].length - i) < 10)
+					{
+						writeln ("at:");
+						writeln (gs[k][gsp_element]);
+						stdout.flush ();
+					}
+				}
+				move_start (gs[k][gsp_element]);
+			}
+			if (!keep)
+			{
+				gs[k] = null;
+				gsp[k] = null;
+			}
+		}
+		resume_step = hi;
+	}
+
+	void cleanup (Keep keep)
+	{
+		if (!keep)
+		{
+			resume_step = NA;
+			gs = null;
+			gsp = null;
+		}
+	}
+
+	void play (int new_bests_num, int new_depth, Keep keep = Keep.False)
 	{
 		bests_num = new_bests_num;
 		depth = new_depth;
@@ -506,31 +551,46 @@ class Game
 		gs[0] ~= initial_state;
 		gsp.assumeSafeAppend ();
 		gsp[0] ~= 0;
-		foreach (k, gsp_line; gsp)
+		resume_step = 0;
+		go (to !(int) (problem.contents.length), keep);
+		cleanup (keep);
+	}
+
+	void resume (int new_bests_num, int new_depth, Keep keep = Keep.False)
+	{
+		if (new_bests_num != NA)
 		{
-			version (verbose)
-			{
-				writeln ("filled ", k, " tiles");
-				stdout.flush ();
-			}
-			foreach (i, gsp_element; gsp_line)
-			{
-				version (verbose)
-				{
-					if (min (i, gsp_line.length - i) < 10)
-					{
-						writeln ("at:");
-						writeln (gs[k][gsp_element]);
-						stdout.flush ();
-					}
-				}
-				move_start (gs[k][gsp_element]);
-			}
-			gs[k] = null;
-			gsp[k] = null;
+			bests_num = new_bests_num;
 		}
-		gs = null;
-		gsp = null;
+		if (new_depth != NA)
+		{
+			depth = new_depth;
+		}
+
+		enforce (gs != null);
+		enforce (gsp != null);
+		best.board.value = NA;
+		if (!keep)
+		{
+			foreach (k; 0..resume_step)
+			{
+				gs[k] = null;
+				gsp[k] = null;
+			}
+		}
+		gs.length = problem.contents.length + 1;
+		gsp.length = problem.contents.length + 1;
+		foreach (k; resume_step..gs.length)
+		{
+			gs[k].reserve (bests_num);
+			gsp[k].reserve (bests_num);
+			foreach (ref gs_element; gs[k])
+			{
+				gs_element.tiles.update (problem.contents);
+			}
+		}
+		go (to !(int) (problem.contents.length), keep);
+		cleanup (keep);
 	}
 
 	this (Problem new_problem, Trie new_trie, Scoring new_scoring)
@@ -539,7 +599,7 @@ class Game
 		trie = new_trie;
 		scoring = new_scoring;
 	}
-	
+
 	override string toString ()
 	{
 		string [] moves;
