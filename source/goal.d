@@ -20,6 +20,7 @@ class Goal
 	byte col;
 	bool is_flipped;
 	int letter_bonus;
+	int bias;
 	int stored_holes_rating = NA;
 	int [] stored_times;
 

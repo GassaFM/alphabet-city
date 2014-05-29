@@ -3,6 +3,7 @@ module main;
 import core.memory;
 import std.algorithm;
 import std.conv;
+import std.range;
 import std.stdio;
 
 import board;
@@ -28,6 +29,7 @@ void main ()
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
 	immutable int LOWER_LIMIT = UPPER_LIMIT - 10;
 
+/*
 	foreach (p; ps.problem)
 	{
 		foreach (ref goal; goals)
@@ -48,25 +50,24 @@ void main ()
 //		    a.get_times[$ - 1] >= LOWER_LIMIT));
 		stdout.flush ();
 	}
-/*
+*/
 	GC.collect ();
 	bool started_output = false;
 
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
-		alias Tuple !(int [], "s", Goal, "g") LocalPair;
-		LocalPair [] gt;
-		foreach (goal; goals)
+		foreach (ref goal; goals)
 		{
-			gt ~= LocalPair (goal.calc_times
-			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT),
-			    goal);
+			goal.stored_times = goal.calc_times
+			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT);
 		}
-		sort (gt);
-		reverse (gt);
+		sort !((a, b) => a.holes_rating < b.holes_rating,
+		    SwapStrategy.stable) (goals);
 
-		foreach (gte; gt.filter !(a => a.s.length == 7).take (10))
+		foreach (goal; goals.filter
+		    !(a => a.get_times.length >= 5 &&
+		      a.holes_rating <= 32).take (4))
 //		foreach (gte; filter
 //		    !(a => a.s.length == 7 &&
 //		    a.s[0] >= UPPER_LIMIT - 1 &&
@@ -75,8 +76,15 @@ void main ()
 			auto p_reduced = Problem (p.name,
 			    p.contents[0..LOWER_LIMIT]);
 			auto g = new Game (p_reduced, t, s);
-			g.goals = [gte.g];
+			goal.bias = 1;
+			g.goals = [goal];
+			stderr.writeln (p.name, ' ', goal);
+			stderr.flush ();
 			g.play (50, 1, Game.Keep.True);
+			stderr.writeln (p.name, ' ',
+			    g.best.board.score, ' ',
+			    g.best.board.value);
+			stderr.flush ();
 			g.problem = p;
 			g.goals = [];
 			g.resume (NA, NA);
@@ -88,15 +96,13 @@ void main ()
 			writeln (p.name);
 			writeln (g);
 			stdout.flush ();
-			stderr.writeln (gte);
-			stderr.writeln ("" ~ to !(char) (i + 'A') ~ ": " ~
-			    to !(string) (g.best.board.score) ~ " " ~
-			    to !(string) (g.best.board.value));
+			stderr.writeln (p.name, ' ',
+			    g.best.board.score, ' ',
+			    g.best.board.value);
 			stderr.flush ();
 			GC.collect ();
 		}
 	}
-*/
 /*
 	auto goals = GoalBuilder.build_goals (t);
 	writefln ("%(%s\n%)", goals);

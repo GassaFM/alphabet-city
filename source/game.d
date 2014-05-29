@@ -5,6 +5,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.format;
+import std.math;
 import std.stdio;
 import std.string;
 
@@ -155,7 +156,6 @@ class Game
 		}
 
 		auto next = cur;
-		next.board.normalize_flip ();
 		next.board.score += add_score;
 //		next.board.value += add_score;
 		next.tiles.rack.normalize ();
@@ -269,17 +269,6 @@ class Game
 		{
 			cur.board.flip ();
 		}
-		int delta = 0;
-		foreach (row; 0..Board.CENTER)
-		{
-			foreach (col; 0..Board.SIZE)
-			{
-				if (!cur.board[row][col].empty)
-				{
-					delta += Board.CENTER - row;
-				}
-			}
-		}
 		int row = goal.row;
 		int col = goal.col;
 		assert (col == 0);
@@ -298,7 +287,10 @@ class Game
 		}
 
 		int res = 0;
-		res += delta * 6;
+		if (goal.bias)
+		{
+			res += bias_value (cur, goal.bias);
+		}
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;
@@ -323,6 +315,40 @@ class Game
 			res += add;
 		}
 		return res;
+	}
+
+	int bias_value (ref GameState cur, int bias)
+	{
+		enforce (bias);
+		int res = 0;
+		if (bias > 0)
+		{
+			foreach (row; 0..Board.CENTER)
+			{
+				foreach (col; 0..Board.SIZE)
+				{
+					if (!cur.board[row][col].empty)
+					{
+						res += Board.CENTER - row;
+					}
+				}
+			}
+		}
+		else
+		{
+			foreach (row; 0..Board.CENTER)
+			{
+				foreach (col; 0..Board.SIZE)
+				{
+					if (!cur.board[Board.SIZE - 1 -
+					    row][col].empty)
+					{
+						res += Board.CENTER - row;
+					}
+				}
+			}
+		}
+		return res * abs (bias);
 	}
 
 	int check_vertical (ref GameState cur,
