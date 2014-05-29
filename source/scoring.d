@@ -108,3 +108,5 @@ class Scoring
 		score += temp;
 	}
 }
+
+Scoring global_scoring;

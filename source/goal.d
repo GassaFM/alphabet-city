@@ -9,6 +9,7 @@ import std.string;
 
 import board;
 import general;
+import scoring;
 import tilebag;
 import trie;
 
@@ -21,8 +22,37 @@ class Goal
 	bool is_flipped;
 	int letter_bonus;
 	int bias;
+	int stored_score_rating = NA;
 	int stored_holes_rating = NA;
 	int [] stored_times;
+
+	int calc_score_rating (Scoring scoring = global_scoring) const
+	{
+		int score = 0;
+		int mult = 1;
+		foreach (int i, letter; word)
+		{
+			int active = (mask_forbidden & (1 << i));
+			BoardCell temp;
+			temp.letter = letter;
+			if (active)
+			{
+				temp.active = true;
+			}
+			scoring.account (score, mult, temp, 0, i);
+		}
+		return score * mult;
+	}
+
+	int score_rating () @property
+	{
+		if (stored_score_rating == NA)
+		{
+			stored_score_rating = calc_score_rating
+			    (global_scoring);
+		}
+		return stored_score_rating;
+	}
 
 	int calc_holes_rating () const
 	{
@@ -141,6 +171,7 @@ class Goal
 		res ~= ' ' ~ to !(string) (col);
 		res ~= ' ' ~ to !(string) (is_flipped);
 		res ~= ' ' ~ to !(string) (letter_bonus);
+		res ~= ' ' ~ to !(string) (stored_score_rating);
 		res ~= ' ' ~ to !(string) (stored_holes_rating);
 		res ~= ' ' ~ to !(string) (stored_times);
 		return res;

@@ -138,6 +138,14 @@ class Game
 		    vert, ' ', score, ' ', mult, ' ',
 		    cur.tiles.rack);
 */
+		// DIRTY HACK; TODO: parameterize!
+		if ((cur.board[0][0].active + cur.board[0][7].active +
+		    cur.board[0][14].active) % 3 != 0)
+//		     + cur.board[7][0].active + cur.board[14][0].active
+		{
+			return;
+		}
+
 		int num = 0;
 		foreach (cur_row; 0..Board.SIZE)
 		{

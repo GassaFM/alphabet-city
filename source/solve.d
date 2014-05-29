@@ -21,6 +21,7 @@ void main ()
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 //	auto t = new Trie (read_all_lines ("data/words8.txt"), 233_691);
 	auto s = new Scoring ();
+	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
@@ -61,13 +62,19 @@ void main ()
 		{
 			goal.stored_times = goal.calc_times
 			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT);
+			goal.stored_score_rating = goal.calc_score_rating (s);
 		}
 		sort !((a, b) => a.holes_rating < b.holes_rating,
 		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.score_rating > b.score_rating,
+		    SwapStrategy.stable) (goals);
 
 		foreach (goal; goals.filter
-		    !(a => a.get_times.length >= 5 &&
-		      a.holes_rating <= 32).take (4))
+		    !(a => a.get_times.length > 1 &&
+		      a.score_rating >= 800))
+//		foreach (goal; goals.filter
+//		    !(a => a.get_times.length >= 5 &&
+//		      a.holes_rating <= 32).take (4))
 //		foreach (gte; filter
 //		    !(a => a.s.length == 7 &&
 //		    a.s[0] >= UPPER_LIMIT - 1 &&
@@ -76,18 +83,11 @@ void main ()
 			auto p_reduced = Problem (p.name,
 			    p.contents[0..LOWER_LIMIT]);
 			auto g = new Game (p_reduced, t, s);
-			goal.bias = 1;
+			goal.bias = 3;
 			g.goals = [goal];
 			stderr.writeln (p.name, ' ', goal);
 			stderr.flush ();
-			g.play (50, 1, Game.Keep.True);
-			stderr.writeln (p.name, ' ',
-			    g.best.board.score, ' ',
-			    g.best.board.value);
-			stderr.flush ();
-			g.problem = p;
-			g.goals = [];
-			g.resume (250, 1);
+			g.play (250, 0, Game.Keep.True);
 			if (started_output)
 			{
 				writeln (';');
@@ -97,8 +97,24 @@ void main ()
 			writeln (g);
 			stdout.flush ();
 			stderr.writeln (p.name, ' ',
-			    g.best.board.score, ' ',
-			    g.best.board.value);
+			    g.best.board.score, " (",
+			    g.best.board.value, ')');
+			stderr.flush ();
+			g.problem = p;
+			g.goals = [];
+			g.resume (50, 1);
+//			g.resume (1000, 0);
+			if (started_output)
+			{
+				writeln (';');
+			}
+			started_output = true;
+			writeln (p.name);
+			writeln (g);
+			stdout.flush ();
+			stderr.writeln (p.name, ' ',
+			    g.best.board.score, " (",
+			    g.best.board.value, ')');
 			stderr.flush ();
 			GC.collect ();
 		}
