@@ -50,7 +50,7 @@ void main ()
 
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
-	foreach (i; 2..3)
+	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
 		alias Tuple !(int [], "s", Goal, "g") LocalPair;

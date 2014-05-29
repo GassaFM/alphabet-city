@@ -294,7 +294,7 @@ class Game
 		}
 
 		int res = 0;
-		res += delta * 5;
+		res += delta * 1;
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;
