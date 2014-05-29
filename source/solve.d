@@ -54,7 +54,7 @@ void main ()
 	GC.collect ();
 	bool started_output = false;
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
@@ -87,7 +87,7 @@ void main ()
 			stderr.flush ();
 			g.problem = p;
 			g.goals = [];
-			g.resume (NA, NA);
+			g.resume (250, 1);
 			if (started_output)
 			{
 				writeln (';');
