@@ -36,16 +36,23 @@ void main ()
 	{
 		foreach (ref goal; goals)
 		{
+			goal.stored_score_rating = goal.calc_score_rating (s);
+			goal.stored_best_times = goal.calc_best_times
+			    (TileBag (p.contents));
 			goal.stored_times = goal.calc_times
-			    (TileBag (p.contents), LOWER_LIMIT, UPPER_LIMIT);
+			    (TileBag (p.contents),
+			    goal.stored_best_times.x,
+			    goal.stored_best_times.y);
 		}
 		sort !((a, b) => a.holes_rating < b.holes_rating,
+		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.score_rating > b.score_rating,
 		    SwapStrategy.stable) (goals);
 		writeln (p);
 //		writefln ("%(%s\n%)", goals.filter
 //		    !(a => a.get_times.length > 1));
 		writefln ("%(%s\n%)", goals.filter
-		    !(a => a.get_times.length == 7));
+		    !(a => true));
 //		writefln ("%(%s\n%)", goals.filter
 //		    !(a => a.get_times.length == Rack.MAX_SIZE &&
 //		    a.get_times[0] >= UPPER_LIMIT - 1 &&
@@ -53,6 +60,7 @@ void main ()
 		stdout.flush ();
 	}
 */
+
 	GC.collect ();
 	bool started_output = false;
 
@@ -83,11 +91,12 @@ void main ()
 
 		foreach (goal; goals.filter
 		    !(a => a.get_best_times.x != NA &&
-		    a.score_rating >= 800 &&
-		    a.get_best_times.x >= 79 &&
-		    a.get_best_times.y - a.get_best_times.x <= 14 &&
-		    a.get_times.length > 2 &&
-		    a.get_times[2] == a.get_times[0] - 2).take (12))
+		    a.score_rating >= 900 &&
+//		    a.get_best_times.x >= 79 &&
+//		    a.get_best_times.y - a.get_best_times.x <= 14 &&
+		    a.get_times.length > 4 &&
+		    a.get_times[2] >= a.get_times[0] - 4 &&
+		    a.get_times[4] >= a.get_times[0] - 10).take (12))
 //		foreach (goal; goals.filter
 //		    !(a => a.get_times.length >= 5 &&
 //		      a.holes_rating <= 32).take (4))
@@ -124,22 +133,22 @@ void main ()
 				writeln (g);
 				stdout.flush ();
 			}
-
+ 
 			goal.stage = Goal.Stage.PREPARE;
-			goal.bias = 3;
-			g.play (10, 1, Game.Keep.True);
+			goal.bias = 5;
+			g.play (1000, 0, Game.Keep.True);
 			log_progress ();
 
 			auto p_main = Problem (p.name,
 			    p.contents[0..goal.get_best_times.y]);
 			g.problem = p_main;
 			goal.stage = Goal.Stage.MAIN;
-			g.resume (50, 1, Game.Keep.True);
+			g.resume (3000, 0, Game.Keep.True);
 			log_progress ();
 
 			g.problem = p;
 			goal.stage = Goal.Stage.DONE;
-			g.resume (20, 1, Game.Keep.False);
+			g.resume (2000, 0, Game.Keep.False);
 			log_progress ();
 
 			GC.collect ();

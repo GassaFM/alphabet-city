@@ -153,7 +153,7 @@ struct TileBag
 		return (cursor >= contents.length) && rack.empty;
 	}
 
-	void update (const string data)
+	void update (const char [] data)
 	{
 		byte [] temp;
 		foreach (c; data[contents.length..$])
