@@ -29,7 +29,8 @@ void main ()
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - 11;
-	immutable int LOWER_LIMIT = TOTAL_TILES >> 1;
+//	immutable int LOWER_LIMIT = TOTAL_TILES >> 1;
+	immutable int LOWER_LIMIT = 0;
 
 /*
 	foreach (p; ps.problem)
@@ -95,13 +96,13 @@ void main ()
 
 		foreach (goal; goals.filter
 		    !(a => a.get_best_times.x != NA &&
-		    a.score_rating >= 900 &&
-//		    a.get_best_times.x >= 79 &&
-//		    a.get_best_times.y - a.get_best_times.x <= 14 &&
+		    a.score_rating >= 1000).take (2))
+/*
 		    a.get_times.length > 1 &&
 		    a.get_times[2] >= a.get_times[0] - 5 &&
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
-		    a.get_times[$ - 1] >= a.get_times[0] - 20).take (5))
+		    a.get_times[$ - 1] >= a.get_times[0] - 20
+*/
 //		foreach (goal; goals.filter
 //		    !(a => a.get_times.length >= 5 &&
 //		      a.holes_rating <= 32).take (4))
@@ -110,55 +111,64 @@ void main ()
 //		    a.s[0] >= UPPER_LIMIT - 1 &&
 //		    a.s[6] >= UPPER_LIMIT - 7) (gt))
 		{
+			int lo = goal.get_best_times.x;
+			int hi = goal.get_best_times.y;
 			auto p_prepare = Problem (p.name,
-			    p.contents[0..goal.get_best_times.x],
-			    p.contents[goal.get_best_times.x..
-			    goal.get_best_times.y]);
+			    p.contents[0..hi - 1],
+			    p.contents[hi - 1..$]);
+//			    p.contents[hi - 1..hi]);
 			auto p_main = Problem (p.name,
-			    p.contents[0..goal.get_best_times.y]);
-			auto g = new Game (p_prepare, t, s);
-			g.goals = [goal];
-			stderr.writeln (p.name, ' ', goal);
-			stderr.flush ();
+			    p.contents[0..$]);
+//			    p.contents[0..hi]);
 
-			void log_progress ()
+			foreach (bias; 0..7)
 			{
-				stderr.writeln (p.name, ' ',
-				    g.best.board.score, " (",
-				    g.best.board.value, ')');
+				auto g = new Game (p_prepare, t, s);
+				g.goals = [goal];
+				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
-				if (g.best.board.score < 1400 ||
-				    g.best.tiles.contents.length <
-				    TOTAL_TILES)
+
+				void log_progress ()
 				{
-					return;
+					stderr.writeln (p.name, ' ',
+					    g.best.board.score, " (",
+					    g.best.board.value, ')');
+					stderr.flush ();
+					if (g.best.board.score < 2000 ||
+					    g.best.tiles.contents.length <
+					    TOTAL_TILES)
+					{
+						return;
+					}
+					if (started_output)
+					{
+						writeln (';');
+					}
+					started_output = true;
+					writeln (p.name);
+					writeln (g);
+					stdout.flush ();
 				}
-				if (started_output)
-				{
-					writeln (';');
-				}
-				started_output = true;
-				writeln (p.name);
-				writeln (g);
-				stdout.flush ();
+
+				goal.stage = Goal.Stage.PREPARE;
+				goal.bias = 4;
+				g.play (100, 0, Game.Keep.True);
+				log_progress ();
+
+				g.problem = p_main;
+				goal.stage = Goal.Stage.MAIN;
+				g.resume (250, 0, Game.Keep.True, true);
+				log_progress ();
+
+/*
+				g.problem = p;
+				goal.stage = Goal.Stage.DONE;
+				g.resume (250, 0, Game.Keep.False);
+				log_progress ();
+*/
+
+				GC.collect ();
 			}
-
-			goal.stage = Goal.Stage.PREPARE;
-			goal.bias = 4;
-			g.play (1000, 0, Game.Keep.True);
-			log_progress ();
-
-			g.problem = p_main;
-			goal.stage = Goal.Stage.MAIN;
-			g.resume (2000, 0, Game.Keep.True, true);
-			log_progress ();
-
-			g.problem = p;
-			goal.stage = Goal.Stage.DONE;
-			g.resume (1000, 0, Game.Keep.False);
-			log_progress ();
-
-			GC.collect ();
 		}
 	}
 /*

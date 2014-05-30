@@ -713,6 +713,7 @@ class Game
 */
 		gs.length = max (gs.length, problem.contents.length + 1);
 		gsp.length = max (gsp.length, problem.contents.length + 1);
+		resume_step = max (0, resume_step - 6);
 		foreach (k; resume_step..gs.length)
 		{
 			gs[k].reserve (bests_num);
@@ -726,7 +727,6 @@ class Game
 				    gs_element.board.score;
 			}
 		}
-		resume_step = max (0, resume_step - 6);
 		go (to !(int) (problem.contents.length), keep);
 		cleanup (keep);
 	}

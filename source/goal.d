@@ -160,7 +160,9 @@ class Goal
 	{
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
-		lower_limit = max (lower_limit, Board.CENTER);
+		lower_limit = max (lower_limit, 0);
+		upper_limit = min (upper_limit, tile_bag.contents.length);
+//		lower_limit = max (lower_limit, Board.CENTER);
 		TileCounter cur_counter;
 		bool got_total = false;
 		auto res = Pair (NA, TOTAL_TILES);
