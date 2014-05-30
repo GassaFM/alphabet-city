@@ -64,7 +64,7 @@ void main ()
 	GC.collect ();
 	bool started_output = false;
 
-	foreach (i; 5..6)
+	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
@@ -98,9 +98,10 @@ void main ()
 		    a.score_rating >= 900 &&
 //		    a.get_best_times.x >= 79 &&
 //		    a.get_best_times.y - a.get_best_times.x <= 14 &&
-		    a.get_times.length > 4 &&
-		    a.get_times[2] >= a.get_times[0] - 4 &&
-		    a.get_times[4] >= a.get_times[0] - 10).take (12))
+		    a.get_times.length > 1 &&
+		    a.get_times[2] >= a.get_times[0] - 5 &&
+		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
+		    a.get_times[$ - 1] >= a.get_times[0] - 20).take (5))
 //		foreach (goal; goals.filter
 //		    !(a => a.get_times.length >= 5 &&
 //		      a.holes_rating <= 32).take (4))
@@ -144,17 +145,17 @@ void main ()
 
 			goal.stage = Goal.Stage.PREPARE;
 			goal.bias = 4;
-			g.play (100, 0, Game.Keep.True);
+			g.play (1000, 0, Game.Keep.True);
 			log_progress ();
 
 			g.problem = p_main;
 			goal.stage = Goal.Stage.MAIN;
-			g.resume (500, 0, Game.Keep.True, true);
+			g.resume (2000, 0, Game.Keep.True, true);
 			log_progress ();
 
 			g.problem = p;
 			goal.stage = Goal.Stage.DONE;
-			g.resume (200, 0, Game.Keep.False);
+			g.resume (1000, 0, Game.Keep.False);
 			log_progress ();
 
 			GC.collect ();
