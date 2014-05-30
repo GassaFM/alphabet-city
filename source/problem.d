@@ -7,6 +7,7 @@ import std.string;
 struct Problem
 {
 	string name;
+	string short_name;
 	string contents;
 	string virtual;
 
@@ -14,6 +15,7 @@ struct Problem
 	    const char [] new_virtual = "")
 	{
 		name = to !(string) (new_name);
+		short_name = toLower (to !(string) (name[0]));
 		contents = to !(string) (new_contents);
 		virtual = to !(string) (new_virtual);
 	}

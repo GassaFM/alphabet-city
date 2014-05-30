@@ -11,6 +11,7 @@ import game;
 import fifteen;
 import general;
 import goal;
+import manager;
 import problem;
 import scoring;
 import tilebag;
@@ -25,6 +26,18 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
+/*
+	auto m = new Manager (ps);
+	m.read_log ("log.txt");
+	m.read_log ("log3.txt");
+	m.read_log ("log4.txt");
+	m.read_log ("log5.txt");
+	m.read_log ("log6.txt");
+	m.read_log ("log7.txt");
+	m.read_log ("log8.txt");
+	m.read_log ("log9.txt");
+	m.close ();
+*/
 
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
@@ -96,7 +109,7 @@ void main ()
 
 		foreach (goal; goals.filter
 		    !(a => a.get_best_times.x != NA &&
-		    a.score_rating >= 1000).take (2))
+		    a.score_rating >= 1000).take (3))
 /*
 		    a.get_times.length > 1 &&
 		    a.get_times[2] >= a.get_times[0] - 5 &&
@@ -151,13 +164,13 @@ void main ()
 				}
 
 				goal.stage = Goal.Stage.PREPARE;
-				goal.bias = 4;
-				g.play (100, 0, Game.Keep.True);
+				goal.bias = bias;
+				g.play (3000, 0, Game.Keep.True);
 				log_progress ();
 
 				g.problem = p_main;
 				goal.stage = Goal.Stage.MAIN;
-				g.resume (250, 0, Game.Keep.True, true);
+				g.resume (6000, 0, Game.Keep.True, true);
 				log_progress ();
 
 /*

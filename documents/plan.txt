@@ -1,0 +1,18 @@
+20143005:
+General Plan (vision):
+1. Play an oxyphenbutazone game.
+2. Try to remove moves one-by-one,
+  actually remove those which are not required for oxyphenbutazone.
+3. Play a new game with these letters at these moments,
+  possibly in the bottom part of the board.
+4. Try to construct a long word from cheap letters at the bottom,
+  perhaps a few letters "s" will be needed.
+
+20143005:
+Random Ideas:
+1. Check for a flipped version of oxyphenbutazone, too.
+  Take care of the bias calculation when flipping.
+2. Local improvement:
+  Remove one critical move.
+  Remove some non-critical moves.
+  Do a search, maybe the critical move can be replaced with a better one.

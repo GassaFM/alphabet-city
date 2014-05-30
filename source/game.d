@@ -2,6 +2,7 @@ module game;
 
 import std.algorithm;
 import std.array;
+import std.ascii;
 import std.conv;
 import std.exception;
 import std.format;
@@ -22,6 +23,46 @@ struct GameState
 	Board board;
 	TileBag tiles;
 	GameMove recent_move;
+
+	static GameState read (ref File f)
+	{
+		GameState res;
+		bool to_end = false;
+		while (!to_end)
+		{
+			auto s = f.readln ().strip ();
+			if (s.empty)
+			{
+				break;
+			}
+			if (s[$ - 1] == ',')
+			{
+				s.length--;
+			}
+			else
+			{
+				to_end = true;
+			}
+			res.recent_move = new GameMove (s, res.recent_move);
+			res.board.score += res.recent_move.score;
+		}
+		res.board.value = res.board.score;
+		return res;
+	}
+
+	void write (ref File f, const char [] problem_name)
+	{
+		f.writefln ("%s %s (%s)", problem_name,
+		    board.score, board.value);
+		string [] moves;
+		for (GameMove cur_move = recent_move; cur_move !is null;
+		    cur_move = cur_move.prev_move)
+		{
+			moves ~= to !(string) (cur_move);
+		}
+		reverse (moves);
+		f.writefln ("%-(%s,\n%)", moves);
+	}
 
 	this (Problem new_problem)
 	{
@@ -77,14 +118,68 @@ class GameMove
 		prev_move = cur.recent_move;
 	}
 
-	static string row_str (const int val)
+	this (const char [] data, GameMove new_prev_move = null)
+	{
+		auto t = data.split ();
+		if (t[0][0].isDigit ())
+		{
+			is_flipped = false;
+//			writeln (t[0][0..$ - 1], '+', t[0][$ - 1..$]);
+			row = str_to_row (t[0][0..$ - 1]);
+			col = str_to_col (t[0][$ - 1..$]);
+//			writeln (row, '+', col);
+		}
+		else
+		{
+			is_flipped = true;
+//			writeln (t[0][0..1], '-', t[0][1..$]);
+			row = str_to_col (t[0][0..1]);
+			col = str_to_row (t[0][1..$]);
+//			writeln (col, '-', row);
+		}
+
+		word = new BoardCell [t[1].length];
+		foreach (i, ch; t[1])
+		{
+			if ('A' <= ch && ch <= 'Z')
+			{
+				word[i].letter = to !(byte) (ch - 'A');
+				word[i].wildcard = false;
+			}
+			else if ('a' <= ch && ch <= 'z')
+			{
+				word[i].letter = to !(byte) (ch - 'a');
+				word[i].wildcard = true;
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+
+		score = to !(int) (t[2]);
+
+		prev_move = new_prev_move;
+	}
+	
+	static string row_to_str (const int val)
 	{
 		return to !(string) (val + 1);
 	}
 
-	static string col_str (const int val)
+	static string col_to_str (const int val)
 	{
 		return "" ~ to !(char) (val + 'A');
+	}
+
+	static byte str_to_row (const char [] val)
+	{
+		return to !(byte) (to !(int) (val) - 1);
+	}
+
+	static byte str_to_col (const char [] val)
+	{
+		return to !(byte) (val[0] - 'A');
 	}
 
 	override string toString () const
@@ -92,13 +187,13 @@ class GameMove
 		string coord;
 		if (is_flipped)
 		{
-			coord ~= col_str (row);
-			coord ~= row_str (col);
+			coord ~= col_to_str (row);
+			coord ~= row_to_str (col);
 		}
 		else
 		{
-			coord ~= row_str (row);
-			coord ~= col_str (col);
+			coord ~= row_to_str (row);
+			coord ~= col_to_str (col);
 		}
 
 		auto sink = appender !(string) ();
