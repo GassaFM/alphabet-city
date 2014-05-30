@@ -133,7 +133,7 @@ void main ()
 				writeln (g);
 				stdout.flush ();
 			}
- 
+
 			goal.stage = Goal.Stage.PREPARE;
 			goal.bias = 4;
 			g.play (10, 0, Game.Keep.True);
