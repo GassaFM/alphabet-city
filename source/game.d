@@ -304,7 +304,10 @@ class Game
 		{
 			if (cur.board[row][col + pos].empty)
 			{
-				counter[cur.board[row][col + pos]]++;
+				if ((goal.mask_forbidden & (1 << pos)) == 0)
+				{
+					counter[cur.board[row][col + pos]]++;
+				}
 			}
 			else if (((goal.mask_forbidden & (1 << pos)) != 0) ||
 			    (cur.board[row][col + pos].letter != letter))
@@ -312,6 +315,7 @@ class Game
 				return NA;
 			}
 		}
+		writeln ("?315");
 		if (!(counter << cur.tiles.counter))
 		{
 			return NA;
@@ -389,6 +393,7 @@ class Game
 			}
 		}
 
+		writeln ("?394");
 		if (!(counter << cur.tiles.counter))
 		{
 			return NA;

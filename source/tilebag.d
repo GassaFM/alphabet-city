@@ -225,6 +225,7 @@ struct TileCounter
 
 	alias contents this;
 
+/*
 	this (const char [] data)
 	{
 		foreach (c; data)
@@ -247,12 +248,15 @@ struct TileCounter
 			}
 		}
 	}
+*/
 
 	bool opBinary (string op) (ref const TileCounter other) const
 	    if (op == "<<")
 	{
-		writeln ("lo " ~ contents);
-		writeln ("hi " ~ other.contents);
+/*
+		writeln ("lo ", contents);
+		writeln ("hi ", other.contents);
+*/
 		foreach (i; 0..LET + 1)
 		{
 			if (contents[i] > other.contents[i])

@@ -166,7 +166,7 @@ class Goal
 		foreach (tile_num; lower_limit..upper_limit)
 		{
 			cur_counter[tile_bag.contents[tile_num]]++;
-			if (!got_total && total_counter << cur_counter)
+			if (!got_total && (total_counter << cur_counter))
 			{
 				got_total = true;
 			}
