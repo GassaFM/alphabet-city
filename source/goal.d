@@ -113,6 +113,8 @@ class Goal
 		auto taken = new bool [tile_bag.contents.length];
 		bool ok;
 		int [] res;
+		lower_limit = max (lower_limit, 0);
+		upper_limit = min (upper_limit, tile_bag.contents.length);
 		foreach (pos, letter; word)
 		{
 			if ((mask_forbidden & (1 << pos)) != 0)

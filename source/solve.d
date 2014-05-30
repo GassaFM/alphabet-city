@@ -38,9 +38,9 @@ void main ()
 		{
 			goal.stored_score_rating = goal.calc_score_rating (s);
 			goal.stored_best_times = goal.calc_best_times
-			    (TileBag (p.contents));
+			    (TileBag (p));
 			goal.stored_times = goal.calc_times
-			    (TileBag (p.contents),
+			    (TileBag (p),
 			    goal.stored_best_times.x,
 			    goal.stored_best_times.y);
 		}
@@ -70,10 +70,14 @@ void main ()
 		foreach (ref goal; goals)
 		{
 			goal.stored_score_rating = goal.calc_score_rating (s);
+/*
 			goal.stored_best_times = goal.calc_best_times
-			    (TileBag (p.contents));
+			    (TileBag (p));
+*/
+			goal.stored_best_times = goal.calc_best_times
+			    (TileBag (p), LOWER_LIMIT, UPPER_LIMIT);
 			goal.stored_times = goal.calc_times
-			    (TileBag (p.contents),
+			    (TileBag (p),
 			    goal.stored_best_times.x,
 			    goal.stored_best_times.y);
 		}
@@ -106,7 +110,11 @@ void main ()
 //		    a.s[6] >= UPPER_LIMIT - 7) (gt))
 		{
 			auto p_prepare = Problem (p.name,
-			    p.contents[0..goal.get_best_times.x]);
+			    p.contents[0..goal.get_best_times.x],
+			    p.contents[goal.get_best_times.x..
+			    goal.get_best_times.y]);
+			auto p_main = Problem (p.name,
+			    p.contents[0..goal.get_best_times.y]);
 			auto g = new Game (p_prepare, t, s);
 			g.goals = [goal];
 			stderr.writeln (p.name, ' ', goal);
@@ -136,19 +144,17 @@ void main ()
 
 			goal.stage = Goal.Stage.PREPARE;
 			goal.bias = 4;
-			g.play (10, 0, Game.Keep.True);
+			g.play (100, 0, Game.Keep.True);
 			log_progress ();
 
-			auto p_main = Problem (p.name,
-			    p.contents[0..goal.get_best_times.y]);
 			g.problem = p_main;
 			goal.stage = Goal.Stage.MAIN;
-			g.resume (50, 0, Game.Keep.True);
+			g.resume (500, 0, Game.Keep.True, true);
 			log_progress ();
 
 			g.problem = p;
 			goal.stage = Goal.Stage.DONE;
-			g.resume (20, 0, Game.Keep.False);
+			g.resume (200, 0, Game.Keep.False);
 			log_progress ();
 
 			GC.collect ();

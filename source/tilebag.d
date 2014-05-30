@@ -1,10 +1,13 @@
 module tilebag;
 
+import std.array;
 import std.conv;
 import std.exception;
+import std.format;
 import std.stdio;
 
 import general;
+import problem;
 
 struct RackEntry
 {
@@ -145,7 +148,6 @@ struct TileBag
 		    (rack.total < Rack.MAX_SIZE))
 		{
 			rack.add (contents[cursor]);
-			counter[contents[cursor]]--;
 			cursor++;
 		}
 	}
@@ -155,7 +157,7 @@ struct TileBag
 		return (cursor >= contents.length) && rack.empty;
 	}
 
-	void update (const char [] data)
+	void update (const char [] data, bool was_virtual = false)
 	{
 		byte [] temp;
 		foreach (c; data[contents.length..$])
@@ -173,7 +175,10 @@ struct TileBag
 			{
 				enforce (false);
 			}
-			counter[v]++;
+			if (!was_virtual)
+			{
+				counter[v]++;
+			}
 			temp ~= v;
 		}
 		contents ~= temp.idup;
@@ -181,10 +186,10 @@ struct TileBag
 		fill_rack ();
 	}
 
-	this (const char [] data)
+	this (const char [] data, const char [] virtual = "")
 	{
 		byte [] temp;
-		foreach (c; data)
+		foreach (i, c; data ~ virtual)
 		{
 			byte v = void;
 			if (c == '?')
@@ -200,12 +205,20 @@ struct TileBag
 				enforce (false);
 			}
 			counter[v]++;
-			temp ~= v;
+			if (i < data.length)
+			{
+				temp ~= v;
+			}
 		}
 		contents = temp.idup;
 		cursor = 0;
 
 		fill_rack ();
+	}
+
+	this (Problem problem)
+	{
+		this (problem.contents, problem.virtual);
 	}
 
 	string toString () const
@@ -215,6 +228,7 @@ struct TileBag
 		{
 			res ~= (c == LET) ? '?' : (c + 'A');
 		}
+		res ~= "\n" ~ to !(string) (counter);
 		return res;
 	}
 }
@@ -265,5 +279,16 @@ struct TileCounter
 			}
 		}
 		return true;
+	}
+
+	string toString () const
+	{
+		auto sink = appender !(string) ();
+		formattedWrite (sink, "Counter: ");
+		foreach (c; contents)
+		{
+			formattedWrite (sink, "%X", c);
+		}
+		return sink.data;
 	}
 }

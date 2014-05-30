@@ -8,11 +8,14 @@ struct Problem
 {
 	string name;
 	string contents;
+	string virtual;
 
-	this (const string new_name, const string new_contents)
+	this (const char [] new_name, const char [] new_contents,
+	    const char [] new_virtual = "")
 	{
-		name = new_name;
-		contents = new_contents;
+		name = to !(string) (new_name);
+		contents = to !(string) (new_contents);
+		virtual = to !(string) (new_virtual);
 	}
 
 	string toString () const

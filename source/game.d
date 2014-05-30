@@ -25,7 +25,7 @@ struct GameState
 
 	this (Problem new_problem)
 	{
-		tiles = TileBag (new_problem.contents);
+		tiles = TileBag (new_problem);
 		board.normalize ();
 	}
 
@@ -72,7 +72,6 @@ class GameMove
 		{
 			word ~= cur.board[row][cur_col];
 		}
-//		writeln (col, ' ', new_col, ' ', word, ' ', add_score);
 		is_flipped = cur.board.is_flipped;
 		score = add_score;
 		prev_move = cur.recent_move;
@@ -133,11 +132,6 @@ class Game
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int flags)
 	{
-/*
-		writeln ("got ", row, ' ', col, ' ',
-		    vert, ' ', score, ' ', mult, ' ',
-		    cur.tiles.rack);
-*/
 		// DIRTY HACK; TODO: parameterize!
 		if ((cur.board[0][0].active + cur.board[0][7].active +
 		    cur.board[0][14].active) % 3 != 0)
@@ -188,7 +182,6 @@ class Game
 					    (next, goal);
 					break;
 			}
-//			writeln (cur_value);
 			if (cur_value == NA)
 			{
 				return;
@@ -198,7 +191,6 @@ class Game
 
 		next.board.normalize ();
 		next.recent_move = new GameMove (cur, row, col, add_score);
-//		debug {writeln (next);}
 
 		if (depth > 0)
 		{
@@ -304,18 +296,24 @@ class Game
 		{
 			if (cur.board[row][col + pos].empty)
 			{
+				counter[letter]++;
+/*
 				if ((goal.mask_forbidden & (1 << pos)) == 0)
 				{
-					counter[cur.board[row][col + pos]]++;
+					counter[letter]++;
+				}
+*/			}
+			else
+			{
+				if (((goal.mask_forbidden &
+				    (1 << pos)) != 0) ||
+				    (cur.board[row][col + pos].letter !=
+				    letter))
+				{
+					return NA;
 				}
 			}
-			else if (((goal.mask_forbidden & (1 << pos)) != 0) ||
-			    (cur.board[row][col + pos].letter != letter))
-			{
-				return NA;
-			}
 		}
-		writeln ("?315");
 		if (!(counter << cur.tiles.counter))
 		{
 			return NA;
@@ -376,7 +374,7 @@ class Game
 				if (cur.board[row][col + pos].empty)
 				{
 					has_empty = true;
-					counter[cur.board[row][col + pos]]++;
+					counter[letter]++;
 				}
 				else
 				{
@@ -393,7 +391,6 @@ class Game
 			}
 		}
 
-		writeln ("?394");
 		if (!(counter << cur.tiles.counter))
 		{
 			return NA;
@@ -544,15 +541,6 @@ class Game
 	void move_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
-/*
-		debug {writeln ("move_recur in  ",
-		    row, ' ', col, ' ', flags, ' ', score);}
-		scope (exit)
-		{
-			debug {writeln ("move_recur out ",
-			    row, ' ', col, ' ', flags, ' ', score);}
-		}
-*/
 		if (!cur.board[row][col].empty)
 		{
 			step_recur (cur, row, col,
@@ -568,11 +556,11 @@ class Game
 			if (c.num != 0)
 			{
 				c.dec ();
-				cur.tiles.counter[c.num]--;
+				cur.tiles.counter[c.letter]--;
 				scope (exit)
 				{
 					c.inc ();
-					cur.tiles.counter[c.num]++;
+					cur.tiles.counter[c.letter]++;
 				}
 				if (c.letter != LET)
 				{
@@ -615,7 +603,6 @@ class Game
 
 	void move_start (ref GameState cur)
 	{
-//		writeln (cur);
 		move_horizontal (cur);
 		if (!cur.board[Board.CENTER][Board.CENTER].empty)
 		{
@@ -693,7 +680,8 @@ class Game
 		cleanup (keep);
 	}
 
-	void resume (int new_bests_num, int new_depth, Keep keep = Keep.False)
+	void resume (int new_bests_num, int new_depth, Keep keep = Keep.False,
+	    bool was_virtual = false)
 	{
 		if (new_bests_num != NA)
 		{
@@ -728,7 +716,8 @@ class Game
 			gsp[k].reserve (bests_num);
 			foreach (ref gs_element; gs[k])
 			{
-				gs_element.tiles.update (problem.contents);
+				gs_element.tiles.update (problem.contents,
+				    was_virtual);
 				// TODO: should clean up the following line
 				gs_element.board.value =
 				    gs_element.board.score;
