@@ -387,7 +387,10 @@ class Game
 			}
 			else if (cur.board[row][col + pos].empty)
 			{
-				return NA;
+				// soft prepare stage completion requirement
+				counter[letter]++;
+				// hard prepare stage completion requirement
+//				return NA;
 			}
 		}
 
