@@ -6,8 +6,8 @@ export LINKER_FLAGS="-L/STACK:268435456"
 export OUTPUT_NAME="binary\\$NAME.exe"
 export SOURCES=`ls source/*.d`
 #echo $SOURCES
-#export ARCHITECTURE_OPTIONS="-m32"
-export ARCHITECTURE_OPTIONS="-m64"
+export ARCHITECTURE_OPTIONS="-m32"
+#export ARCHITECTURE_OPTIONS="-m64"
 export DEBUG_OPTIONS="-debug -unittest"
 export RELEASE_OPTIONS="-O -release -inline -noboundscheck"
 export COMMON_OPTIONS="$ARCHITECTURE_OPTIONS -O -inline -wi -odobject"

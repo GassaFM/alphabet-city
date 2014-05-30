@@ -299,14 +299,22 @@ class Game
 		assert (col + goal.word.length == Board.SIZE);
 		// else: check to the right not implemented
 
+		TileCounter counter;
 		foreach (pos, letter; goal.word)
 		{
-			if (!cur.board[row][col + pos].empty &&
-			    ((cur.board[row][col + pos].letter != letter) ||
-			    ((goal.mask_forbidden & (1 << pos)) != 0)))
+			if (cur.board[row][col + pos].empty)
+			{
+				counter[cur.board[row][col + pos]]++;
+			}
+			else if (((goal.mask_forbidden & (1 << pos)) != 0) ||
+			    (cur.board[row][col + pos].letter != letter))
 			{
 				return NA;
 			}
+		}
+		if (!(counter << cur.tiles.counter))
+		{
+			return NA;
 		}
 
 		int res = 0;
@@ -356,6 +364,7 @@ class Game
 
 		bool has_empty = false;
 		bool has_full = false;
+		TileCounter counter;
 		foreach (pos, letter; goal.word)
 		{
 			if ((goal.mask_forbidden & (1 << pos)) != 0)
@@ -363,6 +372,7 @@ class Game
 				if (cur.board[row][col + pos].empty)
 				{
 					has_empty = true;
+					counter[cur.board[row][col + pos]]++;
 				}
 				else
 				{
@@ -379,6 +389,10 @@ class Game
 			}
 		}
 
+		if (!(counter << cur.tiles.counter))
+		{
+			return NA;
+		}
 		return 0;
 	}
 
@@ -549,9 +563,11 @@ class Game
 			if (c.num != 0)
 			{
 				c.dec ();
+				cur.tiles.counter[c.num]--;
 				scope (exit)
 				{
 					c.inc ();
+					cur.tiles.counter[c.num]++;
 				}
 				if (c.letter != LET)
 				{

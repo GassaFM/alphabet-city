@@ -134,6 +134,7 @@ struct TileBag
 {
 	Rack rack;
 	ByteString contents;
+	TileCounter counter;
 	int cursor;
 
 	alias contents this;
@@ -144,6 +145,7 @@ struct TileBag
 		    (rack.total < Rack.MAX_SIZE))
 		{
 			rack.add (contents[cursor]);
+			counter[contents[cursor]]--;
 			cursor++;
 		}
 	}
@@ -158,25 +160,25 @@ struct TileBag
 		byte [] temp;
 		foreach (c; data[contents.length..$])
 		{
+			byte v = void;
 			if (c == '?')
 			{
-				temp ~= LET;
+				v = LET;
 			}
 			else if ('A' <= c && c <= 'Z')
 			{
-				temp ~= to !(byte) (c - 'A');
+				v = to !(byte) (c - 'A');
 			}
 			else
 			{
 				enforce (false);
 			}
+			counter[v]++;
+			temp ~= v;
 		}
-//		writeln (contents.length, ' ', temp.length);
 		contents ~= temp.idup;
 
-//		writeln (rack.total);
 		fill_rack ();
-//		writeln (rack.total);
 	}
 
 	this (const char [] data)
@@ -184,18 +186,21 @@ struct TileBag
 		byte [] temp;
 		foreach (c; data)
 		{
+			byte v = void;
 			if (c == '?')
 			{
-				temp ~= LET;
+				v = LET;
 			}
 			else if ('A' <= c && c <= 'Z')
 			{
-				temp ~= to !(byte) (c - 'A');
+				v = to !(byte) (c - 'A');
 			}
 			else
 			{
 				enforce (false);
 			}
+			counter[v]++;
+			temp ~= v;
 		}
 		contents = temp.idup;
 		cursor = 0;

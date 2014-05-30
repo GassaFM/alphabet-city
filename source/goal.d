@@ -29,6 +29,8 @@ class Goal
 	int [] stored_times;
 	Pair stored_best_times;
 	Stage stage;
+	TileCounter total_counter;
+	TileCounter forbidden_counter;
 
 	int calc_score_rating (Scoring scoring = global_scoring) const
 	{
@@ -157,16 +159,6 @@ class Goal
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
 		lower_limit = max (lower_limit, Board.CENTER);
-		TileCounter total_counter;
-		TileCounter forbidden_counter;
-		foreach (pos, letter; word)
-		{
-			total_counter[letter]++;
-			if ((mask_forbidden & (1 << pos)) != 0)
-			{
-				forbidden_counter[letter]++;
-			}
-		}
 		TileCounter cur_counter;
 		bool got_total = false;
 		auto res = Pair (NA, TOTAL_TILES);
@@ -212,6 +204,15 @@ class Goal
 		col = new_col;
 		is_flipped = new_is_flipped;
 		letter_bonus = new_letter_bonus;
+
+		foreach (pos, letter; word)
+		{
+			total_counter[letter]++;
+			if ((mask_forbidden & (1 << pos)) != 0)
+			{
+				forbidden_counter[letter]++;
+			}
+		}
 	}
 
 	override string toString () const

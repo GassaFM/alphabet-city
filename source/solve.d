@@ -64,7 +64,7 @@ void main ()
 	GC.collect ();
 	bool started_output = false;
 
-	foreach (i; 17..20)
+	foreach (i; 5..6)
 	{
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
@@ -135,20 +135,20 @@ void main ()
 			}
  
 			goal.stage = Goal.Stage.PREPARE;
-			goal.bias = 5;
-			g.play (1000, 0, Game.Keep.True);
+			goal.bias = 4;
+			g.play (10, 0, Game.Keep.True);
 			log_progress ();
 
 			auto p_main = Problem (p.name,
 			    p.contents[0..goal.get_best_times.y]);
 			g.problem = p_main;
 			goal.stage = Goal.Stage.MAIN;
-			g.resume (3000, 0, Game.Keep.True);
+			g.resume (50, 0, Game.Keep.True);
 			log_progress ();
 
 			g.problem = p;
 			goal.stage = Goal.Stage.DONE;
-			g.resume (2000, 0, Game.Keep.False);
+			g.resume (20, 0, Game.Keep.False);
 			log_progress ();
 
 			GC.collect ();
