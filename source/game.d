@@ -309,10 +309,14 @@ class Game
 		    gs[num][gsp[num][i]].board.value >= next.board.value)
 		{
 			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
+			    next.board.contents_hash[0]))
+/*
+			// strict rule: mirror board not allowed
+			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
 			    next.board.contents_hash[0]) ||
 			    (gs[num][gsp[num][i]].board.contents_hash[0] ==
 			    next.board.contents_hash[1]))
-			{
+*/			{
 				return;
 			}
 /*
@@ -718,9 +722,12 @@ class Game
 			if (trie.contents[vt].word &&
 			    (flags & FLAG_CONN) &&
 //			    (flags >= MULT_ACT * (1 + cur.board.is_flipped)))
-//			    (flags >= MULT_ACT))
+			    (flags >= MULT_ACT))
+/*
+			// strict rule: first move is horizontal
 			    (flags >= MULT_ACT *
 			    (1 + (cur.board.is_flipped && (vert > 0)))))
+*/
 			{
 				consider (cur, row, col,
 				    vert, score, mult, flags);

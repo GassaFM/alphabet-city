@@ -26,6 +26,7 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
+/*
 	auto m = new Manager (ps);
 	m.read_log ("log.txt");
 	m.read_log ("log2.txt");
@@ -38,6 +39,7 @@ void main ()
 	m.read_log ("log9.txt");
 	m.close ();
 	return;
+*/
 
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
@@ -113,12 +115,13 @@ void main ()
 		    SwapStrategy.stable) (goals);
 */
 
+                int k = 0;
 		foreach (goal; goals.filter
 		    !(a => a.get_best_times.x != NA &&
 //		    a.holes_rating <= 50 &&
 //		    a.get_times.length > 1 &&
 //		    a.get_times[2] >= a.get_times[0] - 5 &&
-		    a.score_rating >= 1000).take (1))
+		    a.score_rating >= 1000).take (3))
 /*
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 20
@@ -131,6 +134,11 @@ void main ()
 //		    a.s[0] >= UPPER_LIMIT - 1 &&
 //		    a.s[6] >= UPPER_LIMIT - 7) (gt))
 		{
+			k++;
+			if (k <= 0)
+			{
+				continue;
+			}
 			int lo = goal.get_best_times.x;
 			int hi = goal.get_best_times.y;
 			auto p_prepare = Problem (p.name,
@@ -173,7 +181,7 @@ void main ()
 
 				goal.stage = Goal.Stage.COMBINED;
 				goal.bias = bias;
-				g.play (300, 0, Game.Keep.True);
+				g.play (1000, 0, Game.Keep.True);
 				log_progress ();
 
 //				g.problem = p_main;
@@ -181,7 +189,7 @@ void main ()
 //				goal.bias = 0;
 //				g.resume (700, 0, hi, Game.Keep.True, true);
 				g.goals = [];
-				g.resume (700, 0, hi, Game.Keep.False);
+				g.resume (2500, 0, hi, Game.Keep.False);
 				log_progress ();
 
 /*

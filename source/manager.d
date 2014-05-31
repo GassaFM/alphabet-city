@@ -56,7 +56,9 @@ class Manager
 		if (best[short_name].board.score < cur.board.score)
 		{
 			stderr.writeln (toUpper (short_name), ": ",
-			    "new maximum found: ", cur.board.score, "!");
+			    "new maximum found: ",
+			    best[short_name].board.score, " up to ",
+			    cur.board.score, "!");
 			stderr.flush ();
 			best[short_name] = cur;
 			save_file (short_name);
@@ -65,7 +67,15 @@ class Manager
 
 	void read_log (const char [] file_name)
 	{
-		auto f = File (to !(string) (file_name), "rt");
+		File f;
+		try
+		{
+			f = File (to !(string) (file_name), "rt");
+		}
+		catch (Exception e)
+		{
+			return;
+		}
 		while (true)
 		{
 			string s;
