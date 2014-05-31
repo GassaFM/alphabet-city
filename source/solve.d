@@ -26,9 +26,9 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
-/*
 	auto m = new Manager (ps);
 	m.read_log ("log.txt");
+	m.read_log ("log2.txt");
 	m.read_log ("log3.txt");
 	m.read_log ("log4.txt");
 	m.read_log ("log5.txt");
@@ -37,7 +37,7 @@ void main ()
 	m.read_log ("log8.txt");
 	m.read_log ("log9.txt");
 	m.close ();
-*/
+	return;
 
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
@@ -80,6 +80,12 @@ void main ()
 
 	foreach (i; 0..LET)
 	{
+/*
+		if (i != 's' - 'a')
+		{
+			continue;
+		}
+*/
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
 		{
@@ -109,10 +115,11 @@ void main ()
 
 		foreach (goal; goals.filter
 		    !(a => a.get_best_times.x != NA &&
-		    a.score_rating >= 1000).take (3))
+//		    a.holes_rating <= 50 &&
+//		    a.get_times.length > 1 &&
+//		    a.get_times[2] >= a.get_times[0] - 5 &&
+		    a.score_rating >= 1000).take (1))
 /*
-		    a.get_times.length > 1 &&
-		    a.get_times[2] >= a.get_times[0] - 5 &&
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 20
 */
@@ -134,9 +141,10 @@ void main ()
 			    p.contents[0..$]);
 //			    p.contents[0..hi]);
 
-			foreach (bias; 0..7)
+			foreach (bias; 0..3)
 			{
-				auto g = new Game (p_prepare, t, s);
+				auto g = new Game (p, t, s);
+//				auto g = new Game (p_prepare, t, s);
 				g.goals = [goal];
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
@@ -163,14 +171,17 @@ void main ()
 					stdout.flush ();
 				}
 
-				goal.stage = Goal.Stage.PREPARE;
+				goal.stage = Goal.Stage.COMBINED;
 				goal.bias = bias;
-				g.play (3000, 0, Game.Keep.True);
+				g.play (300, 0, Game.Keep.True);
 				log_progress ();
 
-				g.problem = p_main;
-				goal.stage = Goal.Stage.MAIN;
-				g.resume (6000, 0, Game.Keep.True, true);
+//				g.problem = p_main;
+//				goal.stage = Goal.Stage.MAIN;
+//				goal.bias = 0;
+//				g.resume (700, 0, hi, Game.Keep.True, true);
+				g.goals = [];
+				g.resume (700, 0, hi, Game.Keep.False);
 				log_progress ();
 
 /*

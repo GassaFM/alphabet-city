@@ -55,6 +55,9 @@ class Manager
 	{
 		if (best[short_name].board.score < cur.board.score)
 		{
+			stderr.writeln (toUpper (short_name), ": ",
+			    "new maximum found: ", cur.board.score, "!");
+			stderr.flush ();
 			best[short_name] = cur;
 			save_file (short_name);
 		}
@@ -67,17 +70,16 @@ class Manager
 		{
 			string s;
 			s = f.readln ().strip (); // X: score (other info)...
-			if (s.empty)
+			if (f.eof ())
 			{
 				break;
+			}
+			if (!('A' <= s[0] && s[0] <= 'Z' && s[1] == ':'))
+			{
+				continue;
 			}
 			string short_name = toLower (s[0..1]);
 			auto cur = GameState.read (f);
-			s = f.readln ().strip ();
-			if (s != ";")
-			{
-				break;
-			}
 			consider (cur, short_name);
 		}
 	}

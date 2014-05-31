@@ -15,7 +15,7 @@ import trie;
 
 class Goal
 {
-	enum Stage: byte {PREPARE, MAIN, DONE};
+	enum Stage: byte {PREPARE, MAIN, DONE, COMBINED};
 
 	ByteString word;
 	int mask_forbidden;

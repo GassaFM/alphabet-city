@@ -276,6 +276,10 @@ class Game
 					cur_value = calc_goal_value_done
 					    (next, goal);
 					break;
+				case Goal.Stage.COMBINED:
+					cur_value = calc_goal_value_combined
+					    (next, goal);
+					break;
 			}
 			if (cur_value == NA)
 			{
@@ -514,6 +518,99 @@ class Game
 		}
 
 		return 0;
+	}
+
+	int calc_goal_value_combined (ref GameState cur, Goal goal)
+	{
+		if (cur.board.is_flipped != goal.is_flipped)
+		{
+			cur.board.flip ();
+		}
+		int row = goal.row;
+		int col = goal.col;
+		assert (col == 0);
+		// else: check to the left not implemented
+		assert (col + goal.word.length == Board.SIZE);
+		// else: check to the right not implemented
+
+		bool has_empty = false;
+		bool has_full = false;
+		TileCounter counter;
+		foreach (pos, letter; goal.word)
+		{
+			if ((goal.mask_forbidden & (1 << pos)) != 0)
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					has_empty = true;
+					counter[letter]++;
+				}
+				else
+				{
+					if (letter !=
+					    cur.board[row][col + pos].letter)
+					{
+						return NA;
+					}
+					has_full = true;
+				}
+				if (has_empty && has_full)
+				{
+					return NA;
+				}
+			}
+			else
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					counter[letter]++;
+				}
+				else
+				{
+					if (letter !=
+					    cur.board[row][col + pos].letter)
+					{
+						return NA;
+					}
+				}
+			}
+		}
+
+		if (!(counter << cur.tiles.counter))
+		{
+			return NA;
+		}
+
+		int res = 0;
+		if (goal.bias)
+		{
+			res += bias_value (cur, goal.bias);
+		}
+		foreach (int pos, letter; goal.word)
+		{
+			bool is_empty = cur.board[row][col + pos].empty;
+			if (is_empty)
+			{
+				cur.board[row][col + pos] = letter |
+				    (1 << BoardCell.ACTIVE_SHIFT);
+			}
+			else
+			{
+				res += goal.letter_bonus >>
+				    cur.board[row][col + pos].wildcard;
+			}
+			int add = check_vertical (cur, row, col + pos);
+			if (is_empty)
+			{
+				cur.board[row][col + pos] = BoardCell.NONE;
+			}
+			if (add == NA)
+			{
+				return NA;
+			}
+			res += add;
+		}
+		return res;
 	}
 
 	int bias_value (ref GameState cur, int bias)
@@ -778,7 +875,8 @@ class Game
 		cleanup (keep);
 	}
 
-	void resume (int new_bests_num, int new_depth, Keep keep = Keep.False,
+	void resume (int new_bests_num, int new_depth,
+	    int start_from = resume_step, Keep keep = Keep.False,
 	    bool was_virtual = false)
 	{
 		if (new_bests_num != NA)
@@ -792,11 +890,14 @@ class Game
 
 		enforce (gs != null);
 		enforce (gsp != null);
+		gs.length = max (gs.length, problem.contents.length + 1);
+		gsp.length = max (gsp.length, problem.contents.length + 1);
+		resume_step = max (0, min (start_from, resume_step) - 6);
+
 		if (resume_step < problem.contents.length)
 		{
 			best.board.value = NA;
 		}
-/*
 		if (!keep)
 		{
 			foreach (k; 0..resume_step)
@@ -805,10 +906,6 @@ class Game
 				gsp[k] = null;
 			}
 		}
-*/
-		gs.length = max (gs.length, problem.contents.length + 1);
-		gsp.length = max (gsp.length, problem.contents.length + 1);
-		resume_step = max (0, resume_step - 6);
 		foreach (k; resume_step..gs.length)
 		{
 			gs[k].reserve (bests_num);
@@ -821,6 +918,8 @@ class Game
 				gs_element.board.value =
 				    gs_element.board.score;
 			}
+			sort !((a, b) => gs[k][a].board.value <
+			    gs[k][b].board.value) (gsp[k]);
 		}
 		go (to !(int) (problem.contents.length), keep);
 		cleanup (keep);
