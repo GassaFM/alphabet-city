@@ -16,6 +16,7 @@ import goal;
 import problem;
 import scoring;
 import tilebag;
+import tools;
 import trie;
 
 struct GameState
@@ -245,6 +246,7 @@ class Game
 	Problem problem;
 	Trie trie;
 	Scoring scoring;
+
 	Goal [] goals;
 	GameState [] [] gs;
 	int [] [] gsp;
@@ -252,9 +254,12 @@ class Game
 	int bests_num;
 	int depth;
 	int resume_step = NA;
+
 	GameMove moves_guide;
 	BoardCell [] forced_word;
 	int forced_cur;
+	bool forced_imaginary;
+	GameState imaginary_result;
 
 	bool allow_mirror () @property const
 	{
@@ -271,10 +276,17 @@ class Game
 		{
 			return;
 		}
-		if ((forced_word !is null) &&
-		    (forced_word.length != forced_cur))
+		if (forced_word !is null)
 		{
-			return;
+			if (forced_word.length != forced_cur)
+			{
+				return;
+			}
+			if (forced_imaginary)
+			{
+				imaginary_result = cur;
+				return;
+			}
 		}
 
 		int num = 0;
@@ -307,20 +319,24 @@ class Game
 			final switch (goal.stage)
 			{
 				case Goal.Stage.PREPARE:
-					cur_value = calc_goal_value_prepare
-					    (next, goal);
+					cur_value =
+					    GameTools.calc_goal_value_prepare
+					    (next, goal, this);
 					break;
 				case Goal.Stage.MAIN:
-					cur_value = calc_goal_value_main
-					    (next, goal);
+					cur_value =
+					    GameTools.calc_goal_value_main
+					    (next, goal, this);
 					break;
 				case Goal.Stage.DONE:
-					cur_value = calc_goal_value_done
-					    (next, goal);
+					cur_value =
+					    GameTools.calc_goal_value_done
+					    (next, goal, this);
 					break;
 				case Goal.Stage.COMBINED:
-					cur_value = calc_goal_value_combined
-					    (next, goal);
+					cur_value =
+					    GameTools.calc_goal_value_combined
+					    (next, goal, this);
 					break;
 			}
 			if (cur_value == NA)
@@ -410,276 +426,6 @@ class Game
 			}
 			gsp[num][i] = d;
 		}
-	}
-
-	int calc_goal_value_prepare (ref GameState cur, Goal goal)
-	{
-		if (cur.board.is_flipped != goal.is_flipped)
-		{
-			cur.board.flip ();
-		}
-		int row = goal.row;
-		int col = goal.col;
-		assert (col == 0);
-		// else: check to the left not implemented
-		assert (col + goal.word.length == Board.SIZE);
-		// else: check to the right not implemented
-
-		TileCounter counter;
-		foreach (pos, letter; goal.word)
-		{
-			if (cur.board[row][col + pos].empty)
-			{
-				counter[letter]++;
-/*
-				if ((goal.mask_forbidden & (1 << pos)) == 0)
-				{
-					counter[letter]++;
-				}
-*/			}
-			else
-			{
-				if (((goal.mask_forbidden &
-				    (1 << pos)) != 0) ||
-				    (cur.board[row][col + pos].letter !=
-				    letter))
-				{
-					return NA;
-				}
-			}
-		}
-		if (!(counter << cur.tiles.counter))
-		{
-			return NA;
-		}
-
-		int res = 0;
-		if (goal.bias)
-		{
-			res += bias_value (cur, goal.bias);
-		}
-		foreach (int pos, letter; goal.word)
-		{
-			bool is_empty = cur.board[row][col + pos].empty;
-			if (is_empty)
-			{
-				cur.board[row][col + pos] = letter |
-				    (1 << BoardCell.ACTIVE_SHIFT);
-			}
-			else
-			{
-				res += goal.letter_bonus >>
-				    cur.board[row][col + pos].wildcard;
-			}
-			int add = check_vertical (cur, row, col + pos);
-			if (is_empty)
-			{
-				cur.board[row][col + pos] = BoardCell.NONE;
-			}
-			if (add == NA)
-			{
-				return NA;
-			}
-			res += add;
-		}
-		return res;
-	}
-
-	int calc_goal_value_main (ref GameState cur, Goal goal)
-	{
-		if (cur.board.is_flipped != goal.is_flipped)
-		{
-			cur.board.flip ();
-		}
-		int row = goal.row;
-		int col = goal.col;
-		assert (col == 0);
-		// else: check to the left not implemented
-		assert (col + goal.word.length == Board.SIZE);
-		// else: check to the right not implemented
-
-		bool has_empty = false;
-		bool has_full = false;
-		TileCounter counter;
-		foreach (pos, letter; goal.word)
-		{
-			if ((goal.mask_forbidden & (1 << pos)) != 0)
-			{
-				if (cur.board[row][col + pos].empty)
-				{
-					has_empty = true;
-					counter[letter]++;
-				}
-				else
-				{
-					has_full = true;
-				}
-				if (has_empty && has_full)
-				{
-					return NA;
-				}
-			}
-			else if (cur.board[row][col + pos].empty)
-			{
-				// soft prepare stage completion requirement
-				counter[letter]++;
-				// hard prepare stage completion requirement
-//				return NA;
-			}
-		}
-
-		if (!(counter << cur.tiles.counter))
-		{
-			return NA;
-		}
-		return 0;
-	}
-
-	int calc_goal_value_done (ref GameState cur, Goal goal)
-	{
-		if (cur.board.is_flipped != goal.is_flipped)
-		{
-			cur.board.flip ();
-		}
-		int row = goal.row;
-		int col = goal.col;
-
-		foreach (pos, letter; goal.word)
-		{
-			if (cur.board[row][col + pos].empty)
-			{
-				return NA;
-			}
-		}
-
-		return 0;
-	}
-
-	int calc_goal_value_combined (ref GameState cur, Goal goal)
-	{
-		if (cur.board.is_flipped != goal.is_flipped)
-		{
-			cur.board.flip ();
-		}
-		int row = goal.row;
-		int col = goal.col;
-		assert (col == 0);
-		// else: check to the left not implemented
-		assert (col + goal.word.length == Board.SIZE);
-		// else: check to the right not implemented
-
-		bool has_empty = false;
-		bool has_full = false;
-		TileCounter counter;
-		foreach (pos, letter; goal.word)
-		{
-			if ((goal.mask_forbidden & (1 << pos)) != 0)
-			{
-				if (cur.board[row][col + pos].empty)
-				{
-					has_empty = true;
-					counter[letter]++;
-				}
-				else
-				{
-					if (letter !=
-					    cur.board[row][col + pos].letter)
-					{
-						return NA;
-					}
-					has_full = true;
-				}
-				if (has_empty && has_full)
-				{
-					return NA;
-				}
-			}
-			else
-			{
-				if (cur.board[row][col + pos].empty)
-				{
-					counter[letter]++;
-				}
-				else
-				{
-					if (letter !=
-					    cur.board[row][col + pos].letter)
-					{
-						return NA;
-					}
-				}
-			}
-		}
-
-		if (!(counter << cur.tiles.counter))
-		{
-			return NA;
-		}
-
-		int res = 0;
-		if (goal.bias)
-		{
-			res += bias_value (cur, goal.bias);
-		}
-		foreach (int pos, letter; goal.word)
-		{
-			bool is_empty = cur.board[row][col + pos].empty;
-			if (is_empty)
-			{
-				cur.board[row][col + pos] = letter |
-				    (1 << BoardCell.ACTIVE_SHIFT);
-			}
-			else
-			{
-				res += goal.letter_bonus >>
-				    cur.board[row][col + pos].wildcard;
-			}
-			int add = check_vertical (cur, row, col + pos);
-			if (is_empty)
-			{
-				cur.board[row][col + pos] = BoardCell.NONE;
-			}
-			if (add == NA)
-			{
-				return NA;
-			}
-			res += add;
-		}
-		return res;
-	}
-
-	int bias_value (ref GameState cur, int bias)
-	{
-		enforce (bias);
-		int res = 0;
-		if (bias > 0)
-		{
-			foreach (row; 0..Board.CENTER)
-			{
-				foreach (col; 0..Board.SIZE)
-				{
-					if (!cur.board[row][col].empty)
-					{
-						res += Board.CENTER - row;
-					}
-				}
-			}
-		}
-		else
-		{
-			foreach (row; 0..Board.CENTER)
-			{
-				foreach (col; 0..Board.SIZE)
-				{
-					if (!cur.board[Board.SIZE - 1 -
-					    row][col].empty)
-					{
-						res += Board.CENTER - row;
-					}
-				}
-			}
-		}
-		return res * abs (bias);
 	}
 
 	int check_vertical (ref GameState cur,
@@ -793,7 +539,7 @@ class Game
 				forced_cur--;
 			}
 
-			if (!forced_use_rack)
+			if (forced_imaginary)
 			{
 				cur.board[row][col] =
 				    forced_word[forced_cur] |
