@@ -270,11 +270,23 @@ class Game
 	    int vert, int score, int mult, int flags)
 	{
 		// DIRTY HACK; TODO: parameterize!
-		if ((cur.board[0][0].active + cur.board[0][7].active +
-		    cur.board[0][14].active) % 3 != 0)
-//		     + cur.board[7][0].active + cur.board[14][0].active
+		if (cur.board.is_flipped)
 		{
-			return;
+			if ((cur.board[0][0].active +
+			    cur.board[7][0].active +
+			    cur.board[14][0].active) % 3 != 0)
+			{
+				return;
+			}
+		}
+		else
+		{
+			if ((cur.board[0][0].active +
+			    cur.board[0][7].active +
+			    cur.board[0][14].active) % 3 != 0)
+			{
+				return;
+			}
 		}
 		if (forced_word !is null)
 		{
