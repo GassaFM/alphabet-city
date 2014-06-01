@@ -103,15 +103,15 @@ void main ()
 			    goal.stored_best_times.x,
 			    goal.stored_best_times.y);
 		}
+/*
 		sort !((a, b) => a.holes_rating < b.holes_rating,
+		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.get_best_times.x < b.get_best_times.x,
 		    SwapStrategy.stable) (goals);
 		sort !((a, b) => a.get_best_times.y - a.get_best_times.x <
 		    b.get_best_times.y - b.get_best_times.x,
 		    SwapStrategy.stable) (goals);
 		sort !((a, b) => a.score_rating > b.score_rating,
-		    SwapStrategy.stable) (goals);
-/*
-		sort !((a, b) => a.get_best_times.x < b.get_best_times.x,
 		    SwapStrategy.stable) (goals);
 */
 
@@ -121,7 +121,7 @@ void main ()
 //		    a.holes_rating <= 50 &&
 //		    a.get_times.length > 1 &&
 //		    a.get_times[2] >= a.get_times[0] - 5 &&
-		    a.score_rating >= 1000).take (3))
+		    a.score_rating >= 1000).take (1))
 /*
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 20
@@ -181,7 +181,7 @@ void main ()
 
 				goal.stage = Goal.Stage.COMBINED;
 				goal.bias = bias;
-				g.play (1000, 0, Game.Keep.True);
+				g.play (50, 0, Game.Keep.True);
 				log_progress ();
 
 //				g.problem = p_main;
@@ -189,7 +189,7 @@ void main ()
 //				goal.bias = 0;
 //				g.resume (700, 0, hi, Game.Keep.True, true);
 				g.goals = [];
-				g.resume (2500, 0, hi, Game.Keep.False);
+				g.resume (100, 0, hi, Game.Keep.False);
 				log_progress ();
 
 /*

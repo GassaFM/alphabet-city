@@ -1,4 +1,4 @@
-O: 2347 (2347)
+O: 2349 (2349)
  8G IN    4,
  7G SO    8,
  I6 ET    7,
@@ -26,8 +26,8 @@ O: 2347 (2347)
  5H OWED    8,
  5G DOWED   10,
  O5 PERIL    7,
- 5E INDOWED   24,
  G4 ID    3,
+ 5E INDOWED   24,
  O2 TA    2,
  E4 TI    2,
  D2 AVE   16,
@@ -49,10 +49,10 @@ O: 2347 (2347)
  L8 QUART   28,
  L8 QUARTE   15,
  L8 QUARTER   16,
- L8 QUARTERS   18,
  C7 FARO    7,
-M12 OF   22,
- B8 RAJ   53,
- 6D GNU   10,
-10B JOE   10,
-15E KLEaGLES   86
+K10 KA   22,
+B10 JO   50,
+15F FELLErS   98,
+10B JOG   11,
+B10 JOG   11,
+12K ET    9

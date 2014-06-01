@@ -22,7 +22,7 @@ struct GameState
 {
 	Board board;
 	TileBag tiles;
-	GameMove recent_move;
+	GameMove closest_move;
 
 	static GameState read (ref File f)
 	{
@@ -43,8 +43,8 @@ struct GameState
 			{
 				to_end = true;
 			}
-			res.recent_move = new GameMove (s, res.recent_move);
-			res.board.score += res.recent_move.score;
+			res.closest_move = new GameMove (s, res.closest_move);
+			res.board.score += res.closest_move.score;
 		}
 		res.board.value = res.board.score;
 		return res;
@@ -55,8 +55,8 @@ struct GameState
 		f.writefln ("%s %s (%s)", problem_name,
 		    board.score, board.value);
 		string [] moves;
-		for (GameMove cur_move = recent_move; cur_move !is null;
-		    cur_move = cur_move.prev_move)
+		for (GameMove cur_move = closest_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
 		{
 			moves ~= to !(string) (cur_move);
 		}
@@ -79,8 +79,8 @@ struct GameState
 	{
 		string res = board.toString () ~ tiles.toString () ~ '\n';
 		string [] moves;
-		for (GameMove cur_move = recent_move; cur_move !is null;
-		    cur_move = cur_move.prev_move)
+		for (GameMove cur_move = closest_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
 		{
 			moves ~= to !(string) (cur_move);
 		}
@@ -96,10 +96,9 @@ class GameMove
 	byte row;
 	byte col;
 	bool is_flipped;
+	bool is_chain_forward;
 	int score;
-	GameMove prev_move;
-
-//	this () @disable;
+	GameMove chained_move;
 
 	this (ref GameState cur, int new_row, int new_col, int add_score = NA)
 	{
@@ -115,27 +114,23 @@ class GameMove
 		}
 		is_flipped = cur.board.is_flipped;
 		score = add_score;
-		prev_move = cur.recent_move;
+		chained_move = cur.closest_move;
 	}
 
-	this (const char [] data, GameMove new_prev_move = null)
+	this (const char [] data, GameMove new_chained_move = null)
 	{
 		auto t = data.split ();
 		if (t[0][0].isDigit ())
 		{
 			is_flipped = false;
-//			writeln (t[0][0..$ - 1], '+', t[0][$ - 1..$]);
 			row = str_to_row (t[0][0..$ - 1]);
 			col = str_to_col (t[0][$ - 1..$]);
-//			writeln (row, '+', col);
 		}
 		else
 		{
 			is_flipped = true;
-//			writeln (t[0][0..1], '-', t[0][1..$]);
 			row = str_to_col (t[0][0..1]);
 			col = str_to_row (t[0][1..$]);
-//			writeln (col, '-', row);
 		}
 
 		word = new BoardCell [t[1].length];
@@ -159,9 +154,39 @@ class GameMove
 
 		score = to !(int) (t[2]);
 
-		prev_move = new_prev_move;
+		chained_move = new_chained_move;
 	}
-	
+
+	this (GameMove other)
+	{
+		word = other.word;
+		row = other.row;
+		col = other.col;
+		is_flipped = other.is_flipped;
+		is_chain_forward = other.is_chain_forward;
+		score = other.score;
+		chained_move = other.chained_move;
+	}
+
+	static GameMove invert (GameMove cur_move)
+	{
+		if (cur_move is null)
+		{
+			return null;
+		}
+		auto cur = new GameMove (cur_move);
+		GameMove next = null;
+		while (cur !is null)
+		{
+			auto prev = new GameMove (cur.chained_move);
+			cur.is_chain_forward ^= true;
+			cur.chained_move = next;
+			next = cur;
+			cur = prev;
+		}
+		return cur;
+	}
+
 	static string row_to_str (const int val)
 	{
 		return to !(string) (val + 1);
@@ -289,7 +314,7 @@ class Game
 		}
 
 		next.board.normalize ();
-		next.recent_move = new GameMove (cur, row, col, add_score);
+		next.closest_move = new GameMove (cur, row, col, add_score);
 
 		if (depth > 0)
 		{
@@ -816,7 +841,7 @@ class Game
 
 	void go (int upper_limit, Keep keep)
 	{
-		foreach (k; resume_step..upper_limit)
+		foreach (k; resume_step..upper_limit + 1)
 		{
 			version (verbose)
 			{
@@ -827,7 +852,8 @@ class Game
 			{
 				version (verbose)
 				{
-					if (min (i, gsp[k].length - i) < 10)
+					if (min (i,
+					    gsp[k].length - 1 - i) < 10)
 					{
 						writeln ("at:");
 						writeln (gs[k][gsp_element]);
@@ -921,12 +947,15 @@ class Game
 			{
 				gs_element.tiles.update (problem.contents,
 				    was_virtual);
+/*
 				// TODO: should clean up the following line
 				gs_element.board.value =
 				    gs_element.board.score;
+*/
 			}
-			sort !((a, b) => gs[k][a].board.value <
-			    gs[k][b].board.value) (gsp[k]);
+			sort !((a, b) => gs[k][a].board.value >
+			    gs[k][b].board.value, SwapStrategy.stable)
+			    (gsp[k]);
 		}
 		go (to !(int) (problem.contents.length), keep);
 		cleanup (keep);
@@ -942,8 +971,8 @@ class Game
 	override string toString ()
 	{
 		string [] moves;
-		for (GameMove cur_move = best.recent_move; cur_move !is null;
-		    cur_move = cur_move.prev_move)
+		for (GameMove cur_move = best.closest_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
 		{
 			moves ~= to !(string) (cur_move);
 		}
