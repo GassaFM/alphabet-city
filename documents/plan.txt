@@ -1,4 +1,4 @@
-20143005:
+20140530:
 General Plan (vision):
 1. Play an oxyphenbutazone game.
 2. Try to remove moves one-by-one,
@@ -8,7 +8,7 @@ General Plan (vision):
 4. Try to construct a long word from cheap letters at the bottom,
   perhaps a few letters "s" will be needed.
 
-20143005:
+20140530:
 Random Ideas:
 1. Check for a flipped version of oxyphenbutazone, too.
   Take care of the bias calculation when flipping.

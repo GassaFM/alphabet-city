@@ -178,13 +178,17 @@ class GameMove
 		GameMove next = null;
 		while (cur !is null)
 		{
-			auto prev = new GameMove (cur.chained_move);
+			auto prev = cur.chained_move;
+			if (prev !is null)
+			{
+				prev = new GameMove (prev);
+			}
 			cur.is_chain_forward ^= true;
 			cur.chained_move = next;
 			next = cur;
 			cur = prev;
 		}
-		return cur;
+		return next;
 	}
 
 	static string row_to_str (const int val)
@@ -248,6 +252,14 @@ class Game
 	int bests_num;
 	int depth;
 	int resume_step = NA;
+	GameMove moves_guide;
+	BoardCell [] forced_word;
+	int forced_cur;
+
+	bool allow_mirror () @property const
+	{
+		return !goals.empty; // mirror boards not allowed if no goals
+	}
 
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int flags)
@@ -256,6 +268,11 @@ class Game
 		if ((cur.board[0][0].active + cur.board[0][7].active +
 		    cur.board[0][14].active) % 3 != 0)
 //		     + cur.board[7][0].active + cur.board[14][0].active
+		{
+			return;
+		}
+		if ((forced_word !is null) &&
+		    (forced_word.length != forced_cur))
 		{
 			return;
 		}
@@ -334,24 +351,13 @@ class Game
 		    gs[num][gsp[num][i]].board.value >= next.board.value)
 		{
 			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
-			    next.board.contents_hash[0]))
-/*
-			// strict rule: mirror board not allowed
-			if ((gs[num][gsp[num][i]].board.contents_hash[0] ==
 			    next.board.contents_hash[0]) ||
+			    (!allow_mirror &&
 			    (gs[num][gsp[num][i]].board.contents_hash[0] ==
-			    next.board.contents_hash[1]))
-*/			{
-				return;
-			}
-/*
-			if (gsp[num].length >= (bests_num - 5) &&
-			    gs[num][gsp[num][i]].board.value ==
-			    next.board.value)
+			    next.board.contents_hash[1])))
 			{
 				return;
 			}
-*/
 			i++;
 		}
 
@@ -746,14 +752,9 @@ class Game
 		{
 			if (trie.contents[vt].word &&
 			    (flags & FLAG_CONN) &&
-//			    (flags >= MULT_ACT * (1 + cur.board.is_flipped)))
-			    (flags >= MULT_ACT))
-/*
-			// strict rule: first move is horizontal
 			    (flags >= MULT_ACT *
 			    (1 + (cur.board.is_flipped && (vert > 0)))))
-*/
-			{
+			{ // make 1-letter h+v move almost always not flipped
 				consider (cur, row, col,
 				    vert, score, mult, flags);
 			}
@@ -768,6 +769,73 @@ class Game
 	void move_recur (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int vt, int flags)
 	{
+		if (forced_word !is null)
+		{
+			if (forced_word.length <= forced_cur)
+			{
+				return;
+			}
+			byte forced_letter = forced_word[forced_cur].letter;
+			if (!cur.board[row][col].empty)
+			{
+				if (cur.board[row][col].letter ==
+				    forced_letter)
+				{ // allows two-way wildcard! substitution
+					step_recur (cur, row, col,
+					    vert, score, mult, vt,
+					    flags | FLAG_CONN);
+				}
+				return;
+			}
+			forced_cur++;
+			scope (exit)
+			{
+				forced_cur--;
+			}
+
+			if (!forced_use_rack)
+			{
+				cur.board[row][col] =
+				    forced_word[forced_cur] |
+				    (1 << BoardCell.ACTIVE_SHIFT);
+				step_recur (cur, row, col,
+				    vert, score, mult, vt,
+				    flags + MULT_ACT);
+				cur.board[row][col] = BoardCell.NONE;
+				return;
+			}
+
+			foreach (ref c; cur.tiles.rack.contents)
+			{
+				if (c.empty)
+				{
+					break;
+				}
+				if ((c.is_wildcard ||
+				    (c.letter == forced_letter)) &&
+				    (c.num != 0))
+				{ // allows two-way wildcard! substitution
+					c.dec ();
+					cur.tiles.counter[c.letter]--;
+					scope (exit)
+					{
+						c.inc ();
+						cur.tiles.counter[c.letter]++;
+					}
+					cur.board[row][col] = forced_letter |
+					    (1 << BoardCell.ACTIVE_SHIFT) |
+					    ((c.is_wildcard) <<
+					    BoardCell.WILDCARD_SHIFT);
+					step_recur (cur, row, col,
+					    vert, score, mult, vt,
+					    flags + MULT_ACT);
+					continue;
+				}
+			}
+			cur.board[row][col] = BoardCell.NONE;
+			return;
+		}
+
 		if (!cur.board[row][col].empty)
 		{
 			step_recur (cur, row, col,
@@ -789,7 +857,7 @@ class Game
 					c.inc ();
 					cur.tiles.counter[c.letter]++;
 				}
-				if (c.letter != LET)
+				if (!c.is_wildcard)
 				{
 					cur.board[row][col] = c.letter |
 					    (1 << BoardCell.ACTIVE_SHIFT);
@@ -828,15 +896,48 @@ class Game
 		}
 	}
 
+	void perform_move (ref GameState cur, GameMove cur_move)
+	{
+		forced_word = cur_move.word;
+		int row = cur_move.row;
+		int col = cur_move.col;
+		bool to_flip = (cur.board.is_flipped != cur_move.is_flipped);
+		if (to_flip)
+		{
+			cur.board.flip ();
+		}
+		if (cur.board.can_start_move (row, col,
+		    cur.tiles.rack.total))
+		{
+			move_recur (cur, row, col, 0, 0, 1, Trie.ROOT, 0);
+		}
+		if (to_flip)
+		{
+			cur.board.flip ();
+		}
+		forced_word = null;
+	}
+
 	void move_start (ref GameState cur)
 	{
 		move_horizontal (cur);
-		if (!cur.board[Board.CENTER][Board.CENTER].empty)
+		if (!cur.board[Board.CENTER][Board.CENTER].empty ||
+		    allow_mirror) // first move direction matters
 		{
 			cur.board.flip ();
 			move_horizontal (cur);
 			cur.board.flip ();
 		}
+	}
+
+	void move_guided_start (ref GameState cur)
+	{
+		for (GameMove cur_move = moves_guide; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			perform_move (cur, cur_move);
+		}
+		move_start (cur);
 	}
 
 	void go (int upper_limit, Keep keep)
@@ -860,7 +961,7 @@ class Game
 						stdout.flush ();
 					}
 				}
-				move_start (gs[k][gsp_element]);
+				move_guided_start (gs[k][gsp_element]);
 			}
 			if (!keep)
 			{

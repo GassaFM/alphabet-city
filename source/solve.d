@@ -26,20 +26,21 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
-/*
-	auto m = new Manager (ps);
-	m.read_log ("log.txt");
-	m.read_log ("log2.txt");
-	m.read_log ("log3.txt");
-	m.read_log ("log4.txt");
-	m.read_log ("log5.txt");
-	m.read_log ("log6.txt");
-	m.read_log ("log7.txt");
-	m.read_log ("log8.txt");
-	m.read_log ("log9.txt");
-	m.close ();
-	return;
-*/
+	version (manager)
+	{
+		auto m = new Manager (ps);
+		m.read_log ("log.txt");
+		m.read_log ("log2.txt");
+		m.read_log ("log3.txt");
+		m.read_log ("log4.txt");
+		m.read_log ("log5.txt");
+		m.read_log ("log6.txt");
+		m.read_log ("log7.txt");
+		m.read_log ("log8.txt");
+		m.read_log ("log9.txt");
+		m.close ();
+		return;
+	}
 
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
@@ -184,13 +185,26 @@ void main ()
 				g.play (50, 0, Game.Keep.True);
 				log_progress ();
 
+				g.moves_guide = GameMove.invert
+				    (g.best.closest_move);
+				g.goals = [];
+				g.resume (100, 0, 0, Game.Keep.False);
+				log_progress ();
+
+/*
+				goal.stage = Goal.Stage.COMBINED;
+				goal.bias = bias;
+				g.play (1600, 0, Game.Keep.True);
+				log_progress ();
+
 //				g.problem = p_main;
 //				goal.stage = Goal.Stage.MAIN;
 //				goal.bias = 0;
 //				g.resume (700, 0, hi, Game.Keep.True, true);
 				g.goals = [];
-				g.resume (100, 0, hi, Game.Keep.False);
+				g.resume (3200, 0, hi, Game.Keep.False);
 				log_progress ();
+*/
 
 /*
 				g.problem = p;

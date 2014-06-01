@@ -16,7 +16,12 @@ struct RackEntry
 	ubyte contents = NONE;
 
 	alias contents this;
-	
+
+	bool is_wildcard () @property const
+	{
+		return letter == LET;
+	}
+
 	ubyte letter () @property const
 	{
 		return contents & LET_MASK;
