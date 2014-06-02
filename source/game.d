@@ -276,6 +276,7 @@ class Game
 			    cur.board[7][0].active +
 			    cur.board[14][0].active) % 3 != 0)
 			{
+//				stderr.writeln ("!");
 				return;
 			}
 		}
@@ -285,18 +286,7 @@ class Game
 			    cur.board[0][7].active +
 			    cur.board[0][14].active) % 3 != 0)
 			{
-				return;
-			}
-		}
-		if (forced_word !is null)
-		{
-			if (forced_word.length != forced_cur)
-			{
-				return;
-			}
-			if (forced_imaginary)
-			{
-				imaginary_result = cur;
+//				stderr.writeln ("!");
 				return;
 			}
 		}
@@ -311,7 +301,8 @@ class Game
 		}
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * MULT_ACT);
-		if (depth == 0 && gsp[num].length == bests_num &&
+		if (depth == 0 && forced_word is null &&
+		    gsp[num].length == bests_num &&
 		    gs[num][gsp[num][$ - 1]].board.value >=
 		    cur.board.value + add_score)
 		{
@@ -360,6 +351,20 @@ class Game
 
 		next.board.normalize ();
 		next.closest_move = new GameMove (cur, row, col, add_score);
+
+		if (forced_word !is null)
+		{
+			if (forced_word.length != forced_cur)
+			{
+				return;
+			}
+			if (forced_imaginary)
+			{
+				imaginary_result = cur;
+				imaginary_result.board.normalize ();
+				return;
+			}
+		}
 
 		if (depth > 0)
 		{
@@ -529,15 +534,24 @@ class Game
 	{
 		if (forced_word !is null)
 		{
+//			writeln (">4:");
+//			stdout.flush ();
 			if (forced_word.length <= forced_cur)
 			{
 				return;
 			}
-			byte forced_letter = forced_word[forced_cur].letter;
+			auto forced_tile = forced_word[forced_cur];
+			forced_cur++;
+			scope (exit)
+			{
+				forced_cur--;
+			}
 			if (!cur.board[row][col].empty)
 			{
+//				writeln (">6: ", cur.board[row][col].letter,
+//				    ' ', forced_tile.letter);
 				if (cur.board[row][col].letter ==
-				    forced_letter)
+				    forced_tile.letter)
 				{ // allows two-way wildcard! substitution
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
@@ -545,22 +559,27 @@ class Game
 				}
 				return;
 			}
-			forced_cur++;
-			scope (exit)
-			{
-				forced_cur--;
-			}
+//			writeln (">5:");
+//			stdout.flush ();
 
 			if (forced_imaginary)
 			{
-				cur.board[row][col] =
-				    forced_word[forced_cur] |
+				cur.board[row][col] = forced_tile |
 				    (1 << BoardCell.ACTIVE_SHIFT);
+//				writeln (">3: ", forced_word, ' ',
+//				    forced_cur, ' ', cur.board[row][col]);
+//				stdout.flush ();
 				step_recur (cur, row, col,
 				    vert, score, mult, vt,
 				    flags + MULT_ACT);
 				cur.board[row][col] = BoardCell.NONE;
 				return;
+			}
+
+			forced_cur++;
+			scope (exit)
+			{
+				forced_cur--;
 			}
 
 			foreach (ref c; cur.tiles.rack.contents)
@@ -570,7 +589,7 @@ class Game
 					break;
 				}
 				if ((c.is_wildcard ||
-				    (c.letter == forced_letter)) &&
+				    (c.letter == forced_tile.letter)) &&
 				    (c.num != 0))
 				{ // allows two-way wildcard! substitution
 					c.dec ();
@@ -580,7 +599,8 @@ class Game
 						c.inc ();
 						cur.tiles.counter[c.letter]++;
 					}
-					cur.board[row][col] = forced_letter |
+					cur.board[row][col] =
+					    forced_tile.letter |
 					    (1 << BoardCell.ACTIVE_SHIFT) |
 					    ((c.is_wildcard) <<
 					    BoardCell.WILDCARD_SHIFT);
@@ -664,9 +684,10 @@ class Game
 		{
 			cur.board.flip ();
 		}
-		if (cur.board.can_start_move (row, col,
-		    cur.tiles.rack.total))
+		writeln ('?');
+		if (cur.board.can_start_move (row, col, Rack.MAX_SIZE))
 		{
+			writeln ('!');
 			move_recur (cur, row, col, 0, 0, 1, Trie.ROOT, 0);
 		}
 		if (to_flip)
@@ -696,6 +717,71 @@ class Game
 			perform_move (cur, cur_move);
 		}
 		move_start (cur);
+	}
+
+	bool moves_can_happen (GameMove first_inverted, GameMove second)
+	{
+		bool remember_imaginary = true;
+		swap (remember_imaginary, forced_imaginary);
+		scope (exit)
+		{
+			swap (remember_imaginary, forced_imaginary);
+		}
+		GameMove first = GameMove.invert (first_inverted);
+		GameState cur;
+		for (GameMove cur_move = first; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			imaginary_result = GameState ();
+			imaginary_result.board.value = NA;
+			perform_move (cur, cur_move);
+//			writeln (">1: ", cur_move);
+//			writeln (cur);
+//			writeln (imaginary_result);
+//			stdout.flush ();
+			if (imaginary_result.board.value == NA)
+			{
+				return false;
+			}
+			cur = imaginary_result;
+		}
+		for (GameMove cur_move = second; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			imaginary_result = GameState ();
+			imaginary_result.board.value = NA;
+			perform_move (cur, cur_move);
+//			writeln (">2: ", cur_move);
+//			writeln (cur);
+//			writeln (imaginary_result);
+//			stdout.flush ();
+			if (imaginary_result.board.value == NA)
+			{
+				return false;
+			}
+			cur = imaginary_result;
+		}
+		return true;
+	}
+
+	GameMove reduce_move_history (GameMove history)
+	{
+		GameMove res = null;
+		GameMove start = GameMove.invert (history);
+		for (GameMove cur_move = start; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			// TODO: parameterize!
+			if ((cur_move.row == 0 && cur_move.col == 0 &&
+			    !cur_move.is_flipped) ||
+			    !moves_can_happen (cur_move.chained_move, res))
+			{
+				GameMove temp = new GameMove (cur_move);
+				temp.chained_move = res;
+				res = temp;
+			}
+		}
+		return res;
 	}
 
 	void go (int upper_limit, Keep keep)
