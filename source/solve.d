@@ -41,6 +41,8 @@ void main ()
 //		m.read_log ("log10.txt");
 		m.read_log ("log11.txt");
 		m.read_log ("log12.txt");
+		m.read_log ("log13.txt");
+		m.read_log ("log14.txt");
 		m.close ();
 		return;
 	}
@@ -84,7 +86,7 @@ void main ()
 	GC.collect ();
 	bool started_output = false;
 
-	foreach (i; 0..1)
+	foreach (i; 0..LET)
 	{
 /*
 		if (i != 's' - 'a')
@@ -125,7 +127,7 @@ void main ()
 //		    a.get_times.length > 1 &&
 		    a.get_times.length == Rack.MAX_SIZE &&
 //		    a.get_times[2] >= a.get_times[0] - 5 &&
-		    a.score_rating >= 1000).take (1))
+		    a.score_rating >= 1000).take (2))
 /*
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 20
@@ -163,7 +165,7 @@ void main ()
 				auto game = new Game (p, t, s);
 //				auto game = new Game (p_prepare, t, s);
 				game.goals = [goal];
-				goal.letter_bonus = 100;
+//				goal.letter_bonus = 25;
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
 
@@ -191,7 +193,7 @@ void main ()
 
 				goal.stage = Goal.Stage.COMBINED;
 				game.bias = bias;
-				game.play (100, 0, Game.Keep.False);
+				game.play (500, 0, Game.Keep.False);
 //				game.play (500, 0, Game.Keep.True);
 				log_progress ();
 				if (game.best.board.score < 1600)
@@ -201,35 +203,43 @@ void main ()
 
 				game.moves_guide = GameMove.invert
 				    (game.best.closest_move);
-/*
-				writeln ("1:");
+				GameMove [] gm1;
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
 				    cur_move = cur_move.chained_move)
 				{
-					writeln (cur_move);
+					gm1 ~= cur_move;
 				}
-				stdout.flush ();
-*/
+				stderr.writefln
+				    ("complete guide (%s): %(%s, %)",
+				    gm1.length, gm1);
+				stderr.flush ();
 				game.moves_guide = game.reduce_move_history
 				    (game.moves_guide);
-/*
-				writeln ("2:");
+				GameMove [] gm2;
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
 				    cur_move = cur_move.chained_move)
 				{
-					writeln (cur_move);
+					gm2 ~= cur_move;
 				}
-				stdout.flush ();
-*/
+				stderr.writefln
+				    ("necessary guide (%s): %(%s, %)",
+				    gm2.length, gm2);
+				stderr.flush ();
+
+				game.bias = 0;
+				goal.letter_bonus = 0;
+				game.play (1000, 0, Game.Keep.False);
+				log_progress ();
 
 				auto game_copy = new Game (p, t, s);
-				game = game_copy;
-				game.goals = [goal];
+				game_copy.moves_guide = game.moves_guide;
+				game_copy.goals = [goal];
+				game_copy.bias = 0;
 				goal.letter_bonus = 0;
-				game.bias = 0;
-				game.play (100, 0, Game.Keep.False);
+				game = game_copy;
+				game.play (1500, 0, Game.Keep.False);
 				log_progress ();
 
 /*

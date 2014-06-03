@@ -410,39 +410,46 @@ class Game
 
 		if (moves_guide !is null)
 		{
+			int ok = 1;
 			for (GameMove cur_move = moves_guide;
 			    cur_move !is null;
 			    cur_move = cur_move.chained_move)
 			{
-				int temp = is_move_present (next, cur_move);
-/*
-				writeln (next);
-				writeln (cur_move);
-				writeln (temp);
-*/
-				if (temp == 1)
+				ok = min (ok,
+				    is_move_present (next, cur_move));
+				if (ok == 1)
 				{
 					next.board.value += forced_move_bonus;
 				}
-				else
+				else if (ok == 0)
 				{
-					if (temp == NA)
+					if (!moves_can_happen (null,
+					    cur_move, next))
 					{
-//						next.board.value = NA;
 						return;
 					}
 					break;
 				}
-			// TODO: check moves_can_happen for the rest
-//			perform_move (next, cur_move);
+				else if (ok == NA)
+				{
+					return;
+				}
+				else
+				{
+					assert (false);
+				}
 			}
+//			writeln ("ok = ", ok);
 		}
 
 		if (depth > 0)
 		{
 			depth--;
+			scope (exit)
+			{
+				depth++;
+			}
 			move_start (next);
-			depth++;
 		}
 
 		if (gsp[num].length == bests_num &&
@@ -811,9 +818,9 @@ class Game
 		}
 	}
 
-	bool moves_can_happen (GameMove first_inverted, GameMove second)
-//	bool moves_can_happen (GameMove first_inverted, GameMove second,
-//	    GameState cur)
+//	bool moves_can_happen (GameMove first_inverted, GameMove second)
+	bool moves_can_happen (GameMove first_inverted, GameMove second,
+	    GameState cur)
 	{ // if GameState becomes a reference type, make a copy!
 		bool remember_forced_imaginary = true;
 		swap (forced_imaginary, remember_forced_imaginary);
@@ -822,13 +829,7 @@ class Game
 			swap (forced_imaginary, remember_forced_imaginary);
 		}
 		GameMove first = GameMove.invert (first_inverted);
-		auto cur = GameState (problem);
-/*
-		if (cur == GameState.init)
-		{
-			cur = GameState (problem);
-		}
-*/
+//		auto cur = GameState (problem);
 		for (GameMove cur_move = first; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
@@ -857,7 +858,7 @@ class Game
 //			writeln (">2: ", cur_move);
 //			writeln (cur);
 //			writeln (imaginary_result);
-//			stdout.flush ();
+			stdout.flush ();
 			if (imaginary_result.board.value == NA)
 			{
 //				writeln ("(2) false");
@@ -880,7 +881,8 @@ class Game
 			// TODO: parameterize!
 			if ((cur_move.row == 0 && cur_move.col == 0 &&
 			    !cur_move.is_flipped) ||
-			    !moves_can_happen (cur_move.chained_move, res))
+			    !moves_can_happen (cur_move.chained_move, res,
+			        GameState (problem)))
 			{
 //				writeln ("taking ", cur_move);
 				GameMove temp = new GameMove (cur_move);
