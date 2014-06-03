@@ -16,3 +16,9 @@ Random Ideas:
   Remove one critical move.
   Remove some non-critical moves.
   Do a search, maybe the critical move can be replaced with a better one.
+
+20140604:
+Beam Search improvements:
+1. Factor away from Game.
+2. Add associative array by current Rack:
+  one or more bests for each possible Rack.

@@ -295,26 +295,32 @@ void main ()
 					stderr.writeln (p.name, ' ', goal2);
 					stderr.flush ();
 
+/*
 					auto p_cur = Problem (p.name,
 					    p.contents
 					    [0..goal2.get_best_times.y],
 					    p.contents
 					    [goal2.get_best_times.y..$]);
 					auto game2 = new Game (p_cur, t, s);
+*/
+					auto game2 = new Game (p, t, s);
 					game2.goals = [goal2];
 					goal2.stage = Goal.Stage.PREPARE;
 					game2.moves_guide = game.moves_guide;
 					game2.forced_lock_wildcards = true;
 					game2.bias = -bias;
-					game2.play (2500, 0, Game.Keep.True);
+					game2.play (2500, 0, Game.Keep.False);
+//					game2.play (2500, 0, Game.Keep.True);
 					log_progress (game2);
 
+/*
 					game2.problem = p;
 					goal2.stage = Goal.Stage.COMBINED;
 					game2.resume (2500, 0,
 					    to !(int) (p_cur.contents.length),
 					    Game.Keep.False, false);
 					log_progress (game2);
+*/
 				}
 
 /*
