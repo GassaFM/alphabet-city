@@ -18,6 +18,30 @@ import scoring;
 import tilebag;
 import trie;
 
+void log_progress (Game game)
+{
+	static bool started_output = false;
+
+	stderr.writeln (game.problem.name, ' ',
+	    game.best.board.score, " (",
+	    game.best.board.value, ')');
+	stderr.flush ();
+	if (game.best.board.score < 2000 ||
+	    game.best.tiles.contents.length <
+	    TOTAL_TILES)
+	{
+		return;
+	}
+	if (started_output)
+	{
+		writeln (';');
+	}
+	started_output = true;
+	writeln (game.problem.name);
+	writeln (game);
+	stdout.flush ();
+}
+
 void main ()
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -76,16 +100,13 @@ void main ()
 */
 
 	GC.collect ();
-	bool started_output = false;
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
-/*
-		if (i != 's' - 'a')
+		if (i != 'F' - 'A' && i != 'U' - 'A')
 		{
 			continue;
 		}
-*/
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
 		{
@@ -148,7 +169,7 @@ void main ()
 			    p.contents[0..$]);
 //			    p.contents[0..hi]);
 
-			foreach (bias; 0..1)
+			foreach (bias; 0..3)
 			{
 				scope (exit)
 				{
@@ -161,34 +182,12 @@ void main ()
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
 
-				void log_progress ()
-				{
-					stderr.writeln (p.name, ' ',
-					    game.best.board.score, " (",
-					    game.best.board.value, ')');
-					stderr.flush ();
-					if (game.best.board.score < 2000 ||
-					    game.best.tiles.contents.length <
-					    TOTAL_TILES)
-					{
-						return;
-					}
-					if (started_output)
-					{
-						writeln (';');
-					}
-					started_output = true;
-					writeln (p.name);
-					writeln (game);
-					stdout.flush ();
-				}
-
 /*
 				goal.stage = Goal.Stage.COMBINED;
 				game.bias = bias;
 				game.play (500, 0, Game.Keep.False);
 //				game.play (500, 0, Game.Keep.True);
-				log_progress ();
+				log_progress (game);
 				if (game.best.board.score < 1600)
 				{
 					continue;
@@ -237,7 +236,7 @@ void main ()
 				game.bias = 0;
 				goal.letter_bonus = 0;
 				game.play (1000, 0, Game.Keep.False);
-				log_progress ();
+				log_progress (game);
 */
 
 				auto goals2 = goals.dup;
@@ -246,12 +245,13 @@ void main ()
 					goal2 = new Goal (goal2);
 					goal2.row = Board.SIZE - 1;
 				}
+				immutable int LOWER_LIMIT2 = 20; // of ~60
 				foreach (ref goal2; goals2)
 				{
 					goal2.stored_best_times =
 					    goal2.calc_best_times
 					    (TileBag (p_freed),
-					    LOWER_LIMIT, UPPER_LIMIT);
+					    LOWER_LIMIT2, UPPER_LIMIT);
 					goal2.stored_times = goal2.calc_times
 					    (TileBag (p_freed),
 					    goal2.stored_best_times.x,
@@ -272,28 +272,49 @@ void main ()
 				    a.score_rating > b.score_rating,
 				    SwapStrategy.stable) (goals2);
 */
+				sort !((a, b) =>
+				    a.get_best_times.x > b.get_best_times.x,
+				    SwapStrategy.stable) (goals2);
+				sort !((a, b) =>
+				    a.get_times.length < b.get_times.length,
+				    SwapStrategy.stable) (goals2);
+
 				foreach (goal2_original; goals2.filter
 				    !(a => a.get_best_times.x != NA &&
 //				    a.holes_rating <= 30 &&
 				    a.get_times.length > 1 &&
-				    a.get_times.length <= 5 &&
+				    a.get_times.length <= 7 &&
 //				    a.get_times.length == Rack.MAX_SIZE &&
 //				    a.get_times[2] >= a.get_times[0] - 5 &&
-				    a.get_times[$ - 1] >=
-				    a.get_times[0] - 15 &&
-				    a.score_rating >= 500).take (5))
+				    a.get_times[$ - 1] >= LOWER_LIMIT2 &&
+//				    a.get_times[$ - 1] >=
+//				    a.get_times[0] - 15 &&
+				    a.score_rating >= 100).take (10))
 				{
 					auto goal2 = new Goal (goal2_original);
 					stderr.writeln (p.name, ' ', goal2);
 					stderr.flush ();
 
-					auto game2 = new Game (p, t, s);
+					auto p_cur = Problem (p.name,
+					    p.contents
+					    [0..goal2.get_best_times.y],
+					    p.contents
+					    [goal2.get_best_times.y..$]);
+					auto game2 = new Game (p_cur, t, s);
 					game2.goals = [goal2];
+					goal2.stage = Goal.Stage.PREPARE;
 					game2.moves_guide = game.moves_guide;
+					game2.forced_lock_wildcards = true;
 					game2.bias = -bias;
-					game = game2;
-					game.play (100, 0, Game.Keep.False);
-					log_progress ();
+					game2.play (2500, 0, Game.Keep.True);
+					log_progress (game2);
+
+					game2.problem = p;
+					goal2.stage = Goal.Stage.COMBINED;
+					game2.resume (2500, 0,
+					    to !(int) (p_cur.contents.length),
+					    Game.Keep.False, false);
+					log_progress (game2);
 				}
 
 /*
@@ -304,62 +325,60 @@ void main ()
 				goal.letter_bonus = 0;
 				game = game_copy;
 				game.play (1500, 0, Game.Keep.False);
-				log_progress ();
+				log_progress (game);
 */
 
 /*
 				game.resume (1000, 0, 0, Game.Keep.True, true);
-				log_progress ();
+				log_progress (game);
 
 				game.goals = [];
 				game.bias = -bias;
 				game.resume (500, 0, 0, Game.Keep.False, true);
-				log_progress ();
+				log_progress (game);
 
 				auto game2 = new Game (p, t, s);
 				game2.moves_guide = game.moves_guide;
 				game2.bias = -bias;
-				game = game2;
-				game.play (500, 0, Game.Keep.False);
-				log_progress ();
+				game2.play (500, 0, Game.Keep.False);
+				log_progress (game2);
 
 				auto game3 = new Game (p, t, s);
 				game3.moves_guide = game.moves_guide;
-				game = game3;
-				game.play (500, 0, Game.Keep.False);
-				log_progress ();
+				game3.play (500, 0, Game.Keep.False);
+				log_progress (game3);
 */
 
 /*
 				game.bias = +bias;
 				game.play (100, 0, Game.Keep.True);
-				log_progress ();
+				log_progress (game);
 
 				game.bias = -bias;
 				game.resume (300, 0, 0, Game.Keep.True);
-				log_progress ();
+				log_progress (game);
 
 				game.bias = +bias;
 				game.resume (900, 0, 0, Game.Keep.True);
-				log_progress ();
+				log_progress (game);
 
 				game.bias = -bias;
 				game.resume (2700, 0, 0, Game.Keep.True);
-				log_progress ();
+				log_progress (game);
 //				game.problem = p_main;
 //				goal.stage = Goal.Stage.MAIN;
 //				game.bias = 0;
 //				game.resume (700, 0, hi, Game.Keep.True, true);
 				game.goals = [];
 				game.resume (8100, 0, hi, Game.Keep.False);
-				log_progress ();
+				log_progress (game);
 */
 
 /*
 				game.problem = p;
 				goal.stage = Goal.Stage.DONE;
 				game.resume (250, 0, Game.Keep.False);
-				log_progress ();
+				log_progress (game);
 */
 			}
 		}

@@ -193,6 +193,44 @@ class GameMove
 		return next;
 	}
 
+	void update_active (ref GameState cur)
+	{
+		if (cur.board.is_flipped ^ is_flipped)
+		{
+			foreach (pos; 0..word.length)
+			{
+				if (cur.board[col + pos][row].letter !=
+				    word[pos].letter)
+				{
+					enforce
+					    (cur.board[col + pos][row].empty);
+					word[pos].active = true;
+				}
+				else
+				{
+					word[pos].active = false;
+				}
+			}
+		}
+		else
+		{
+			foreach (pos; 0..word.length)
+			{
+				if (cur.board[row][col + pos].letter !=
+				    word[pos].letter)
+				{
+					enforce
+					    (cur.board[row][col + pos].empty);
+					word[pos].active = true;
+				}
+				else
+				{
+					word[pos].active = false;
+				}
+			}
+		}
+	}
+
 	static string row_to_str (const int val)
 	{
 		return to !(string) (val + 1);
@@ -304,48 +342,6 @@ class Game
 			}
 		}
 		return res;
-	}
-
-	void update_move_active (ref GameState cur, GameMove cur_move)
-	{
-		if (cur.board.is_flipped ^ cur_move.is_flipped)
-		{
-			int row = cur_move.col;
-			int col = cur_move.row;
-			foreach (pos; 0..cur_move.word.length)
-			{
-				if (cur.board[row + pos][col].letter !=
-				    cur_move.word[pos].letter)
-				{
-					enforce
-					    (cur.board[row + pos][col].empty);
-					cur_move.word[pos].active = true;
-				}
-				else
-				{
-					cur_move.word[pos].active = false;
-				}
-			}
-		}
-		else
-		{
-			int row = cur_move.row;
-			int col = cur_move.col;
-			foreach (pos; 0..cur_move.word.length)
-			{
-				if (cur.board[row][col + pos].letter !=
-				    cur_move.word[pos].letter)
-				{
-					enforce
-					    (cur.board[row][col + pos].empty);
-					cur_move.word[pos].active = true;
-				}
-				else
-				{
-					cur_move.word[pos].active = false;
-				}
-			}
-		}
 	}
 
 	void consider (ref GameState cur, int row, int col,
@@ -973,8 +969,7 @@ class Game
 		{
 //			writeln ("considering ", cur_move);
 			// TODO: parameterize!
-			if ((cur_move.row == 0 && cur_move.col == 0 &&
-			    !cur_move.is_flipped) ||
+			if (cur_move.word.length == Board.SIZE ||
 			    !moves_can_happen (cur_move.chained_move, gm_res,
 			        GameState (problem)))
 			{
@@ -1023,7 +1018,7 @@ class Game
 		for (GameMove cur_move = start; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
-			update_move_active (temp, cur_move);
+			cur_move.update_active (temp);
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
 			perform_move (temp, cur_move);
