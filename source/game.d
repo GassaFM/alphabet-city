@@ -271,7 +271,7 @@ class Game
 	int is_move_present (ref GameState cur, GameMove cur_move)
 	{
 		int res = 1;
-		if (cur.board.is_flipped)
+		if (cur.board.is_flipped ^ cur_move.is_flipped)
 		{
 			int row = cur_move.col;
 			int col = cur_move.row;
@@ -280,8 +280,9 @@ class Game
 				if (cur.board[row + pos][col].letter !=
 				    cur_move.word[pos].letter)
 				{
-					res = max (res, 0 -
-					    !cur.board[row + pos][col].empty);
+					res = min (res,
+					    cur.board[row + pos][col].empty -
+					    1);
 				}
 			}
 		}
@@ -294,8 +295,9 @@ class Game
 				if (cur.board[row][col + pos].letter !=
 				    cur_move.word[pos].letter)
 				{
-					res = max (res, 0 -
-					    !cur.board[row][col + pos].empty);
+					res = min (res,
+					    cur.board[row][col + pos].empty -
+					    1);
 				}
 			}
 		}
@@ -405,6 +407,7 @@ class Game
 		{
 			next.board.value += GameTools.bias_value (next, bias);
 		}
+
 		if (moves_guide !is null)
 		{
 			for (GameMove cur_move = moves_guide;
@@ -412,6 +415,11 @@ class Game
 			    cur_move = cur_move.chained_move)
 			{
 				int temp = is_move_present (next, cur_move);
+/*
+				writeln (next);
+				writeln (cur_move);
+				writeln (temp);
+*/
 				if (temp == 1)
 				{
 					next.board.value += forced_move_bonus;
@@ -425,9 +433,9 @@ class Game
 					}
 					break;
 				}
+			// TODO: check moves_can_happen for the rest
+//			perform_move (next, cur_move);
 			}
-				// TODO: check moves_can_happen for the rest
-//				perform_move (next, cur_move);
 		}
 
 		if (depth > 0)

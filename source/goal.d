@@ -197,6 +197,23 @@ class Goal
 		return stored_best_times;
 	}
 
+	this (Goal other)
+	{
+		word = other.word;
+		mask_forbidden = other.mask_forbidden;
+		row = other.row;
+		col = other.col;
+		is_flipped = other.is_flipped;
+		letter_bonus = other.letter_bonus;
+		stored_score_rating = other.stored_score_rating;
+		stored_holes_rating = other.stored_holes_rating;
+		stored_times = other.stored_times.dup;
+		stored_best_times = other.stored_best_times;
+		stage = other.stage;
+		total_counter = other.total_counter;
+		forbidden_counter = other.forbidden_counter;
+	}
+
 	this (const byte [] new_word, int new_mask_forbidden,
 	    byte new_row, byte new_col, bool new_is_flipped,
 	    int new_letter_bonus = 100)

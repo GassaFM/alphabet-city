@@ -118,7 +118,7 @@ void main ()
 		    SwapStrategy.stable) (goals);
 
                 int k = 0;
-		foreach (goal; goals.filter
+		foreach (goal_original; goals.filter
 		    !(a => a.get_best_times.x != NA &&
 		    a.holes_rating <= 30 &&
 //		    a.holes_rating <= 50 &&
@@ -138,6 +138,7 @@ void main ()
 //		    a.s[0] >= UPPER_LIMIT - 1 &&
 //		    a.s[6] >= UPPER_LIMIT - 7) (gt))
 		{
+			auto goal = new Goal (goal_original);
 			k++;
 			if (k <= 0)
 			{
@@ -190,7 +191,8 @@ void main ()
 
 				goal.stage = Goal.Stage.COMBINED;
 				game.bias = bias;
-				game.play (100, 0, Game.Keep.True);
+				game.play (100, 0, Game.Keep.False);
+//				game.play (500, 0, Game.Keep.True);
 				log_progress ();
 				if (game.best.board.score < 1600)
 				{
@@ -221,7 +223,17 @@ void main ()
 				}
 				stdout.flush ();
 */
-				game.resume (200, 0, 0, Game.Keep.True, true);
+
+				auto game_copy = new Game (p, t, s);
+				game = game_copy;
+				game.goals = [goal];
+				goal.letter_bonus = 0;
+				game.bias = 0;
+				game.play (100, 0, Game.Keep.False);
+				log_progress ();
+
+/*
+				game.resume (1000, 0, 0, Game.Keep.True, true);
 				log_progress ();
 
 				game.goals = [];
@@ -235,6 +247,13 @@ void main ()
 				game = game2;
 				game.play (500, 0, Game.Keep.False);
 				log_progress ();
+
+				auto game3 = new Game (p, t, s);
+				game3.moves_guide = game.moves_guide;
+				game = game3;
+				game.play (500, 0, Game.Keep.False);
+				log_progress ();
+*/
 
 /*
 				game.bias = +bias;
