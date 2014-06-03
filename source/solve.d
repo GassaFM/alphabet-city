@@ -38,6 +38,9 @@ void main ()
 		m.read_log ("log7.txt");
 		m.read_log ("log8.txt");
 		m.read_log ("log9.txt");
+//		m.read_log ("log10.txt");
+		m.read_log ("log11.txt");
+		m.read_log ("log12.txt");
 		m.close ();
 		return;
 	}
@@ -81,7 +84,7 @@ void main ()
 	GC.collect ();
 	bool started_output = false;
 
-	foreach (i; 0..LET)
+	foreach (i; 0..1)
 	{
 /*
 		if (i != 's' - 'a')
@@ -152,10 +155,14 @@ void main ()
 
 			foreach (bias; 0..3)
 			{
+				scope (exit)
+				{
+					GC.collect ();
+				}
 				auto game = new Game (p, t, s);
 //				auto game = new Game (p_prepare, t, s);
 				game.goals = [goal];
-				goal.letter_bonus = 25;
+				goal.letter_bonus = 100;
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
 
@@ -182,12 +189,17 @@ void main ()
 				}
 
 				goal.stage = Goal.Stage.COMBINED;
-				goal.bias = bias;
-				game.play (50, 0, Game.Keep.True);
+				game.bias = bias;
+				game.play (100, 0, Game.Keep.True);
 				log_progress ();
+				if (game.best.board.score < 1600)
+				{
+					continue;
+				}
 
 				game.moves_guide = GameMove.invert
 				    (game.best.closest_move);
+/*
 				writeln ("1:");
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
@@ -196,8 +208,10 @@ void main ()
 					writeln (cur_move);
 				}
 				stdout.flush ();
+*/
 				game.moves_guide = game.reduce_move_history
 				    (game.moves_guide);
+/*
 				writeln ("2:");
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
@@ -206,29 +220,41 @@ void main ()
 					writeln (cur_move);
 				}
 				stdout.flush ();
+*/
+				game.resume (200, 0, 0, Game.Keep.True, true);
+				log_progress ();
+
 				game.goals = [];
-				game.resume (100, 0, 0, Game.Keep.False);
+				game.bias = -bias;
+				game.resume (500, 0, 0, Game.Keep.False, true);
+				log_progress ();
+
+				auto game2 = new Game (p, t, s);
+				game2.moves_guide = game.moves_guide;
+				game2.bias = -bias;
+				game = game2;
+				game.play (500, 0, Game.Keep.False);
 				log_progress ();
 
 /*
-				goal.bias = +bias;
+				game.bias = +bias;
 				game.play (100, 0, Game.Keep.True);
 				log_progress ();
 
-				goal.bias = -bias;
+				game.bias = -bias;
 				game.resume (300, 0, 0, Game.Keep.True);
 				log_progress ();
 
-				goal.bias = +bias;
+				game.bias = +bias;
 				game.resume (900, 0, 0, Game.Keep.True);
 				log_progress ();
 
-				goal.bias = -bias;
+				game.bias = -bias;
 				game.resume (2700, 0, 0, Game.Keep.True);
 				log_progress ();
 //				game.problem = p_main;
 //				goal.stage = Goal.Stage.MAIN;
-//				goal.bias = 0;
+//				game.bias = 0;
 //				game.resume (700, 0, hi, Game.Keep.True, true);
 				game.goals = [];
 				game.resume (8100, 0, hi, Game.Keep.False);
@@ -241,8 +267,6 @@ void main ()
 				game.resume (250, 0, Game.Keep.False);
 				log_progress ();
 */
-
-				GC.collect ();
 			}
 		}
 	}

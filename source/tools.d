@@ -2,6 +2,7 @@ module tools;
 
 import std.exception;
 import std.math;
+import std.stdio;
 
 import board;
 import game;
@@ -54,10 +55,6 @@ static class GameTools
 		}
 
 		int res = 0;
-		if (goal.bias)
-		{
-			res += bias_value (cur, goal.bias);
-		}
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;
@@ -220,10 +217,6 @@ static class GameTools
 		}
 
 		int res = 0;
-		if (goal.bias)
-		{
-			res += bias_value (cur, goal.bias);
-		}
 		foreach (int pos, letter; goal.word)
 		{
 			bool is_empty = cur.board[row][col + pos].empty;
@@ -254,6 +247,7 @@ static class GameTools
 	static int bias_value (ref GameState cur, int bias)
 	{
 		enforce (bias);
+		enforce (!cur.board.is_flipped);
 		int res = 0;
 		if (bias > 0)
 		{
