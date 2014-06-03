@@ -9,6 +9,7 @@ import std.format;
 import std.math;
 import std.stdio;
 import std.string;
+import std.typecons;
 
 import board;
 import general;
@@ -259,8 +260,9 @@ class Game
 	GameMove moves_guide;
 	BoardCell [] forced_word;
 	int forced_cur;
-	int forced_move_bonus = 1000;
+	int forced_move_bonus = 10_000;
 	bool forced_imaginary;
+	bool forced_lock_wildcards;
 	GameState imaginary_result;
 
 	bool allow_mirror () @property const
@@ -302,6 +304,48 @@ class Game
 			}
 		}
 		return res;
+	}
+
+	void update_move_active (ref GameState cur, GameMove cur_move)
+	{
+		if (cur.board.is_flipped ^ cur_move.is_flipped)
+		{
+			int row = cur_move.col;
+			int col = cur_move.row;
+			foreach (pos; 0..cur_move.word.length)
+			{
+				if (cur.board[row + pos][col].letter !=
+				    cur_move.word[pos].letter)
+				{
+					enforce
+					    (cur.board[row + pos][col].empty);
+					cur_move.word[pos].active = true;
+				}
+				else
+				{
+					cur_move.word[pos].active = false;
+				}
+			}
+		}
+		else
+		{
+			int row = cur_move.row;
+			int col = cur_move.col;
+			foreach (pos; 0..cur_move.word.length)
+			{
+				if (cur.board[row][col + pos].letter !=
+				    cur_move.word[pos].letter)
+				{
+					enforce
+					    (cur.board[row][col + pos].empty);
+					cur_move.word[pos].active = true;
+				}
+				else
+				{
+					cur_move.word[pos].active = false;
+				}
+			}
+		}
 	}
 
 	void consider (ref GameState cur, int row, int col,
@@ -613,8 +657,11 @@ class Game
 	{
 		if (forced_word !is null)
 		{
-//			writeln (">4:");
-//			stdout.flush ();
+			version (debug_forced)
+			{
+				writeln (">4:");
+				stdout.flush ();
+			}
 			if (forced_word.length <= forced_cur)
 			{
 				return;
@@ -627,19 +674,29 @@ class Game
 			}
 			if (!cur.board[row][col].empty)
 			{
-//				writeln (">6: ", cur.board[row][col].letter,
-//				    ' ', forced_tile.letter);
+				version (debug_forced)
+				{
+					writeln (">6: ",
+					    cur.board[row][col].letter,
+					    ' ', forced_tile.letter);
+				}
 				if (cur.board[row][col].letter ==
-				    forced_tile.letter)
-				{ // allows two-way wildcard! substitution
+				    forced_tile.letter &&
+				    (!forced_lock_wildcards ||
+				    cur.board[row][col].wildcard ==
+				    forced_tile.wildcard))
+				{
 					step_recur (cur, row, col,
 					    vert, score, mult, vt,
 					    flags | FLAG_CONN);
 				}
 				return;
 			}
-//			writeln (">5:");
-//			stdout.flush ();
+			version (debug_forced)
+			{
+				writeln (">5:");
+				stdout.flush ();
+			}
 
 			if (forced_imaginary)
 			{
@@ -667,9 +724,13 @@ class Game
 				}
 				cur.board[row][col] = forced_tile |
 				    (1 << BoardCell.ACTIVE_SHIFT);
-//				writeln (">3: ", forced_word, ' ',
-//				    forced_cur, ' ', cur.board[row][col]);
-//				stdout.flush ();
+				version (debug_forced)
+				{
+					writeln (">3: ", forced_word, ' ',
+					    forced_cur, ' ',
+					    cur.board[row][col]);
+					stdout.flush ();
+				}
 				step_recur (cur, row, col,
 				    vert, score, mult, vt,
 				    flags + MULT_ACT);
@@ -682,6 +743,11 @@ class Game
 			{
 				forced_cur--;
 			}
+			version (debug_forced)
+			{
+				writeln (">7:");
+				stdout.flush ();
+			}
 
 			foreach (ref c; cur.tiles.rack.contents)
 			{
@@ -689,10 +755,15 @@ class Game
 				{
 					break;
 				}
+				if (forced_lock_wildcards &&
+				    c.is_wildcard != forced_tile.wildcard)
+				{
+					continue;
+				}
 				if ((c.is_wildcard ||
 				    (c.letter == forced_tile.letter)) &&
 				    (c.num != 0))
-				{ // allows two-way wildcard! substitution
+				{
 					c.dec ();
 					cur.tiles.counter[c.letter]--;
 					scope (exit)
@@ -833,17 +904,26 @@ class Game
 		for (GameMove cur_move = first; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
-//			writeln ("(1) trying ", cur_move);
+			version (debug_forced)
+			{
+				writeln ("(1) trying ", cur_move);
+			}
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
 			perform_move (cur, cur_move);
-//			writeln (">1: ", cur_move);
-//			writeln (cur);
-//			writeln (imaginary_result);
-//			stdout.flush ();
+			version (debug_forced)
+			{
+				writeln (">1: ", cur_move);
+				writeln (cur);
+				writeln (imaginary_result);
+				stdout.flush ();
+			}
 			if (imaginary_result.board.value == NA)
 			{
-//				writeln ("(1) false");
+				version (debug_forced)
+				{
+					writeln ("(1) false");
+				}
 				return false;
 			}
 			cur = imaginary_result;
@@ -851,28 +931,42 @@ class Game
 		for (GameMove cur_move = second; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
-//			writeln ("(2) trying ", cur_move);
+			version (debug_forced)
+			{
+				writeln ("(2) trying ", cur_move);
+			}
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
 			perform_move (cur, cur_move);
-//			writeln (">2: ", cur_move);
-//			writeln (cur);
-//			writeln (imaginary_result);
-			stdout.flush ();
+			version (debug_forced)
+			{
+				writeln (">2: ", cur_move);
+				writeln (cur);
+				writeln (imaginary_result);
+				stdout.flush ();
+			}
 			if (imaginary_result.board.value == NA)
 			{
-//				writeln ("(2) false");
+				version (debug_forced)
+				{
+					writeln ("(2) false");
+			        }
 				return false;
 			}
 			cur = imaginary_result;
 		}
-//		writeln ("true!");
+		version (debug_forced)
+		{
+			writeln ("true!");
+		}
 		return true;
 	}
 
-	GameMove reduce_move_history (GameMove history)
+	Tuple !(GameMove, Problem) reduce_move_history (GameMove history)
 	{
-		GameMove res = null;
+		GameMove gm_res = null;
+		Problem p_res = problem;
+		BoardCell [] freed_cells;
 		GameMove start = GameMove.invert (history);
 		for (GameMove cur_move = start; cur_move !is null;
 		    cur_move = cur_move.chained_move)
@@ -881,16 +975,65 @@ class Game
 			// TODO: parameterize!
 			if ((cur_move.row == 0 && cur_move.col == 0 &&
 			    !cur_move.is_flipped) ||
-			    !moves_can_happen (cur_move.chained_move, res,
+			    !moves_can_happen (cur_move.chained_move, gm_res,
 			        GameState (problem)))
 			{
 //				writeln ("taking ", cur_move);
 				GameMove temp = new GameMove (cur_move);
-				temp.chained_move = res;
-				res = temp;
+				temp.chained_move = gm_res;
+				gm_res = temp;
+			}
+			else
+			{
+				foreach (t; cur_move.word)
+				{
+					if (t.active)
+					{
+						freed_cells ~= t;
+					}
+				}
 			}
 		}
-		return res;
+		char [] freed_tiles;
+		foreach_reverse (t; freed_cells)
+		{
+			if (t.wildcard)
+			{
+				freed_tiles ~= '?';
+			}
+			else
+			{
+				freed_tiles ~= to !(char) (t.letter + 'A');
+			}
+		}
+		p_res.contents = to !(string) (freed_tiles);
+		return tuple (gm_res, p_res);
+	}
+
+	GameMove restore_moves (ref GameState cur)
+	{
+		bool remember_forced_imaginary = true;
+		swap (forced_imaginary, remember_forced_imaginary);
+		scope (exit)
+		{
+			swap (forced_imaginary, remember_forced_imaginary);
+		}
+		auto temp = GameState (problem);
+		GameMove start = GameMove.invert (cur.closest_move);
+		for (GameMove cur_move = start; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			update_move_active (temp, cur_move);
+			imaginary_result = GameState ();
+			imaginary_result.board.value = NA;
+			perform_move (temp, cur_move);
+			if (imaginary_result.board.value == NA)
+			{
+				enforce (false);
+			}
+			temp = imaginary_result;
+		}
+		return GameMove.invert (start);
 	}
 
 	void go (int upper_limit, Keep keep)

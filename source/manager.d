@@ -84,7 +84,8 @@ class Manager
 			{
 				break;
 			}
-			if (!('A' <= s[0] && s[0] <= 'Z' && s[1] == ':'))
+			if (!(s.length >= 2 &&
+			    'A' <= s[0] && s[0] <= 'Z' && s[1] == ':'))
 			{
 				continue;
 			}

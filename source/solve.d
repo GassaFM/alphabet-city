@@ -5,6 +5,7 @@ import std.algorithm;
 import std.conv;
 import std.range;
 import std.stdio;
+import std.typecons;
 
 import board;
 import game;
@@ -26,23 +27,14 @@ void main ()
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_goals
 	    (read_all_lines ("data/goals.txt"));
+	auto m = new Manager (ps);
 	version (manager)
 	{
-		auto m = new Manager (ps);
 		m.read_log ("log.txt");
-		m.read_log ("log2.txt");
-		m.read_log ("log3.txt");
-		m.read_log ("log4.txt");
-		m.read_log ("log5.txt");
-		m.read_log ("log6.txt");
-		m.read_log ("log7.txt");
-		m.read_log ("log8.txt");
-		m.read_log ("log9.txt");
-//		m.read_log ("log10.txt");
-		m.read_log ("log11.txt");
-		m.read_log ("log12.txt");
-		m.read_log ("log13.txt");
-		m.read_log ("log14.txt");
+		foreach (c; 2..21)
+		{
+			m.read_log ("log" ~ to !(string) (c) ~ ".txt");
+		}
 		m.close ();
 		return;
 	}
@@ -127,7 +119,7 @@ void main ()
 //		    a.get_times.length > 1 &&
 		    a.get_times.length == Rack.MAX_SIZE &&
 //		    a.get_times[2] >= a.get_times[0] - 5 &&
-		    a.score_rating >= 1000).take (2))
+		    a.score_rating >= 1000).take (1))
 /*
 		    a.get_times[$ - 3] >= a.get_times[0] - 12 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 20
@@ -156,7 +148,7 @@ void main ()
 			    p.contents[0..$]);
 //			    p.contents[0..hi]);
 
-			foreach (bias; 0..3)
+			foreach (bias; 0..1)
 			{
 				scope (exit)
 				{
@@ -165,7 +157,7 @@ void main ()
 				auto game = new Game (p, t, s);
 //				auto game = new Game (p_prepare, t, s);
 				game.goals = [goal];
-//				goal.letter_bonus = 25;
+				goal.letter_bonus = 100;
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
 
@@ -191,6 +183,7 @@ void main ()
 					stdout.flush ();
 				}
 
+/*
 				goal.stage = Goal.Stage.COMBINED;
 				game.bias = bias;
 				game.play (500, 0, Game.Keep.False);
@@ -200,9 +193,15 @@ void main ()
 				{
 					continue;
 				}
+*/
 
+				auto temp = m.best["" ~ to !(char) (i + 'a')];
+				temp.closest_move = game.restore_moves (temp);
+				game.forced_lock_wildcards = true;
 				game.moves_guide = GameMove.invert
-				    (game.best.closest_move);
+				    (temp.closest_move);
+//				game.moves_guide = GameMove.invert
+//				    (game.best.closest_move);
 				GameMove [] gm1;
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
@@ -214,8 +213,14 @@ void main ()
 				    ("complete guide (%s): %(%s, %)",
 				    gm1.length, gm1);
 				stderr.flush ();
-				game.moves_guide = game.reduce_move_history
+				goal.stage = Goal.Stage.COMBINED;
+				auto temp_history = game.reduce_move_history
 				    (game.moves_guide);
+				game.moves_guide = temp_history[0];
+				auto p_freed = temp_history[1];
+				stderr.writeln (p_freed.contents.length, ' ',
+				    p_freed);
+				stderr.flush ();
 				GameMove [] gm2;
 				for (GameMove cur_move = game.moves_guide;
 				    cur_move !is null;
@@ -228,11 +233,70 @@ void main ()
 				    gm2.length, gm2);
 				stderr.flush ();
 
+/*
 				game.bias = 0;
 				goal.letter_bonus = 0;
 				game.play (1000, 0, Game.Keep.False);
 				log_progress ();
+*/
 
+				auto goals2 = goals.dup;
+				foreach (ref goal2; goals2)
+				{
+					goal2 = new Goal (goal2);
+					goal2.row = Board.SIZE - 1;
+				}
+				foreach (ref goal2; goals2)
+				{
+					goal2.stored_best_times =
+					    goal2.calc_best_times
+					    (TileBag (p_freed),
+					    LOWER_LIMIT, UPPER_LIMIT);
+					goal2.stored_times = goal2.calc_times
+					    (TileBag (p_freed),
+					    goal2.stored_best_times.x,
+					    goal2.stored_best_times.y);
+				}
+/*
+				sort !((a, b) =>
+				    a.holes_rating < b.holes_rating,
+				    SwapStrategy.stable) (goals2);
+				sort !((a, b) =>
+				    a.get_best_times.x < b.get_best_times.x,
+				    SwapStrategy.stable) (goals2);
+				sort !((a, b) =>
+				    a.get_best_times.y - a.get_best_times.x <
+				    b.get_best_times.y - b.get_best_times.x,
+				    SwapStrategy.stable) (goals2);
+				sort !((a, b) =>
+				    a.score_rating > b.score_rating,
+				    SwapStrategy.stable) (goals2);
+*/
+				foreach (goal2_original; goals2.filter
+				    !(a => a.get_best_times.x != NA &&
+//				    a.holes_rating <= 30 &&
+				    a.get_times.length > 1 &&
+				    a.get_times.length <= 5 &&
+//				    a.get_times.length == Rack.MAX_SIZE &&
+//				    a.get_times[2] >= a.get_times[0] - 5 &&
+				    a.get_times[$ - 1] >=
+				    a.get_times[0] - 15 &&
+				    a.score_rating >= 500).take (5))
+				{
+					auto goal2 = new Goal (goal2_original);
+					stderr.writeln (p.name, ' ', goal2);
+					stderr.flush ();
+
+					auto game2 = new Game (p, t, s);
+					game2.goals = [goal2];
+					game2.moves_guide = game.moves_guide;
+					game2.bias = -bias;
+					game = game2;
+					game.play (100, 0, Game.Keep.False);
+					log_progress ();
+				}
+
+/*
 				auto game_copy = new Game (p, t, s);
 				game_copy.moves_guide = game.moves_guide;
 				game_copy.goals = [goal];
@@ -241,6 +305,7 @@ void main ()
 				game = game_copy;
 				game.play (1500, 0, Game.Keep.False);
 				log_progress ();
+*/
 
 /*
 				game.resume (1000, 0, 0, Game.Keep.True, true);
