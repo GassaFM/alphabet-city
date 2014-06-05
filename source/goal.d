@@ -162,7 +162,6 @@ class Goal
 		auto taken = new bool [tile_bag.contents.length];
 		lower_limit = max (lower_limit, 0);
 		upper_limit = min (upper_limit, tile_bag.contents.length);
-//		lower_limit = max (lower_limit, Board.CENTER);
 		TileCounter cur_counter;
 		bool got_total = false;
 		auto res = Pair (NA, TOTAL_TILES);
@@ -191,6 +190,44 @@ class Goal
 			}
 		}
 		return res;
+	}
+
+	Pair calc_earliest_times (TileBag tile_bag, int lower_limit = 0,
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
+	{
+		assert (wildcards == 0); // wildcards > 0: not implemented yet
+		auto taken = new bool [tile_bag.contents.length];
+		lower_limit = max (lower_limit, 0);
+		upper_limit = min (upper_limit, tile_bag.contents.length);
+		TileCounter cur_counter;
+		foreach (tile_num; lower_limit..upper_limit)
+		{
+			cur_counter[tile_bag.contents[tile_num]]++;
+			if (total_counter << cur_counter)
+			{
+				return Pair (lower_limit, tile_num + 1);
+			}
+		}
+		return Pair (NA, TOTAL_TILES);
+	}
+
+	Pair calc_latest_times (TileBag tile_bag, int lower_limit = 0,
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
+	{
+		assert (wildcards == 0); // wildcards > 0: not implemented yet
+		auto taken = new bool [tile_bag.contents.length];
+		lower_limit = max (lower_limit, 0);
+		upper_limit = min (upper_limit, tile_bag.contents.length);
+		TileCounter cur_counter;
+		foreach_reverse (tile_num; lower_limit..upper_limit)
+		{
+			cur_counter[tile_bag.contents[tile_num]]++;
+			if (total_counter << cur_counter)
+			{
+				return Pair (tile_num, upper_limit);
+			}
+		}
+		return Pair (NA, TOTAL_TILES);
 	}
 
 	Pair get_best_times () @property

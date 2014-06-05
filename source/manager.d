@@ -76,6 +76,7 @@ class Manager
 		{
 			return;
 		}
+		writeln ("Processing log: ", file_name);
 		while (true)
 		{
 			string s;

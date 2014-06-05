@@ -304,8 +304,8 @@ class Game
 	GameState imaginary_result;
 
 	bool allow_mirror () @property const
-	{
-		return !goals.empty; // mirror boards not allowed if no goals
+	{ // mirror boards not allowed if no goals and no moves_guide
+		return !goals.empty || moves_guide !is null;
 	}
 
 	int is_move_present (ref GameState cur, GameMove cur_move)
