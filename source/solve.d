@@ -101,9 +101,16 @@ void main ()
 
 	GC.collect ();
 
-	immutable int MIDDLE = 53;
+	immutable int MIDDLE = 50;
+
 	foreach (i; 0..LET)
 	{
+/*
+		if (i != 'L' - 'A')
+		{
+			continue;
+		}
+*/
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
 		{
@@ -132,9 +139,135 @@ void main ()
 //		    a.get_times.length == Rack.MAX_SIZE &&
 		    a.get_times[2] >= a.get_times[0] - 5 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 35 &&
-		    a.score_rating >= 1000).take (5))
+		    a.score_rating >= 900).take (5))
 		{
 			auto goal = new Goal (goal_original);
+			goal.stage = Goal.Stage.COMBINED;
+			goal.row = 0;
+			goal.letter_bonus = 200;
+			int lo = goal.get_best_times.x;
+			int hi = goal.get_best_times.y;
+			auto p_first = Problem (p.name,
+			    p.contents[0..MIDDLE]);
+
+			auto goals2 = goals.dup;
+			foreach (ref goal2; goals2)
+			{
+				goal2 = new Goal (goal2);
+			}
+			foreach (ref goal2; goals2)
+			{
+				goal2.stored_best_times =
+				    goal2.calc_best_times
+				    (TileBag (p),
+				    MIDDLE, TOTAL_TILES);
+				goal2.stored_times = goal2.calc_times
+				    (TileBag (p),
+				    goal2.stored_best_times.x,
+				    goal2.stored_best_times.y);
+			}
+			sort !((a, b) =>
+			    a.holes_rating < b.holes_rating,
+			    SwapStrategy.stable) (goals2);
+			sort !((a, b) =>
+			    a.get_best_times.x < b.get_best_times.x,
+			    SwapStrategy.stable) (goals2);
+			sort !((a, b) =>
+			    a.get_best_times.y - a.get_best_times.x <
+			    b.get_best_times.y - b.get_best_times.x,
+			    SwapStrategy.stable) (goals2);
+			sort !((a, b) =>
+			    a.score_rating > b.score_rating,
+			    SwapStrategy.stable) (goals2);
+
+			foreach (goal2_original; goals2.filter
+			    !(a => a.get_best_times.x != NA &&
+			    a.holes_rating < 50 &&
+			    a.get_times.length > 1 &&
+//			    a.get_times.length == Rack.MAX_SIZE &&
+			    a.get_times[2] >= a.get_times[0] - 5 &&
+			    a.get_times[$ - 1] >=
+			    a.get_times[0] - 35 &&
+			    a.score_rating +
+			    goal.score_rating >= 1800).take (5))
+			{
+
+				auto goal2 = new Goal (goal2_original);
+				goal2.stage = Goal.Stage.COMBINED;
+				goal2.row = Board.SIZE - 1;
+				goal2.letter_bonus = 100;
+				stderr.writeln (p.name, "\n", goal, "\n",
+				    goal2);
+				stderr.flush ();
+
+				{
+					auto game = new Game (p, t, s);
+					game.goals = [goal, goal2];
+					game.play (1600, 0, Game.Keep.False);
+					log_progress (game);
+				}
+
+				GC.collect ();
+
+				swap (goal.row, goal2.row);
+				scope (exit)
+				{
+					swap (goal.row, goal2.row);
+				}
+				{
+					auto game_inv = new Game (p, t, s);
+					game_inv.goals = [goal, goal2];
+					game_inv.play (1600, 0,
+					    Game.Keep.False);
+					log_progress (game_inv);
+				}
+
+				GC.collect ();
+			}
+		}
+	}
+	return;
+
+	foreach_reverse (i; 0..LET)
+	{
+/*
+		if (i != 'L' - 'A')
+		{
+			continue;
+		}
+*/
+		auto p = ps.problem[i];
+		foreach (ref goal; goals)
+		{
+			goal.stored_score_rating = goal.calc_score_rating (s);
+			goal.stored_best_times = goal.calc_best_times
+			    (TileBag (p), 0, MIDDLE);
+			goal.stored_times = goal.calc_times
+			    (TileBag (p),
+			    goal.stored_best_times.x,
+			    goal.stored_best_times.y);
+		}
+		sort !((a, b) => a.holes_rating < b.holes_rating,
+		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.get_best_times.x < b.get_best_times.x,
+		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.get_best_times.y - a.get_best_times.x <
+		    b.get_best_times.y - b.get_best_times.x,
+		    SwapStrategy.stable) (goals);
+		sort !((a, b) => a.score_rating > b.score_rating,
+		    SwapStrategy.stable) (goals);
+
+		foreach (goal_original; goals.filter
+		    !(a => a.get_best_times.x != NA &&
+//		    a.holes_rating < 50 &&
+		    a.get_times.length > 2 &&
+//		    a.get_times.length == Rack.MAX_SIZE &&
+		    a.get_times[2] >= a.get_times[0] - 5 &&
+		    a.get_times[$ - 1] >= a.get_times[0] - 35 &&
+		    a.score_rating >= 900).take (20))
+		{
+			auto goal = new Goal (goal_original);
+			goal.row = Board.SIZE - 1;
 			int lo = goal.get_best_times.x;
 			int hi = goal.get_best_times.y;
 			auto p_first = Problem (p.name,
@@ -153,8 +286,8 @@ void main ()
 				stderr.flush ();
 
 				goal.stage = Goal.Stage.COMBINED;
-				game.bias = bias;
-				game.play (1000, 0, Game.Keep.True);
+				game.bias = -bias;
+				game.play (500, 0, Game.Keep.True);
 				log_progress (game);
 				if (game.best.board.score < 1000)
 				{
@@ -165,15 +298,14 @@ void main ()
 				foreach (ref goal2; goals2)
 				{
 					goal2 = new Goal (goal2);
-					goal2.row = Board.SIZE - 1;
+//					goal2.row = Board.SIZE - 1;
 				}
 				foreach (ref goal2; goals2)
 				{
 					goal2.stored_best_times =
 					    goal2.calc_best_times
 					    (TileBag (p),
-					    TOTAL_TILES - MIDDLE,
-					    TOTAL_TILES);
+					    MIDDLE, TOTAL_TILES);
 					goal2.stored_times = goal2.calc_times
 					    (TileBag (p),
 					    goal2.stored_best_times.x,
@@ -202,7 +334,7 @@ void main ()
 				    a.get_times[$ - 1] >=
 				    a.get_times[0] - 35 &&
 				    a.score_rating +
-				    goal.score_rating >= 1800).take (5))
+				    goal.score_rating >= 1800).take (2))
 				{
 					auto goal2 = new Goal (goal2_original);
 					goal.letter_bonus = 200;
@@ -213,9 +345,9 @@ void main ()
 					game.goals = [goal, goal2];
 					game.problem = p;
 					goal2.stage = Goal.Stage.COMBINED;
-					game.bias = -bias;
-					game.resume (2000, 0,
-					    TOTAL_TILES - MIDDLE,
+					game.bias = +bias;
+					game.resume (1200, 0,
+					    MIDDLE,
 					    Game.Keep.True, true);
 					log_progress (game);
 					goal.letter_bonus = 100;
