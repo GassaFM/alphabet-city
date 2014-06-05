@@ -16,6 +16,7 @@ import trie;
 class Goal
 {
 	enum Stage: byte {PREPARE, MAIN, DONE, COMBINED};
+	static immutable int DEFAULT_LETTER_BONUS = 100;
 
 	ByteString word;
 	int mask_forbidden;
@@ -27,7 +28,7 @@ class Goal
 	int stored_holes_rating = NA;
 	int [] stored_times;
 	Pair stored_best_times;
-	Stage stage;
+	Stage stage = Stage.COMBINED;
 	TileCounter total_counter;
 	TileCounter forbidden_counter;
 
@@ -216,7 +217,7 @@ class Goal
 
 	this (const byte [] new_word, int new_mask_forbidden,
 	    byte new_row, byte new_col, bool new_is_flipped,
-	    int new_letter_bonus = 100)
+	    int new_letter_bonus = DEFAULT_LETTER_BONUS)
 	{
 		word = new_word.idup;
 		mask_forbidden = new_mask_forbidden;
@@ -233,6 +234,33 @@ class Goal
 				forbidden_counter[letter]++;
 			}
 		}
+	}
+
+	this (const char [] new_masked_word,
+	    byte new_row = 0, byte new_col = 0, bool new_is_flipped = false,
+	    int new_letter_bonus = DEFAULT_LETTER_BONUS)
+	{
+		byte [] cur_word;
+		cur_word.reserve (Board.SIZE);
+		int mask = 0;
+		foreach (i, ch; new_masked_word)
+		{
+			if ('A' <= ch && ch <= 'Z')
+			{
+				cur_word ~= to !(byte) (ch - 'A');
+				mask |= 1 << i;
+			}
+			else if ('a' <= ch && ch <= 'z')
+			{
+				cur_word ~= to !(byte) (ch - 'a');
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+		this (cur_word, mask, new_row, new_col,
+		    new_is_flipped, new_letter_bonus);
 	}
 
 	override string toString () const
@@ -326,26 +354,7 @@ static class GoalBuilder
 		res.reserve (line_list.length);
 		foreach (line; line_list)
 		{
-			byte [] cur_word;
-			cur_word.reserve (Board.SIZE);
-			int mask = 0;
-			foreach (i, ch; line)
-			{
-				if ('A' <= ch && ch <= 'Z')
-				{
-					cur_word ~= to !(byte) (ch - 'A');
-					mask |= 1 << i;
-				}
-				else if ('a' <= ch && ch <= 'z')
-				{
-					cur_word ~= to !(byte) (ch - 'a');
-				}
-				else
-				{
-					enforce (false);
-				}
-			}
-			res ~= new Goal (cur_word, mask, 0, 0, 0);
+			res ~= new Goal (line, 0, 0, 0);
 		}
 		debug {writeln ("GoalBuilder: loaded ", res.length, " goals");}
 		return res;

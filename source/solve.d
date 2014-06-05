@@ -3,8 +3,10 @@ module main;
 import core.memory;
 import std.algorithm;
 import std.conv;
+import std.exception;
 import std.range;
 import std.stdio;
+import std.string;
 import std.typecons;
 
 import board;
@@ -42,7 +44,7 @@ void log_progress (Game game)
 	stdout.flush ();
 }
 
-void main ()
+void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 //	auto t = new Trie (read_all_lines ("data/words8.txt"), 233_691);
@@ -103,14 +105,73 @@ void main ()
 
 	immutable int MIDDLE = 50;
 
+	if (args.length > 1)
+	{
+		args.popFront ();
+		auto temp_str = args.front ();
+		args.popFront ();
+		enforce (temp_str.length == 1 &&
+		    'A' <= temp_str[0] && temp_str[0] <= 'Z');
+		int i = temp_str[0] - 'A';
+		int beam_width = to !(int) (args.front ());
+		args.popFront ();
+		int beam_depth = 0;
+		int bias = to !(int) (args.front ());
+		args.popFront ();
+		int cur_middle = to !(int) (args.front ());
+		args.popFront ();
+		auto p = ps.problem[i];
+		Goal [] cur_goals;
+		foreach (v; args)
+		{
+			cur_goals ~= new Goal (v);
+		}
+		enforce (cur_goals.length == 2);
+
+		cur_goals[0].letter_bonus = 200;
+		cur_goals[0].row = Board.SIZE - 1;
+		cur_goals[0].stored_best_times = cur_goals[0].calc_best_times
+		    (TileBag (p), 0, cur_middle);
+
+		cur_goals[1].letter_bonus = 100;
+		cur_goals[1].row = 0;
+		cur_goals[1].stored_best_times = cur_goals[1].calc_best_times
+		    (TileBag (p), cur_middle, TOTAL_TILES);
+
+		foreach (goal; cur_goals)
+		{
+			goal.stage = Goal.Stage.COMBINED;
+			goal.stored_score_rating = goal.calc_score_rating (s);
+			goal.stored_times = goal.calc_times (TileBag (p),
+			    goal.stored_best_times.x,
+			    goal.stored_best_times.y);
+		}
+
+		auto p_first = Problem (p.name, p.contents[0..cur_middle]);
+		auto game = new Game (p_first, t, s);
+		game.goals = [cur_goals[0]];
+		game.bias = -bias;
+		stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
+		    beam_width, beam_depth, game.goals);
+		stderr.flush ();
+		game.play (beam_width, beam_depth, Game.Keep.True);
+		log_progress (game);
+
+		game.problem = p;
+		game.goals ~= cur_goals[1];
+		game.bias = +bias;
+		stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
+		    beam_width, beam_depth, game.goals);
+		stderr.flush ();
+		game.resume (beam_width * 2, beam_depth,
+		    cur_middle /* - 10 */, Game.Keep.False);
+		log_progress (game);
+		return;
+	}
+
+/*
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'L' - 'A')
-		{
-			continue;
-		}
-*/
 		auto p = ps.problem[i];
 		foreach (ref goal; goals)
 		{
@@ -227,16 +288,15 @@ void main ()
 		}
 	}
 	return;
+*/
 
 	foreach_reverse (i; 0..LET)
 	{
-/*
-		if (i != 'L' - 'A')
+		auto p = ps.problem[i];
+		if (m.best[p.short_name].board.score >= 2600)
 		{
 			continue;
 		}
-*/
-		auto p = ps.problem[i];
 		foreach (ref goal; goals)
 		{
 			goal.stored_score_rating = goal.calc_score_rating (s);
@@ -262,12 +322,14 @@ void main ()
 //		    a.holes_rating < 50 &&
 		    a.get_times.length > 2 &&
 //		    a.get_times.length == Rack.MAX_SIZE &&
-		    a.get_times[2] >= a.get_times[0] - 5 &&
+//		    a.get_times[2] >= a.get_times[0] - 5 &&
 		    a.get_times[$ - 1] >= a.get_times[0] - 35 &&
-		    a.score_rating >= 900).take (20))
+		    a.score_rating >= 600).take (5))
 		{
 			auto goal = new Goal (goal_original);
+			goal.stage = Goal.Stage.COMBINED;
 			goal.row = Board.SIZE - 1;
+			goal.letter_bonus = 100;
 			int lo = goal.get_best_times.x;
 			int hi = goal.get_best_times.y;
 			auto p_first = Problem (p.name,
@@ -281,13 +343,11 @@ void main ()
 				}
 				auto game = new Game (p_first, t, s);
 				game.goals = [goal];
-				goal.letter_bonus = 100;
 				stderr.writeln (p.name, ' ', bias, ' ', goal);
 				stderr.flush ();
 
-				goal.stage = Goal.Stage.COMBINED;
 				game.bias = -bias;
-				game.play (500, 0, Game.Keep.True);
+				game.play (1000, 0, Game.Keep.True);
 				log_progress (game);
 				if (game.best.board.score < 1000)
 				{
@@ -327,30 +387,33 @@ void main ()
 
 				foreach (goal2_original; goals2.filter
 				    !(a => a.get_best_times.x != NA &&
-				    a.holes_rating < 50 &&
+//				    a.holes_rating < 50 &&
 				    a.get_times.length > 1 &&
 //				    a.get_times.length == Rack.MAX_SIZE &&
-				    a.get_times[2] >= a.get_times[0] - 5 &&
+//				    a.get_times[2] >= a.get_times[0] - 5 &&
 				    a.get_times[$ - 1] >=
 				    a.get_times[0] - 35 &&
 				    a.score_rating +
-				    goal.score_rating >= 1800).take (2))
+				    goal.score_rating >= 1500).take (5))
 				{
 					auto goal2 = new Goal (goal2_original);
-					goal.letter_bonus = 200;
+					goal2.stage = Goal.Stage.COMBINED;
+					goal2.row = 0;
 					goal2.letter_bonus = 100;
+					goal.letter_bonus = 200;
+					scope (exit)
+					{
+						goal.letter_bonus = 100;
+					}
 					stderr.writeln (p.name, ' ', goal2);
 					stderr.flush ();
 
+					game.bias = +bias;
 					game.goals = [goal, goal2];
 					game.problem = p;
-					goal2.stage = Goal.Stage.COMBINED;
-					game.bias = +bias;
-					game.resume (1200, 0,
-					    MIDDLE,
+					game.resume (2000, 0, MIDDLE,
 					    Game.Keep.True, true);
 					log_progress (game);
-					goal.letter_bonus = 100;
 				}
 			}
 		}

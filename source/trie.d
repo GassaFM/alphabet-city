@@ -60,7 +60,7 @@ class Trie
 
 	TrieNode [] contents;
 
-	deprecated int next (const int pos, const int ch) const
+	deprecated final int next (const int pos, const int ch) const
 	{
 		return contents[pos].next (ch);
 	}
@@ -124,5 +124,13 @@ class Trie
 		}
 		debug {writeln ("Trie: loaded ", nw, " words of total length ",
 		    total_length, ", created ", contents.length, " nodes");}
+
+		bool [int] masks;
+		contents.reserve (0);
+		foreach (v; contents)
+		{
+			masks[v.mask] = true;
+		}
+		debug {writeln ("Trie: ", masks.length, " different masks");}
 	}
 }
