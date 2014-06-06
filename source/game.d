@@ -1129,18 +1129,22 @@ class Game
 		gsp.length = max (gsp.length, problem.contents.length + 1);
 		if (leave_only_best)
 		{
-			resume_step = max (0,
-			    min (start_from, resume_step) - 6);
-		}
-		else
-		{
-			resume_step = max (0,
-			    min (start_from, resume_step));
+			resume_step = best.board.total;
 			swap (gs[resume_step][0],
 			    gs[resume_step][gsp[resume_step][0]]);
 			gsp[resume_step][0] = 0;
 			gs[resume_step].length = 1;
 			gsp[resume_step].length = 1;
+			foreach (k, ref gsp_line; gsp)
+			{
+				gs[k].length = (k == resume_step);
+				gsp[k].length = (k == resume_step);
+			}
+		}
+		else
+		{
+			resume_step = max (0,
+			    min (start_from, resume_step) - 6);
 		}
 
 		if (resume_step < problem.contents.length)

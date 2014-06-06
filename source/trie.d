@@ -54,7 +54,6 @@ struct TrieNode
 
 class Trie
 {
-	immutable static int NA = -1;
 	immutable static int ROOT = 0;
 	immutable static char BASE = 'a';
 
@@ -124,19 +123,57 @@ class Trie
 		}
 		debug {writeln ("Trie: loaded ", nw, " words of total length ",
 		    total_length, ", created ", contents.length, " nodes");}
+	}
+}
 
+struct TrieNodeCompact
+{
+	ushort mask_id;
+	ushort start;
+}
+
+class TrieCompact
+{
+	immutable static int IS_WORD = LET;
+	immutable static ushort NONE = 0xFFFFu;
+	immutable static int ROOT = 0;
+	immutable static char BASE = 'a';
+
+	TrieNodeCompact [] contents;
+	int [] mask_pool;
+
+	final ushort next (const ushort pos, const int ch) const
+	{
+		int mask = mask_pool[contents[pos].mask_id];
+		int ch_bit = 1 << ch;
+		if (!(mask & ch_bit))
+		{
+			return NONE;
+		}
+		return cast (ushort) (contents[pos].start +
+		    cast (ushort) (popcnt (mask & (ch_bit - 1))));
+	}
+	
+	final bool is_word (const ushort pos) const
+	{
+		int mask = mask_pool[contents[pos].mask_id];
+		return (mask & IS_WORD) != 0;
+	}
+
+	this (const Trie prev_trie)
+	{
 		bool [int] masks;
-		contents.reserve (0);
-		foreach (v; contents)
+		foreach (v; prev_trie.contents)
 		{
 			masks[v.mask] = true;
 		}
-		debug {writeln ("Trie: ", masks.length, " different masks");}
+		debug {writeln ("TrieCompact: found ", masks.length,
+		    " different masks");}
 
 		immutable uint PRIME = 262139;
-		bool [ulong] hashes;
-		auto hash = new ulong[contents.length];
-		foreach_reverse (i, w; contents)
+		int [ulong] hashes;
+		auto hash = new ulong[prev_trie.contents.length];
+		foreach_reverse (i, w; prev_trie.contents)
 		{
 			ulong h = w.mask;
 			int num = popcnt (w.mask & ((1 << LET) - 1));
@@ -145,8 +182,18 @@ class Trie
 				h = h * PRIME + hash[w.start + pos];
 			}
 			hash[i] = h;
-			hashes[h] = true;
+			hashes[h] = to !(int) (i);
 		}
-		debug {writeln ("Trie: ", hashes.length, " different hashes");}
+		debug {writeln ("TrieCompact: found ", hashes.length,
+		    " different hashes");}
+
+		contents = [];
+		contents.reserve (hashes.length);
+		foreach (i, w; prev_trie.contents)
+		{
+			if (hashes[hash[i]] == i)
+			{
+			}
+		}
 	}
 }

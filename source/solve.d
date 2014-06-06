@@ -391,6 +391,12 @@ void main (string [] args)
 	foreach_reverse (i; 0..LET)
 	{
 		auto p = ps.problem[i];
+/*
+		if (m.best[p.short_name].board.score >= 2713)
+		{
+			continue;
+		}
+*/
 
 		auto goals_earliest = goals.dup;
 		foreach (ref cur_goal; goals_earliest)
@@ -398,7 +404,7 @@ void main (string [] args)
 			cur_goal = new Goal (cur_goal);
 			cur_goal.stored_best_times =
 			    cur_goal.calc_earliest_times
-			    (TileBag (p), 0, TOTAL_TILES);
+			    (TileBag (p), 0, TOTAL_TILES * 3 / 4);
 			cur_goal.stored_times = cur_goal.calc_times
 			    (TileBag (p),
 			    cur_goal.stored_best_times.x,
@@ -406,9 +412,9 @@ void main (string [] args)
 		}
 		goals_earliest = goals_earliest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 5 &&
-		      a.get_times[0] - a.get_times[2] <= 5 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 25).array ();
+		      a.get_times[0] >= a.get_best_times.y - 7 &&
+		      a.get_times[0] - a.get_times[2] <= 6 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 35).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_earliest);
 
@@ -418,7 +424,7 @@ void main (string [] args)
 			cur_goal = new Goal (cur_goal);
 			cur_goal.stored_best_times =
 			    cur_goal.calc_latest_times
-			    (TileBag (p), 0, TOTAL_TILES);
+			    (TileBag (p), TOTAL_TILES * 1 / 4, TOTAL_TILES);
 			cur_goal.stored_times = cur_goal.calc_times
 			    (TileBag (p),
 			    cur_goal.stored_best_times.x,
@@ -426,9 +432,9 @@ void main (string [] args)
 		}
 		goals_latest = goals_latest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 5 &&
-		      a.get_times[0] - a.get_times[2] <= 5 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 25).array ();
+		      a.get_times[0] >= a.get_best_times.y - 7 &&
+		      a.get_times[0] - a.get_times[2] <= 6 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 35).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_latest);
 
@@ -436,10 +442,8 @@ void main (string [] args)
 		Goal [] [] goal_pairs;
 		foreach (goal1; goals_earliest)
 		{
-//			writeln ("1 ", goal1.get_best_times);
 			foreach_reverse (goal2; goals_latest)
 			{
-//				writeln ("2 ", goal2.get_best_times);
 				if (goal1.get_best_times.y + SLACK >
 				    goal2.get_best_times.x - SLACK)
 				{
@@ -454,7 +458,7 @@ void main (string [] args)
 		sort !((a, b) => a[0].score_rating + a[1].score_rating >
 		    b[0].score_rating + b[1].score_rating) (goal_pairs);
 
-		foreach (goal_pair; goal_pairs.take (25))
+		foreach (goal_pair; goal_pairs.take (12))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -464,11 +468,15 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 100;
+			int beam_width = 250;
 			int beam_depth = 0;
-			int bias = 2;
-			int cur_middle = goal_pair[1].stored_best_times.x -
-			    SLACK;
+			int bias = 3;
+//			int cur_middle = goal_pair[0].stored_best_times.y;
+			int cur_middle =
+			    min (goal_pair[0].stored_best_times.y + 5,
+			        goal_pair[1].stored_best_times.x);
+//			int cur_middle = (goal_pair[0].stored_best_times.y +
+//			    goal_pair[1].stored_best_times.x) >> 1;
 			cur_goals[0].letter_bonus = 200;
 			cur_goals[1].letter_bonus = 100;
 
@@ -503,7 +511,7 @@ void main (string [] args)
 				    p.name,
 				    beam_width, beam_depth, game.goals);
 				stderr.flush ();
-				game.resume (beam_width * 2, beam_depth,
+				game.resume (beam_width, beam_depth,
 				    cur_middle /* - 10 */, Game.Keep.False,
 				    true, false, true);
 				log_progress (game);

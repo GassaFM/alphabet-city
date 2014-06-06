@@ -270,12 +270,27 @@ struct TileCounter
 */
 
 	bool opBinary (string op) (ref const TileCounter other) const
+	    if (op == "<<<")
+	{
+		int extra = contents[LET] - other.contents[LET];
+		foreach (i; 0..LET)
+		{
+			int diff = contents[i] - other.contents[i];
+			if (diff > 0)
+			{
+				extra -= diff;
+				if (extra < 0)
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool opBinary (string op) (ref const TileCounter other) const
 	    if (op == "<<")
 	{
-/*
-		writeln ("lo ", contents);
-		writeln ("hi ", other.contents);
-*/
 		foreach (i; 0..LET + 1)
 		{
 			if (contents[i] > other.contents[i])
