@@ -515,7 +515,7 @@ class Game
 
 		scope (exit)
 		{
-			if (best.board.value < next.board.value)
+			if (best.board.score < next.board.score)
 			{
 				best = next;
 			}
@@ -720,6 +720,12 @@ class Game
 				}
 				cur.board[row][col] = forced_tile |
 				    (1 << BoardCell.ACTIVE_SHIFT);
+				cur.board.total++;
+				scope (exit)
+				{
+					cur.board[row][col] = BoardCell.NONE;
+					cur.board.total--;
+				}
 				version (debug_forced)
 				{
 					writeln (">3: ", forced_word, ' ',
@@ -730,7 +736,6 @@ class Game
 				step_recur (cur, row, col,
 				    vert, score, mult, vt,
 				    flags + MULT_ACT);
-				cur.board[row][col] = BoardCell.NONE;
 				return;
 			}
 
@@ -745,6 +750,7 @@ class Game
 				stdout.flush ();
 			}
 
+			cur.board.total++;
 			foreach (ref c; cur.tiles.rack.contents)
 			{
 				if (c.empty)
@@ -779,6 +785,7 @@ class Game
 				}
 			}
 			cur.board[row][col] = BoardCell.NONE;
+			cur.board.total--;
 			return;
 		}
 
@@ -788,6 +795,7 @@ class Game
 			    vert, score, mult, vt, flags | FLAG_CONN);
 			return;
 		}
+		cur.board.total++;
 		foreach (ref c; cur.tiles.rack.contents)
 		{
 			if (c.empty)
@@ -824,6 +832,7 @@ class Game
 			}
 		}
 		cur.board[row][col] = BoardCell.NONE;
+		cur.board.total--;
 	}
 
 	void move_horizontal (ref GameState cur)
@@ -1102,7 +1111,8 @@ class Game
 
 	void resume (int new_bests_num, int new_depth,
 	    int start_from = resume_step, Keep keep = Keep.False,
-	    bool clear_value = false, bool was_virtual = false)
+	    bool clear_value = false, bool was_virtual = false,
+	    bool leave_only_best = false)
 	{
 		if (new_bests_num != NA)
 		{
@@ -1117,7 +1127,21 @@ class Game
 		enforce (gsp != null);
 		gs.length = max (gs.length, problem.contents.length + 1);
 		gsp.length = max (gsp.length, problem.contents.length + 1);
-		resume_step = max (0, min (start_from, resume_step) - 6);
+		if (leave_only_best)
+		{
+			resume_step = max (0,
+			    min (start_from, resume_step) - 6);
+		}
+		else
+		{
+			resume_step = max (0,
+			    min (start_from, resume_step));
+			swap (gs[resume_step][0],
+			    gs[resume_step][gsp[resume_step][0]]);
+			gsp[resume_step][0] = 0;
+			gs[resume_step].length = 1;
+			gsp[resume_step].length = 1;
+		}
 
 		if (resume_step < problem.contents.length)
 		{

@@ -132,5 +132,21 @@ class Trie
 			masks[v.mask] = true;
 		}
 		debug {writeln ("Trie: ", masks.length, " different masks");}
+
+		immutable uint PRIME = 262139;
+		bool [ulong] hashes;
+		auto hash = new ulong[contents.length];
+		foreach_reverse (i, w; contents)
+		{
+			ulong h = w.mask;
+			int num = popcnt (w.mask & ((1 << LET) - 1));
+			foreach (pos; 0..num)
+			{
+				h = h * PRIME + hash[w.start + pos];
+			}
+			hash[i] = h;
+			hashes[h] = true;
+		}
+		debug {writeln ("Trie: ", hashes.length, " different hashes");}
 	}
 }

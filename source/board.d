@@ -96,6 +96,7 @@ struct Board
 	ulong [2] contents_hash;
 	int score;
 	int value;
+	byte total;
 	bool is_flipped;
 
 	alias contents this;
