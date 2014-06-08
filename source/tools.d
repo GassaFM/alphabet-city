@@ -168,6 +168,9 @@ static class GameTools
 		assert (col + goal.word.length == Board.SIZE);
 		// else: check to the right not implemented
 
+		// cast should be safe since goal.word.length is surely int32
+		int max_num = cast (int) (goal.word.length - Rack.MAX_SIZE);
+
 		bool has_empty = false;
 		bool has_full = false;
 		TileCounter counter;
@@ -211,35 +214,46 @@ static class GameTools
 			}
 		}
 
-		if (!(counter << cur.tiles.counter))
+		if (!has_empty)
 		{
-			return NA;
+			return goal.letter_bonus * max_num;
 		}
 
 		int res = 0;
+		int num = 0;
 		foreach (int pos, letter; goal.word)
 		{
-			bool is_empty = cur.board[row][col + pos].empty;
-			if (is_empty)
+			if (cur.board[row][col + pos].empty)
 			{
 				cur.board[row][col + pos] = letter |
 				    (1 << BoardCell.ACTIVE_SHIFT);
+				scope (exit)
+				{
+					cur.board[row][col + pos] =
+					    BoardCell.NONE;
+				}
+				int add = game.check_vertical (cur,
+				    row, col + pos);
+				if (add == NA)
+				{
+					return NA;
+				}
+				res += add;
 			}
 			else
 			{
-				res += goal.letter_bonus >>
-				    cur.board[row][col + pos].wildcard;
+				if (goal.word.length == Board.SIZE &&
+				    (pos == 3 || pos == 11 || num >= max_num))
+				{ // encourage bingo and double-letter bonus
+					assert (true);
+				}
+				else
+				{
+					res += goal.letter_bonus >>
+					    cur.board[row][col + pos].wildcard;
+				}
+				num++;
 			}
-			int add = game.check_vertical (cur, row, col + pos);
-			if (is_empty)
-			{
-				cur.board[row][col + pos] = BoardCell.NONE;
-			}
-			if (add == NA)
-			{
-				return NA;
-			}
-			res += add;
 		}
 		return res;
 	}

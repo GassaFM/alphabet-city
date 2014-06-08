@@ -22,3 +22,12 @@ Beam Search improvements:
 1. Factor away from Game.
 2. Add associative array by current Rack:
   one or more bests for each possible Rack.
+
+20140608:
+Smart goals:
+1. Allow only 15-bit masks leading to at least 8 covered cells.
+2. Do not add bonus after 8 covered cells.
+3. Do not add bonus for double-letter cells.
+
+Words:
+1. Try constructing the third 15-letter word on the center row in the process.

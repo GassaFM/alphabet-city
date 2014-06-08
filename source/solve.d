@@ -70,7 +70,7 @@ void main (string [] args)
 		m.close ();
 		return;
 	}
-
+	
 	immutable int UPPER_LIMIT = TOTAL_TILES;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
 //	immutable int LOWER_LIMIT = UPPER_LIMIT - 11;
@@ -388,8 +388,14 @@ void main (string [] args)
 	return;
 */
 
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
+/*
+		if (i != 'H' - 'A')
+		{
+			continue;
+		}
+*/
 		auto p = ps.problem[i];
 /*
 		if (m.best[p.short_name].board.score >= 2713)
@@ -412,9 +418,9 @@ void main (string [] args)
 		}
 		goals_earliest = goals_earliest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 7 &&
-		      a.get_times[0] - a.get_times[2] <= 6 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 35).array ();
+		      a.get_times[0] >= a.get_best_times.y - 14 &&
+		      a.get_times[0] - a.get_times[2] <= 14 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_earliest);
 
@@ -432,9 +438,9 @@ void main (string [] args)
 		}
 		goals_latest = goals_latest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 7 &&
-		      a.get_times[0] - a.get_times[2] <= 6 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 35).array ();
+		      a.get_times[0] >= a.get_best_times.y - 14 &&
+		      a.get_times[0] - a.get_times[2] <= 14 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_latest);
 
@@ -458,7 +464,7 @@ void main (string [] args)
 		sort !((a, b) => a[0].score_rating + a[1].score_rating >
 		    b[0].score_rating + b[1].score_rating) (goal_pairs);
 
-		foreach (goal_pair; goal_pairs.take (12))
+		foreach (goal_pair; goal_pairs.take (10))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -468,17 +474,17 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 250;
+			int beam_width = 1000;
 			int beam_depth = 0;
-			int bias = 3;
+			int bias = 1;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
 			int cur_middle =
 			    min (goal_pair[0].stored_best_times.y + 5,
 			        goal_pair[1].stored_best_times.x);
 //			int cur_middle = (goal_pair[0].stored_best_times.y +
 //			    goal_pair[1].stored_best_times.x) >> 1;
-			cur_goals[0].letter_bonus = 200;
-			cur_goals[1].letter_bonus = 100;
+			cur_goals[0].letter_bonus = 50;
+			cur_goals[1].letter_bonus = 50;
 
 			auto p_first = Problem (p.name,
 			    p.contents[0..cur_middle]);

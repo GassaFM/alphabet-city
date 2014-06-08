@@ -67,25 +67,31 @@ struct Rack
 
 	RackEntry [MAX_SIZE] contents;
 	byte total;
+	alias usable_total = total;
 
 	void add (const byte letter)
 	{
-		int i = 0;
-		while (!contents[i].empty && (contents[i].letter < letter))
+		if (!(letter & TileBag.IS_RESTRICTED))
 		{
-			i++;
-		}
-		if (contents[i].letter == letter)
-		{
-			contents[i].inc ();
-		}
-		else
-		{
-			foreach_reverse (j; i..MAX_SIZE - 1)
+			int i = 0;
+			while (!contents[i].empty &&
+			    (contents[i].letter < letter))
 			{
-				contents[j + 1] = contents[j];
+				i++;
 			}
-			contents[i] = cast (ubyte) (letter + (1 << LET_BITS));
+			if (contents[i].letter == letter)
+			{
+				contents[i].inc ();
+			}
+			else
+			{
+				foreach_reverse (j; i..MAX_SIZE - 1)
+				{
+					contents[j + 1] = contents[j];
+				}
+				contents[i] = cast (ubyte) (letter +
+				    (1 << LET_BITS));
+			}
 		}
 		total++;
 	}
@@ -94,12 +100,10 @@ struct Rack
 	{
 		int i = 0;
 		int j = 0;
-		total = 0;
 		while (i < MAX_SIZE && !contents[i].empty)
 		{
 			if (contents[i].num != 0)
 			{
-				total += contents[i].num;
 				contents[j] = contents[i];
 				j++;
 			}
@@ -140,6 +144,8 @@ struct Rack
 
 struct TileBag
 {
+	immutable static byte IS_RESTRICTED = 1 << LET_BITS;
+
 	Rack rack;
 	ByteString contents;
 	TileCounter counter;
@@ -155,6 +161,20 @@ struct TileBag
 			rack.add (contents[cursor]);
 			cursor++;
 		}
+	}
+
+	void dec (ref RackEntry c)
+	{
+		c.dec ();
+		rack.total--;
+		counter[c.letter]--;
+	}
+
+	void inc (ref RackEntry c)
+	{
+		c.inc ();
+		rack.total++;
+		counter[c.letter]++;
 	}
 
 	bool empty () @property const
@@ -270,6 +290,20 @@ struct TileCounter
 */
 
 	bool opBinary (string op) (ref const TileCounter other) const
+	    if (op == "<<")
+	{
+		foreach (i; 0..LET + 1)
+		{
+			if (contents[i] > other.contents[i])
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+/*
+	bool opBinary (string op) (ref const TileCounter other) const
 	    if (op == "<<<")
 	{
 		int extra = contents[LET] - other.contents[LET];
@@ -287,19 +321,7 @@ struct TileCounter
 		}
 		return true;
 	}
-
-	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<")
-	{
-		foreach (i; 0..LET + 1)
-		{
-			if (contents[i] > other.contents[i])
-			{
-				return false;
-			}
-		}
-		return true;
-	}
+*/
 
 	string toString () const
 	{

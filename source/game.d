@@ -72,6 +72,14 @@ struct GameState
 		board.normalize ();
 	}
 
+	this (Problem new_problem, GameMove complete_guide,
+	    GameMove necessary_guide)
+	{
+		// TODO: use guides!
+		tiles = TileBag (new_problem);
+		board.normalize ();
+	}
+
 	bool opEquals (const ref GameState other) const
 	{
 		return board == other.board;
@@ -766,12 +774,10 @@ class Game
 				    (c.letter == forced_tile.letter)) &&
 				    (c.num != 0))
 				{
-					c.dec ();
-					cur.tiles.counter[c.letter]--;
+					cur.tiles.dec (c);
 					scope (exit)
 					{
-						c.inc ();
-						cur.tiles.counter[c.letter]++;
+						cur.tiles.inc (c);
 					}
 					cur.board[row][col] =
 					    forced_tile.letter |
@@ -804,12 +810,10 @@ class Game
 			}
 			if (c.num != 0)
 			{
-				c.dec ();
-				cur.tiles.counter[c.letter]--;
+				cur.tiles.dec (c);
 				scope (exit)
 				{
-					c.inc ();
-					cur.tiles.counter[c.letter]++;
+					cur.tiles.inc (c);
 				}
 				if (!c.is_wildcard)
 				{
@@ -842,7 +846,7 @@ class Game
 			foreach (col; 0..Board.SIZE)
 			{
 				if (cur.board.can_start_move (row, col,
-				    cur.tiles.rack.total))
+				    cur.tiles.rack.usable_total))
 				{
 					move_recur (cur, row, col, 0, 0, 1,
 					    Trie.ROOT, 0);
@@ -1099,6 +1103,8 @@ class Game
 			gs[k].reserve (bests_num);
 			gsp[k].reserve (bests_num);
 		}
+//		auto initial_state = GameState (problem, moves_guide);
+		// TODO: use moves_guide and complete guide!
 		auto initial_state = GameState (problem);
 		gs.assumeSafeAppend ();
 		gs[0] ~= initial_state;
