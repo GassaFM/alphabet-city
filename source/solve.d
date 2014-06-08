@@ -51,7 +51,7 @@ void main (string [] args)
 	auto s = new Scoring ();
 	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
-	auto goals = GoalBuilder.build_goals
+	auto goals = GoalBuilder.build_fat_goals
 	    (read_all_lines ("data/goals.txt"));
 	foreach (ref goal; goals)
 	{
@@ -63,7 +63,7 @@ void main (string [] args)
 	version (manager)
 	{
 		m.read_log ("log.txt");
-		foreach (c; 2..21)
+		foreach (c; 1..100)
 		{
 			m.read_log ("log" ~ to !(string) (c) ~ ".txt");
 		}
@@ -390,12 +390,10 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'H' - 'A')
+		if (i != 'Y' - 'A')
 		{
 			continue;
 		}
-*/
 		auto p = ps.problem[i];
 /*
 		if (m.best[p.short_name].board.score >= 2713)
@@ -423,6 +421,8 @@ void main (string [] args)
 		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_earliest);
+		sort !((a, b) => a.score_rating > b.score_rating)
+		    (goals_earliest);
 
 		auto goals_latest = goals.dup;
 		foreach (ref cur_goal; goals_latest)
@@ -443,17 +443,20 @@ void main (string [] args)
 		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_latest);
+		sort !((a, b) => a.score_rating < b.score_rating)
+		    (goals_latest);
 
 		int SLACK = 0;
 		Goal [] [] goal_pairs;
-		foreach (goal1; goals_earliest)
+		foreach (goal1; goals_earliest.take (1000))
 		{
-			foreach_reverse (goal2; goals_latest)
+			foreach_reverse (goal2; goals_latest.take (1000))
 			{
 				if (goal1.get_best_times.y + SLACK >
 				    goal2.get_best_times.x - SLACK)
 				{
-					break;
+					continue;
+//					break;
 				}
 				goal_pairs ~= [goal1, goal2];
 			}
@@ -464,7 +467,7 @@ void main (string [] args)
 		sort !((a, b) => a[0].score_rating + a[1].score_rating >
 		    b[0].score_rating + b[1].score_rating) (goal_pairs);
 
-		foreach (goal_pair; goal_pairs.take (10))
+		foreach (goal_pair; goal_pairs.take (100))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -474,17 +477,17 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 1000;
+			int beam_width = 750;
 			int beam_depth = 0;
-			int bias = 1;
+			int bias = 3;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
 			int cur_middle =
-			    min (goal_pair[0].stored_best_times.y + 5,
+			    min (goal_pair[0].stored_best_times.y /* + 5 */,
 			        goal_pair[1].stored_best_times.x);
 //			int cur_middle = (goal_pair[0].stored_best_times.y +
 //			    goal_pair[1].stored_best_times.x) >> 1;
-			cur_goals[0].letter_bonus = 50;
-			cur_goals[1].letter_bonus = 50;
+			cur_goals[0].letter_bonus = 200;
+			cur_goals[1].letter_bonus = 200;
 
 			auto p_first = Problem (p.name,
 			    p.contents[0..cur_middle]);
@@ -515,9 +518,9 @@ void main (string [] args)
 				game.bias = +bias;
 				stderr.writefln ("%s %s %s %(%s\n    %)",
 				    p.name,
-				    beam_width, beam_depth, game.goals);
+				    beam_width * 2, beam_depth, game.goals);
 				stderr.flush ();
-				game.resume (beam_width, beam_depth,
+				game.resume (beam_width * 2, beam_depth,
 				    cur_middle /* - 10 */, Game.Keep.False,
 				    true, false, true);
 				log_progress (game);
@@ -550,9 +553,9 @@ void main (string [] args)
 				game.bias = -bias;
 				stderr.writefln ("%s %s %s %(%s\n    %)",
 				    p.name,
-				    beam_width, beam_depth, game.goals);
+				    beam_width * 2, beam_depth, game.goals);
 				stderr.flush ();
-				game.resume (beam_width, beam_depth,
+				game.resume (beam_width * 2, beam_depth,
 				    cur_middle /* - 10 */, Game.Keep.False,
 				    true, false, true);
 				log_progress (game);

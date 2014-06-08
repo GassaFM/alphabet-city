@@ -31,6 +31,32 @@ class Goal
 	Stage stage = Stage.COMBINED;
 	TileCounter total_counter;
 	TileCounter forbidden_counter;
+	int [] possible_masks;
+
+/*
+	bool opEquals (Object other_object) const
+	{
+		Goal other = cast (Goal) (other_object);
+		return other !is null &&
+		    (word == other.word) &&
+		    (mask_forbidden == other.mask_forbidden) &&
+		    (row == other.row) &&
+		    (col == other.col) &&
+		    (is_flipped == other.is_flipped);
+	}
+*/
+
+	bool is_mask_allowed (int cur_mask) const
+	{
+		foreach (mask; possible_masks)
+		{
+			if ((cur_mask | mask) == cur_mask)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
 	int calc_score_rating (Scoring scoring = global_scoring) const
 	{
@@ -250,6 +276,7 @@ class Goal
 		stage = other.stage;
 		total_counter = other.total_counter;
 		forbidden_counter = other.forbidden_counter;
+		possible_masks = other.possible_masks.dup;
 	}
 
 	this (const byte [] new_word, int new_mask_forbidden,
@@ -271,6 +298,7 @@ class Goal
 				forbidden_counter[letter]++;
 			}
 		}
+		possible_masks = [mask_forbidden];
 	}
 
 	this (const char [] new_masked_word,
@@ -298,6 +326,32 @@ class Goal
 		}
 		this (cur_word, mask, new_row, new_col,
 		    new_is_flipped, new_letter_bonus);
+	}
+
+	void add_masked_word (const char [] new_masked_word)
+	{
+		byte [] cur_word;
+		cur_word.reserve (Board.SIZE);
+		int mask = 0;
+		foreach (i, ch; new_masked_word)
+		{
+			if ('A' <= ch && ch <= 'Z')
+			{
+				cur_word ~= to !(byte) (ch - 'A');
+				mask |= 1 << i;
+			}
+			else if ('a' <= ch && ch <= 'z')
+			{
+				cur_word ~= to !(byte) (ch - 'a');
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+		enforce (cur_word == word);
+		mask_forbidden &= mask;
+		possible_masks ~= mask;
 	}
 
 	override string toString () const
@@ -394,6 +448,32 @@ static class GoalBuilder
 			res ~= new Goal (line, 0, 0, 0);
 		}
 		debug {writeln ("GoalBuilder: loaded ", res.length, " goals");}
+		return res;
+	}
+
+	static Goal [] build_fat_goals (const char [] [] line_list)
+	{
+		Goal [string] temp;
+		foreach (line; line_list)
+		{
+			string cur_line = to !(string) (line).toLower ();
+			if (cur_line !in temp)
+			{
+				temp[cur_line] = new Goal (line, 0, 0, 0);
+			}
+			else
+			{
+				temp[cur_line].add_masked_word (line);
+			}
+		}
+		debug {writeln ("GoalBuilder: loaded ", temp.length,
+		    " fat goals made of ", line_list.length, " goals");}
+		Goal [] res;
+		res.reserve (temp.length);
+		foreach (cur_goal; temp)
+		{
+			res ~= cur_goal;
+		}
 		return res;
 	}
 }

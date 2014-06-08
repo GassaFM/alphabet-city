@@ -173,6 +173,7 @@ static class GameTools
 
 		bool has_empty = false;
 		bool has_full = false;
+		int cur_mask = 0;
 		TileCounter counter;
 		foreach (pos, letter; goal.word)
 		{
@@ -182,6 +183,7 @@ static class GameTools
 				{
 					has_empty = true;
 					counter[letter]++;
+					cur_mask |= 1 << pos;
 				}
 				else
 				{
@@ -202,6 +204,7 @@ static class GameTools
 				if (cur.board[row][col + pos].empty)
 				{
 					counter[letter]++;
+					cur_mask |= 1 << pos;
 				}
 				else
 				{
@@ -217,6 +220,14 @@ static class GameTools
 		if (!has_empty)
 		{
 			return goal.letter_bonus * max_num;
+		}
+		if (!(counter << cur.tiles.counter))
+		{
+			return NA;
+		}
+		if (!goal.is_mask_allowed (cur_mask))
+		{
+			return NA;
 		}
 
 		int res = 0;

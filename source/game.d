@@ -391,14 +391,7 @@ class Game
 			}
 		}
 
-		int num = 0;
-		foreach (cur_row; 0..Board.SIZE)
-		{
-			foreach (cur_col; 0..Board.SIZE)
-			{
-				num += !cur.board[cur_row][cur_col].empty;
-			}
-		}
+		int num = cur.board.total;
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * MULT_ACT);
 		if (depth == 0 && forced_word is null &&
@@ -1111,6 +1104,31 @@ class Game
 		gsp.assumeSafeAppend ();
 		gsp[0] ~= 0;
 		resume_step = 0;
+		go (to !(int) (problem.contents.length), keep);
+		cleanup (keep);
+	}
+
+	void play_from (int new_bests_num, int new_depth,
+	    ref GameState start_state, Keep keep = Keep.False)
+	{
+		bests_num = new_bests_num;
+		depth = new_depth;
+
+		gs = new GameState [] [problem.contents.length + 1];
+		gsp = new int [] [problem.contents.length + 1];
+		foreach (k, gsp_line; gsp)
+		{
+			gs[k].reserve (bests_num);
+			gsp[k].reserve (bests_num);
+		}
+
+		auto initial_state = start_state;
+		initial_state.tiles.update (problem.contents);
+		int num = initial_state.board.total;
+		gs[num] ~= initial_state;
+		gsp[num] ~= 0;
+
+		resume_step = num;
 		go (to !(int) (problem.contents.length), keep);
 		cleanup (keep);
 	}
