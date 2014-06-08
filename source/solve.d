@@ -390,10 +390,12 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
+/*
 		if (i != 'Y' - 'A')
 		{
 			continue;
 		}
+*/
 		auto p = ps.problem[i];
 /*
 		if (m.best[p.short_name].board.score >= 2713)
@@ -416,9 +418,9 @@ void main (string [] args)
 		}
 		goals_earliest = goals_earliest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 14 &&
-		      a.get_times[0] - a.get_times[2] <= 14 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
+//		      a.get_times[0] >= a.get_best_times.y - 14 &&
+//		      a.get_times[0] - a.get_times[2] <= 14 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_earliest);
 		sort !((a, b) => a.score_rating > b.score_rating)
@@ -438,9 +440,9 @@ void main (string [] args)
 		}
 		goals_latest = goals_latest.filter
 		    !(a => a.get_best_times.x != NA &&
-		      a.get_times[0] >= a.get_best_times.y - 14 &&
-		      a.get_times[0] - a.get_times[2] <= 14 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 55).array ();
+//		      a.get_times[0] >= a.get_best_times.y - 14 &&
+//		      a.get_times[0] - a.get_times[2] <= 14 &&
+		      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
 		sort !((a, b) => a.stored_best_times < b.stored_best_times)
 		    (goals_latest);
 		sort !((a, b) => a.score_rating < b.score_rating)
@@ -467,6 +469,8 @@ void main (string [] args)
 		sort !((a, b) => a[0].score_rating + a[1].score_rating >
 		    b[0].score_rating + b[1].score_rating) (goal_pairs);
 
+		GameState [ByteString] lower_cache;
+		GameState [ByteString] upper_cache;
 		foreach (goal_pair; goal_pairs.take (100))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
@@ -477,7 +481,7 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 750;
+			int beam_width = 250;
 			int beam_depth = 0;
 			int bias = 3;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
@@ -492,7 +496,7 @@ void main (string [] args)
 			auto p_first = Problem (p.name,
 			    p.contents[0..cur_middle]);
 
-			do
+			if (cur_goals[0].word !in lower_cache)
 			{
 				auto game = new Game (p_first, t, s);
 				game.goals = [cur_goals[0]];
@@ -503,31 +507,30 @@ void main (string [] args)
 				    beam_width, beam_depth, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
-				    Game.Keep.True);
+				    Game.Keep.False);
 				log_progress (game);
+				lower_cache[cur_goals[0].word] = game.best;
+			}
+			auto lower_state = lower_cache[cur_goals[0].word];
 
-				if (game.best.board.score <
-				    cur_goals[0].score_rating)
-				{
-					continue;
-				}
-
-				game.problem = p;
-				game.goals ~= cur_goals[1];
+			if (lower_state.board.score >=
+			    cur_goals[0].score_rating)
+			{
+				auto game = new Game (p, t, s);
+				game.goals = cur_goals;
+				cur_goals[0].row = Board.SIZE - 1;
 				cur_goals[1].row = 0;
 				game.bias = +bias;
 				stderr.writefln ("%s %s %s %(%s\n    %)",
 				    p.name,
 				    beam_width * 2, beam_depth, game.goals);
 				stderr.flush ();
-				game.resume (beam_width * 2, beam_depth,
-				    cur_middle /* - 10 */, Game.Keep.False,
-				    true, false, true);
+				game.play_from (beam_width * 2, beam_depth,
+				    lower_state, Game.Keep.False);
 				log_progress (game);
 			}
-			while (false);
 
-			do
+			if (cur_goals[0].word !in upper_cache)
 			{
 				auto game = new Game (p_first, t, s);
 				game.goals = [cur_goals[0]];
@@ -538,29 +541,28 @@ void main (string [] args)
 				    beam_width, beam_depth, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
-				    Game.Keep.True);
+				    Game.Keep.False);
 				log_progress (game);
+				upper_cache[cur_goals[0].word] = game.best;
+			}
+			auto upper_state = upper_cache[cur_goals[0].word];
 
-				if (game.best.board.score <
-				    cur_goals[0].score_rating)
-				{
-					continue;
-				}
-
-				game.problem = p;
-				game.goals ~= cur_goals[1];
+			if (upper_state.board.score >=
+			    cur_goals[0].score_rating)
+			{
+				auto game = new Game (p, t, s);
+				game.goals = cur_goals;
+				cur_goals[0].row = 0;
 				cur_goals[1].row = Board.SIZE - 1;
 				game.bias = -bias;
 				stderr.writefln ("%s %s %s %(%s\n    %)",
 				    p.name,
 				    beam_width * 2, beam_depth, game.goals);
 				stderr.flush ();
-				game.resume (beam_width * 2, beam_depth,
-				    cur_middle /* - 10 */, Game.Keep.False,
-				    true, false, true);
+				game.play_from (beam_width * 2, beam_depth,
+				    upper_state, Game.Keep.False);
 				log_progress (game);
 			}
-			while (false);
 		}
 	}
 	return;

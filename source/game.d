@@ -1114,17 +1114,18 @@ class Game
 		bests_num = new_bests_num;
 		depth = new_depth;
 
+		auto initial_state = start_state;
+		initial_state.tiles.update (problem.contents);
+		int num = initial_state.board.total;
+
 		gs = new GameState [] [problem.contents.length + 1];
 		gsp = new int [] [problem.contents.length + 1];
-		foreach (k, gsp_line; gsp)
+		foreach (k, gsp_line; gsp[num + 1..$])
 		{
 			gs[k].reserve (bests_num);
 			gsp[k].reserve (bests_num);
 		}
 
-		auto initial_state = start_state;
-		initial_state.tiles.update (problem.contents);
-		int num = initial_state.board.total;
 		gs[num] ~= initial_state;
 		gsp[num] ~= 0;
 
