@@ -269,7 +269,7 @@ static class GameTools
 		return res;
 	}
 
-	static int bias_value (ref GameState cur, int bias)
+	static int bias_value_first (ref GameState cur, int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -297,6 +297,43 @@ static class GameTools
 					    row][col].empty)
 					{
 						res += Board.CENTER - row;
+					}
+				}
+			}
+		}
+		return res * abs (bias);
+	}
+
+	static int bias_value (ref GameState cur, int bias)
+	{
+		enforce (bias);
+		enforce (!cur.board.is_flipped);
+		int res = 0;
+		if (bias > 0)
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				foreach (row; 1..Board.CENTER)
+				{
+					if (!cur.board[row][col].empty)
+					{
+						res += Board.CENTER - row;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				foreach (row; 1..Board.CENTER)
+				{
+					if (!cur.board[Board.SIZE - 1 -
+					    row][col].empty)
+					{
+						res += Board.CENTER - row;
+						break;
 					}
 				}
 			}

@@ -52,7 +52,7 @@ void main (string [] args)
 	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 	auto goals = GoalBuilder.build_fat_goals
-	    (read_all_lines ("data/goals.txt"));
+	    (read_all_lines ("data/goals.txt"), true);
 	foreach (ref goal; goals)
 	{
 		goal.stage = Goal.Stage.COMBINED;
@@ -208,8 +208,9 @@ void main (string [] args)
 			game.goals = [cur_goals[0]];
 			cur_goals[0].row = Board.SIZE - 1;
 			game.bias = -bias;
-			stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
-			    beam_width, beam_depth, game.goals);
+			stderr.writefln ("%s w=%s d=%s b=%s %(%s\n    %)",
+			    p.name, beam_width, beam_depth, bias,
+			    game.goals);
 			stderr.flush ();
 			game.play (beam_width, beam_depth, Game.Keep.True);
 			log_progress (game);
@@ -223,8 +224,9 @@ void main (string [] args)
 			game.goals ~= cur_goals[1];
 			cur_goals[1].row = 0;
 			game.bias = +bias;
-			stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
-			    beam_width, beam_depth, game.goals);
+			stderr.writefln ("%s w=%s d=%s b=%s %(%s\n    %)",
+			    p.name, beam_width, beam_depth, bias,
+			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
 			    cur_middle /* - 10 */, Game.Keep.False,
@@ -239,8 +241,9 @@ void main (string [] args)
 			game.goals = [cur_goals[0]];
 			cur_goals[0].row = 0;
 			game.bias = +bias;
-			stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
-			    beam_width, beam_depth, game.goals);
+			stderr.writefln ("%s w=%s d=%s b=%s %(%s\n    %)",
+			    p.name, beam_width, beam_depth, bias,
+			    game.goals);
 			stderr.flush ();
 			game.play (beam_width, beam_depth, Game.Keep.True);
 			log_progress (game);
@@ -254,8 +257,9 @@ void main (string [] args)
 			game.goals ~= cur_goals[1];
 			cur_goals[1].row = Board.SIZE - 1;
 			game.bias = -bias;
-			stderr.writefln ("%s %s %s %(%s\n    %)", p.name,
-			    beam_width, beam_depth, game.goals);
+			stderr.writefln ("%s w=%s d=%s b=%s %(%s\n    %)",
+			    p.name, beam_width, beam_depth, bias,
+			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
 			    cur_middle /* - 10 */, Game.Keep.False,
@@ -390,12 +394,10 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'Y' - 'A')
+		if (i != 'X' - 'A')
 		{
 			continue;
 		}
-*/
 		auto p = ps.problem[i];
 /*
 		if (m.best[p.short_name].board.score >= 2713)
@@ -471,7 +473,7 @@ void main (string [] args)
 
 		GameState [ByteString] lower_cache;
 		GameState [ByteString] upper_cache;
-		foreach (goal_pair; goal_pairs.take (100))
+		foreach (goal_pair; goal_pairs.take (50))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -481,17 +483,17 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 250;
+			int beam_width = 1000;
 			int beam_depth = 0;
-			int bias = 3;
+			int bias = 10;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
 			int cur_middle =
 			    min (goal_pair[0].stored_best_times.y /* + 5 */,
 			        goal_pair[1].stored_best_times.x);
 //			int cur_middle = (goal_pair[0].stored_best_times.y +
 //			    goal_pair[1].stored_best_times.x) >> 1;
-			cur_goals[0].letter_bonus = 200;
-			cur_goals[1].letter_bonus = 200;
+			cur_goals[0].letter_bonus = 100;
+			cur_goals[1].letter_bonus = 100;
 
 			auto p_first = Problem (p.name,
 			    p.contents[0..cur_middle]);
@@ -502,9 +504,9 @@ void main (string [] args)
 				game.goals = [cur_goals[0]];
 				cur_goals[0].row = Board.SIZE - 1;
 				game.bias = -bias;
-				stderr.writefln ("%s %s %s %(%s\n    %)",
-				    p.name,
-				    beam_width, beam_depth, game.goals);
+				stderr.writefln ("%s w=%s d=%s b=%s " ~
+				    "%(%s\n    %)", p.name, beam_width,
+				    beam_depth, bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
 				    Game.Keep.False);
@@ -521,9 +523,9 @@ void main (string [] args)
 				cur_goals[0].row = Board.SIZE - 1;
 				cur_goals[1].row = 0;
 				game.bias = +bias;
-				stderr.writefln ("%s %s %s %(%s\n    %)",
-				    p.name,
-				    beam_width * 2, beam_depth, game.goals);
+				stderr.writefln ("%s w=%s d=%s b=%s " ~
+				    "%(%s\n    %)", p.name, beam_width * 2,
+				    beam_depth, bias, game.goals);
 				stderr.flush ();
 				game.play_from (beam_width * 2, beam_depth,
 				    lower_state, Game.Keep.False);
@@ -536,9 +538,9 @@ void main (string [] args)
 				game.goals = [cur_goals[0]];
 				cur_goals[0].row = 0;
 				game.bias = +bias;
-				stderr.writefln ("%s %s %s %(%s\n    %)",
-				    p.name,
-				    beam_width, beam_depth, game.goals);
+				stderr.writefln ("%s w=%s d=%s b=%s " ~
+				    "%(%s\n    %)", p.name, beam_width,
+				    beam_depth, bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
 				    Game.Keep.False);
@@ -555,9 +557,9 @@ void main (string [] args)
 				cur_goals[0].row = 0;
 				cur_goals[1].row = Board.SIZE - 1;
 				game.bias = -bias;
-				stderr.writefln ("%s %s %s %(%s\n    %)",
-				    p.name,
-				    beam_width * 2, beam_depth, game.goals);
+				stderr.writefln ("%s w=%s d=%s b=%s " ~
+				    "%(%s\n    %)", p.name, beam_width * 2,
+				    beam_depth, bias, game.goals);
 				stderr.flush ();
 				game.play_from (beam_width * 2, beam_depth,
 				    upper_state, Game.Keep.False);

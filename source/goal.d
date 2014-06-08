@@ -2,6 +2,7 @@ module goal;
 
 import core.bitop;
 import std.algorithm;
+import std.ascii;
 import std.conv;
 import std.exception;
 import std.stdio;
@@ -451,11 +452,19 @@ static class GoalBuilder
 		return res;
 	}
 
-	static Goal [] build_fat_goals (const char [] [] line_list)
+	static Goal [] build_fat_goals (const char [] [] line_list,
+	    bool require_all_bonuses = true)
 	{
 		Goal [string] temp;
 		foreach (line; line_list)
 		{
+			if (require_all_bonuses)
+			{ // require double-letter bonuses to be forbidden
+				if (!isUpper (line[3]) || !isUpper (line[11]))
+				{
+					continue;
+				}
+			}
 			string cur_line = to !(string) (line).toLower ();
 			if (cur_line !in temp)
 			{
