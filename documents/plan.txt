@@ -7,10 +7,16 @@ General Plan (vision):
   possibly in the bottom part of the board.
 4. Try to construct a long word from cheap letters at the bottom,
   perhaps a few letters "s" will be needed.
+Problem: a good long word play usually requires
+  at least 5 of the 7 letters in the rack.
+  The remaining space does not allow to build
+  the second long word simultaneously.
+  So, the forbidden letters overlap must be
+  at most two letters.
 
 20140530:
 Random Ideas:
-1. Check for a flipped version of oxyphenbutazone, too.
+1. (+) Check for a flipped version of oxyphenbutazone, too.
   Take care of the bias calculation when flipping.
 2. Local improvement:
   Remove one critical move.
@@ -24,10 +30,17 @@ Beam Search improvements:
   one or more bests for each possible Rack.
 
 20140608:
-Smart goals:
-1. Allow only 15-bit masks leading to at least 8 covered cells.
-2. Do not add bonus after 8 covered cells.
-3. Do not add bonus for double-letter cells.
+Smart goals: (+)
+1. (+) Allow only 15-bit masks leading to at least 8 covered cells.
+2. (+) Do not add bonus after 8 covered cells.
+3. (+) Do not add bonus for double-letter cells.
+Result: X: 2528 -> 2627
 
 Words:
-1. Try constructing the third 15-letter word on the center row in the process.
+1. Try constructing the third 15-letter word
+  on the center row in the process.
+
+Random Ideas:
+1. If Q is coming soon, try to put it on the current board,
+  and give bonus value if possible. 
+  The closer the Q, the larger the bonus.
