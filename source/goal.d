@@ -456,6 +456,7 @@ static class GoalBuilder
 	    bool require_all_bonuses = true)
 	{
 		Goal [string] temp;
+		int num_processed = 0;
 		foreach (line; line_list)
 		{
 			if (require_all_bonuses)
@@ -465,6 +466,7 @@ static class GoalBuilder
 					continue;
 				}
 			}
+			num_processed++;
 			string cur_line = to !(string) (line).toLower ();
 			if (cur_line !in temp)
 			{
@@ -476,7 +478,7 @@ static class GoalBuilder
 			}
 		}
 		debug {writeln ("GoalBuilder: loaded ", temp.length,
-		    " fat goals made of ", line_list.length, " goals");}
+		    " fat goals made of ", num_processed, " simple goals");}
 		Goal [] res;
 		res.reserve (temp.length);
 		foreach (cur_goal; temp)

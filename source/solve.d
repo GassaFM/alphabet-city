@@ -5,6 +5,7 @@ import std.algorithm;
 import std.array;
 import std.conv;
 import std.exception;
+import std.math;
 import std.range;
 import std.stdio;
 import std.string;
@@ -85,16 +86,13 @@ void main (string [] args)
 			auto game = new Game (p, t, s);
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
 			temp.closest_move = game.restore_moves (temp);
-			game.forced_lock_wildcards = true;
-			game.moves_guide = GameMove.invert
+			auto complete_guide = GameMove.invert
 			    (temp.closest_move);
-			int beam_width = 1000;
-			int beam_depth = 0;
-			stderr.writeln (p.name, ' ', temp.board.score, ' ',
-			    beam_width, ' ', beam_depth);
+			stderr.writeln (p.name, ' ', temp.board.score);
+			stderr.flush ();
 
 			GameMove [] gm1;
-			for (GameMove cur_move = game.moves_guide;
+			for (GameMove cur_move = complete_guide;
 			    cur_move !is null;
 			    cur_move = cur_move.chained_move)
 			{
@@ -105,12 +103,12 @@ void main (string [] args)
 			stderr.flush ();
 
 			auto temp_history = game.reduce_move_history
-			    (game.moves_guide);
-			game.moves_guide = temp_history[0];
-			auto p_freed = temp_history[1];
+			    (complete_guide);
+			auto necessary_guide = temp_history[0];
+			auto p_restricted = temp_history[1];
 
 			GameMove [] gm2;
-			for (GameMove cur_move = game.moves_guide;
+			for (GameMove cur_move = necessary_guide;
 			    cur_move !is null;
 			    cur_move = cur_move.chained_move)
 			{
@@ -120,6 +118,14 @@ void main (string [] args)
 			    gm2.length, gm2);
 			stderr.flush ();
 
+			game.moves_guide = necessary_guide;
+			game.problem = p_restricted;
+			game.forced_lock_wildcards = true;
+			int beam_width = 100;
+			int beam_depth = 0;
+			stderr.writeln (p.name, ' ',
+			    beam_width, ' ', beam_depth);
+			stderr.flush ();
 			game.play (beam_width, beam_depth, Game.Keep.False);
 			log_progress (game);
 		}
@@ -468,12 +474,16 @@ void main (string [] args)
 		stderr.writeln ("Goal pairs for ", p.name, ' ',
 		    goal_pairs.length);
 		stderr.flush ();
-		sort !((a, b) => a[0].score_rating + a[1].score_rating >
-		    b[0].score_rating + b[1].score_rating) (goal_pairs);
+		immutable int PERMIT = 0;
+		sort !((a, b) => a[0].score_rating + a[1].score_rating -
+		    abs (a[0].stored_best_times.x + PERMIT - 50) * 25 >
+		    b[0].score_rating + b[1].score_rating -
+		    abs (b[0].stored_best_times.x + PERMIT - 50) * 25)
+		    (goal_pairs);
 
 		GameState [ByteString] lower_cache;
 		GameState [ByteString] upper_cache;
-		foreach (goal_pair; goal_pairs.take (50))
+		foreach (goal_pair; goal_pairs.take (250))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -488,7 +498,7 @@ void main (string [] args)
 			int bias = 10;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
 			int cur_middle =
-			    min (goal_pair[0].stored_best_times.y /* + 5 */,
+			    min (goal_pair[0].stored_best_times.y + PERMIT,
 			        goal_pair[1].stored_best_times.x);
 //			int cur_middle = (goal_pair[0].stored_best_times.y +
 //			    goal_pair[1].stored_best_times.x) >> 1;
@@ -506,7 +516,7 @@ void main (string [] args)
 				game.bias = -bias;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
 				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, bias, game.goals);
+				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
 				    Game.Keep.False);
@@ -525,7 +535,7 @@ void main (string [] args)
 				game.bias = +bias;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
 				    "%(%s\n    %)", p.name, beam_width * 2,
-				    beam_depth, bias, game.goals);
+				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play_from (beam_width * 2, beam_depth,
 				    lower_state, Game.Keep.False);
@@ -540,7 +550,7 @@ void main (string [] args)
 				game.bias = +bias;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
 				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, bias, game.goals);
+				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
 				    Game.Keep.False);
@@ -559,7 +569,7 @@ void main (string [] args)
 				game.bias = -bias;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
 				    "%(%s\n    %)", p.name, beam_width * 2,
-				    beam_depth, bias, game.goals);
+				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play_from (beam_width * 2, beam_depth,
 				    upper_state, Game.Keep.False);

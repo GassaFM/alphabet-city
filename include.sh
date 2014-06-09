@@ -8,7 +8,7 @@ export SOURCES=`ls source/*.d`
 #echo $SOURCES
 #export ARCHITECTURE_OPTIONS="-m32"
 export ARCHITECTURE_OPTIONS="-m64"
-export DEBUG_OPTIONS="-debug -unittest"
+export DEBUG_OPTIONS="-g -debug -unittest"
 export RELEASE_OPTIONS="-O -release -inline -noboundscheck"
 export COMMON_OPTIONS="$ARCHITECTURE_OPTIONS -O -inline -wi -odobject"
 #-L/SUBSYSTEM:CONSOLE:4.0

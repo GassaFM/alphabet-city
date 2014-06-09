@@ -144,7 +144,8 @@ struct Rack
 
 struct TileBag
 {
-	immutable static byte IS_RESTRICTED = 1 << LET_BITS;
+	immutable static int RESTRICTED_BIT = LET_BITS;
+	immutable static byte IS_RESTRICTED = 1 << RESTRICTED_BIT;
 
 	Rack rack;
 	ByteString contents;
@@ -182,27 +183,32 @@ struct TileBag
 		return (cursor >= contents.length) && rack.empty;
 	}
 
+	static byte char_to_byte (const char c)
+	{
+		if (c == '?')
+		{
+			return LET;
+		}
+		if ('A' <= c && c <= 'Z' + 1)
+		{
+			return to !(byte) (c - 'A');
+		}
+		if ('a' <= c && c <= 'z' + 1)
+		{
+			return to !(byte) (c - 'a') | IS_RESTRICTED;
+		}
+		assert (false);
+	}
+
 	void update (const char [] data, bool was_virtual = false)
 	{
 		byte [] temp;
 		foreach (c; data[contents.length..$])
 		{
-			byte v = void;
-			if (c == '?')
-			{
-				v = LET;
-			}
-			else if ('A' <= c && c <= 'Z')
-			{
-				v = to !(byte) (c - 'A');
-			}
-			else
-			{
-				enforce (false);
-			}
+			byte v = char_to_byte (c);
 			if (!was_virtual)
 			{
-				counter[v]++;
+				counter[v & LET_MASK]++;
 			}
 			temp ~= v;
 		}
@@ -216,20 +222,8 @@ struct TileBag
 		byte [] temp;
 		foreach (i, c; data ~ virtual)
 		{
-			byte v = void;
-			if (c == '?')
-			{
-				v = LET;
-			}
-			else if ('A' <= c && c <= 'Z')
-			{
-				v = to !(byte) (c - 'A');
-			}
-			else
-			{
-				enforce (false);
-			}
-			counter[v]++;
+			byte v = char_to_byte (c);
+			counter[v & LET_MASK]++;
 			if (i < data.length)
 			{
 				temp ~= v;

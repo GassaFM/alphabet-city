@@ -72,14 +72,6 @@ struct GameState
 		board.normalize ();
 	}
 
-	this (Problem new_problem, GameMove complete_guide,
-	    GameMove necessary_guide)
-	{
-		// TODO: use guides!
-		tiles = TileBag (new_problem);
-		board.normalize ();
-	}
-
 	bool opEquals (const ref GameState other) const
 	{
 		return board == other.board;
@@ -105,6 +97,7 @@ class GameMove
 	BoardCell [] word;
 	byte row;
 	byte col;
+	byte tiles_before;
 	bool is_flipped;
 	bool is_chain_forward;
 	int score;
@@ -118,9 +111,12 @@ class GameMove
 		{
 			col--;
 		}
+		tiles_before = cur.board.total; // cur.board is after the move
 		foreach (cur_col; col..new_col + 1)
 		{
-			word ~= cur.board[row][cur_col];
+			auto cur_tile = cur.board[row][cur_col];
+			tiles_before -= cur_tile.active;
+			word ~= cur_tile;
 		}
 		is_flipped = cur.board.is_flipped;
 		score = add_score;
@@ -164,6 +160,7 @@ class GameMove
 
 		score = to !(int) (t[2]);
 
+		tiles_before = NA;
 		chained_move = new_chained_move;
 	}
 
@@ -172,6 +169,7 @@ class GameMove
 		word = other.word;
 		row = other.row;
 		col = other.col;
+		tiles_before = other.tiles_before;
 		is_flipped = other.is_flipped;
 		is_chain_forward = other.is_chain_forward;
 		score = other.score;
@@ -201,8 +199,9 @@ class GameMove
 		return next;
 	}
 
-	void update_active (ref GameState cur)
+	void normalize (ref GameState cur)
 	{
+		tiles_before = cur.board.total; // cur.board is before the move
 		if (cur.board.is_flipped ^ is_flipped)
 		{
 			foreach (pos; 0..word.length)
@@ -309,6 +308,7 @@ class Game
 	int forced_move_bonus = 10_000;
 	bool forced_imaginary;
 	bool forced_lock_wildcards;
+	bool forced_restricted;
 	GameState imaginary_result;
 
 	bool allow_mirror () @property const
@@ -460,7 +460,7 @@ class Game
 				    is_move_present (next, cur_move));
 				if (ok == 1)
 				{
-					next.board.value += forced_move_bonus;
+//					next.board.value += forced_move_bonus;
 				}
 				else if (ok == 0)
 				{
@@ -740,11 +740,6 @@ class Game
 				return;
 			}
 
-			forced_cur++;
-			scope (exit)
-			{
-				forced_cur--;
-			}
 			version (debug_forced)
 			{
 				writeln (">7:");
@@ -752,6 +747,29 @@ class Game
 			}
 
 			cur.board.total++;
+			scope (exit)
+			{
+				cur.board.total--;
+			}
+
+			if (forced_restricted)
+			{
+				cur.tiles.rack.total--;
+				scope (exit)
+				{
+					cur.tiles.rack.total++;
+				}
+				cur.board[row][col] = forced_tile;
+				scope (exit)
+				{
+					cur.board[row][col] = BoardCell.NONE;
+				}
+				step_recur (cur, row, col,
+				    vert, score, mult, vt,
+				    flags + MULT_ACT);
+				return;
+			}
+
 			foreach (ref c; cur.tiles.rack.contents)
 			{
 				if (c.empty)
@@ -879,8 +897,48 @@ class Game
 		}
 	}
 
+	void move_start_guided (ref GameState cur)
+	{
+		for (GameMove cur_move = moves_guide;
+		    cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			int ok = is_move_present (cur, cur_move);
+			if (ok == 1)
+			{
+			}
+			else if (ok == 0)
+			{
+				bool remember_forced_restricted = true;
+				swap (forced_restricted,
+				    remember_forced_restricted);
+				scope (exit)
+				{
+					swap (forced_restricted,
+					    remember_forced_restricted);
+				}
+				perform_move (cur, cur_move);
+				break;
+			}
+			else if (ok == NA)
+			{
+				enforce (false);
+				break;
+			}
+			else
+			{
+				assert (false);
+			}
+		}
+	}
+
 	void move_start (ref GameState cur)
 	{
+		if (moves_guide !is null)
+		{
+			move_start_guided (cur);
+			return;
+		}
 		move_horizontal (cur);
 		if (!cur.board[Board.CENTER][Board.CENTER].empty ||
 		    allow_mirror) // first move direction matters
@@ -968,46 +1026,66 @@ class Game
 	{
 		GameMove gm_res = null;
 		Problem p_res = problem;
-		BoardCell [] freed_cells;
+		char [] tiles;
+		tiles.reserve (problem.contents.length);
 		GameMove start = GameMove.invert (history);
 		for (GameMove cur_move = start; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
-//			writeln ("considering ", cur_move);
 			// TODO: parameterize!
-			if (cur_move.word.length == Board.SIZE ||
+			bool is_necessary =
+			    (cur_move.word.length == Board.SIZE) ||
 			    !moves_can_happen (cur_move.chained_move, gm_res,
-			        GameState (problem)))
+			    GameState (problem));
+
+			if (is_necessary)
 			{
-//				writeln ("taking ", cur_move);
 				GameMove temp = new GameMove (cur_move);
 				temp.chained_move = gm_res;
 				gm_res = temp;
 			}
-			else
+
+			foreach (t; cur_move.word)
 			{
-				foreach (t; cur_move.word)
+				if (t.active)
 				{
-					if (t.active)
-					{
-						freed_cells ~= t;
-					}
+					tiles ~= to !(char)
+					    (((t.wildcard ? LET : t.letter) |
+					    (is_necessary <<
+					    TileBag.RESTRICTED_BIT)) + 'A');
 				}
 			}
 		}
-		char [] freed_tiles;
-		foreach_reverse (t; freed_cells)
+		enforce (tiles.length == problem.contents.length);
+
+		immutable char USED = '@';
+		char [] temp = problem.contents.dup;
+		reverse (tiles); // moves are considered in reverse order
+		p_res.contents = "";
+		foreach (ref c; temp)
 		{
-			if (t.wildcard)
+			if (c == '?')
 			{
-				freed_tiles ~= '?';
-			}
-			else
-			{
-				freed_tiles ~= to !(char) (t.letter + 'A');
+				c = to !(char) ('Z' + 1);
 			}
 		}
-		p_res.contents = to !(string) (freed_tiles);
+		foreach (ref c; temp)
+		{
+			bool found = false;
+			foreach (t; tiles)
+			{
+				if (t == c || t == c + TileBag.IS_RESTRICTED)
+				{
+					p_res.contents ~= t;
+					t = USED;
+					found = true;
+					break;
+				}
+			}
+			enforce (found);
+		}
+		enforce (p_res.contents.length == problem.contents.length);
+
 		return tuple (gm_res, p_res);
 	}
 
@@ -1024,7 +1102,7 @@ class Game
 		for (GameMove cur_move = start; cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
-			cur_move.update_active (temp);
+			cur_move.normalize (temp);
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
 			perform_move (temp, cur_move);

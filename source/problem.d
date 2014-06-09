@@ -20,6 +20,14 @@ struct Problem
 		virtual = to !(string) (new_virtual);
 	}
 
+	this (this)
+	{
+		name = name.dup;
+		short_name = short_name.dup;
+		contents = contents.dup;
+		virtual = virtual.dup;
+	}
+
 	string toString () const
 	{
 		return name ~ ' ' ~ contents;
