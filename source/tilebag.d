@@ -6,6 +6,7 @@ import std.exception;
 import std.format;
 import std.stdio;
 
+import board;
 import general;
 import problem;
 
@@ -123,18 +124,20 @@ struct Rack
 
 	string toString () const
 	{
-		string res = "Rack:";
+		string res = "Rack: (" ~ to !(string) (total) ~ ")";
+		int k = 0;
 		foreach (c; contents)
 		{
 			if (c.empty)
 			{
 				break;
 			}
+			k++;
 			res ~= ' ';
 			res ~= to !(string) (c.num);
 			res ~= (c.letter == LET) ? '?' : (c.letter + 'A');
 		}
-		if (contents.length == 0)
+		if (k == 0)
 		{
 			res ~= " empty";
 		}
@@ -176,6 +179,18 @@ struct TileBag
 		c.inc ();
 		rack.total++;
 		counter[c.letter]++;
+	}
+
+	void dec_restricted (const ref BoardCell t)
+	{
+		rack.total--;
+		counter[t.letter]--;
+	}
+
+	void inc_restricted (const ref BoardCell t)
+	{
+		rack.total++;
+		counter[t.letter]++;
 	}
 
 	bool empty () @property const

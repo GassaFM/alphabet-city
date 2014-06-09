@@ -1,5 +1,6 @@
 module tools;
 
+import std.algorithm;
 import std.exception;
 import std.math;
 import std.stdio;
@@ -304,7 +305,7 @@ static class GameTools
 		return res * abs (bias);
 	}
 
-	static int bias_value (ref GameState cur, int bias)
+	static int bias_value_second (ref GameState cur, int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -333,6 +334,88 @@ static class GameTools
 					    row][col].empty)
 					{
 						res += Board.CENTER - row;
+						break;
+					}
+				}
+			}
+		}
+		return res * abs (bias);
+	}
+
+	static int bias_value (ref GameState cur, int bias)
+	{
+		enforce (bias);
+		enforce (!cur.board.is_flipped);
+		int res = 0;
+		if (bias > 0)
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				int add = 0;
+				scope (exit)
+				{
+					res += add;
+				}
+				foreach (row; 1..Board.CENTER)
+				{
+					if (!cur.board[row][col].empty)
+					{
+						add = Board.CENTER - row;
+						break;
+					}
+				}
+				if (cur.board[0][col].empty)
+				{
+					continue;
+				}
+				int add2 = 0;
+				scope (exit)
+				{
+					add += add2;
+				}
+				foreach (row; 5..Board.CENTER)
+				{
+					if (!cur.board[Board.SIZE - 1 -
+					    row][col].empty)
+					{
+						add2 = Board.CENTER - row;
+						break;
+					}
+				}
+			}
+		}
+		else
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				int add = 0;
+				scope (exit)
+				{
+					res += add;
+				}
+				foreach (row; 1..Board.CENTER)
+				{
+					if (!cur.board[Board.SIZE - 1 -
+					    row][col].empty)
+					{
+						add = Board.CENTER - row;
+						break;
+					}
+				}
+				if (cur.board[Board.SIZE - 1][col].empty)
+				{
+					continue;
+				}
+				int add2 = 0;
+				scope (exit)
+				{
+					add += add2;
+				}
+				foreach (row; 5..Board.CENTER)
+				{
+					if (!cur.board[row][col].empty)
+					{
+						add2 = Board.CENTER - row;
 						break;
 					}
 				}

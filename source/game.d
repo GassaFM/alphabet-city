@@ -331,6 +331,11 @@ class Game
 					res = min (res,
 					    cur.board[row + pos][col].empty -
 					    1);
+/*
+					writeln
+					    (cur.board[row + pos][col].letter,
+					    ' ', cur_move.word[pos].letter);
+*/
 				}
 			}
 		}
@@ -405,8 +410,14 @@ class Game
 		auto next = cur;
 		next.board.score += add_score;
 //		next.board.value += add_score;
+//		writeln (next.tiles);
+//		stdout.flush ();
 		next.tiles.rack.normalize ();
+//		writeln (next.tiles);
+//		stdout.flush ();
 		next.tiles.fill_rack ();
+//		writeln (next.tiles);
+//		stdout.flush ();
 
 		next.board.value = next.board.score;
 		foreach (goal; goals)
@@ -442,12 +453,14 @@ class Game
 			next.board.value += cur_value;
 		}
 
+//		writeln ("here 4 ", forced_cur);
 		next.board.normalize ();
 		next.closest_move = new GameMove (cur, row, col, add_score);
 		if (bias)
 		{
 			next.board.value += GameTools.bias_value (next, bias);
 		}
+//		writeln (next);
 
 		if (moves_guide !is null)
 		{
@@ -458,6 +471,7 @@ class Game
 			{
 				ok = min (ok,
 				    is_move_present (next, cur_move));
+//				writeln ("here 5 ", ok);
 				if (ok == 1)
 				{
 //					next.board.value += forced_move_bonus;
@@ -467,6 +481,10 @@ class Game
 					if (!moves_can_happen (null,
 					    cur_move, next))
 					{
+/*
+						writeln ("here 5 bad ",
+						    cur_move.word);
+*/
 						return;
 					}
 					break;
@@ -749,15 +767,16 @@ class Game
 			cur.board.total++;
 			scope (exit)
 			{
+				cur.board[row][col] = BoardCell.NONE;
 				cur.board.total--;
 			}
 
 			if (forced_restricted)
 			{
-				cur.tiles.rack.total--;
+				cur.tiles.dec_restricted (forced_tile);
 				scope (exit)
 				{
-					cur.tiles.rack.total++;
+					cur.tiles.inc_restricted (forced_tile);
 				}
 				cur.board[row][col] = forced_tile;
 				scope (exit)
@@ -801,8 +820,6 @@ class Game
 					continue;
 				}
 			}
-			cur.board[row][col] = BoardCell.NONE;
-			cur.board.total--;
 			return;
 		}
 
@@ -813,6 +830,11 @@ class Game
 			return;
 		}
 		cur.board.total++;
+		scope (exit)
+		{
+			cur.board[row][col] = BoardCell.NONE;
+			cur.board.total--;
+		}
 		foreach (ref c; cur.tiles.rack.contents)
 		{
 			if (c.empty)
@@ -846,8 +868,6 @@ class Game
 				}
 			}
 		}
-		cur.board[row][col] = BoardCell.NONE;
-		cur.board.total--;
 	}
 
 	void move_horizontal (ref GameState cur)
@@ -897,18 +917,28 @@ class Game
 		}
 	}
 
-	void move_start_guided (ref GameState cur)
+	bool move_start_guided (ref GameState cur)
 	{
 		for (GameMove cur_move = moves_guide;
 		    cur_move !is null;
 		    cur_move = cur_move.chained_move)
 		{
 			int ok = is_move_present (cur, cur_move);
+//			writeln (cur_move.word, ' ', ok);
 			if (ok == 1)
 			{
 			}
 			else if (ok == 0)
 			{
+				int tiles_cursor = cur.tiles.cursor;
+				int move_cursor = cur_move.tiles_before +
+				    Rack.MAX_SIZE;
+//				writeln (tiles_cursor, ' ', move_cursor);
+				if (move_cursor > tiles_cursor)
+				{
+					return false;
+				}
+
 				bool remember_forced_restricted = true;
 				swap (forced_restricted,
 				    remember_forced_restricted);
@@ -918,7 +948,7 @@ class Game
 					    remember_forced_restricted);
 				}
 				perform_move (cur, cur_move);
-				break;
+				return true;
 			}
 			else if (ok == NA)
 			{
@@ -930,14 +960,17 @@ class Game
 				assert (false);
 			}
 		}
+		return false;
 	}
 
 	void move_start (ref GameState cur)
 	{
 		if (moves_guide !is null)
 		{
-			move_start_guided (cur);
-			return;
+			if (move_start_guided (cur))
+			{
+				return;
+			}
 		}
 		move_horizontal (cur);
 		if (!cur.board[Board.CENTER][Board.CENTER].empty ||
@@ -955,9 +988,15 @@ class Game
 	{ // if GameState becomes a reference type, make a copy!
 		bool remember_forced_imaginary = true;
 		swap (forced_imaginary, remember_forced_imaginary);
+		bool remember_forced_restricted = false;
+		swap (forced_restricted, remember_forced_restricted);
+		int remember_forced_cur = 0;
+		swap (forced_cur, remember_forced_cur);
 		scope (exit)
 		{
 			swap (forced_imaginary, remember_forced_imaginary);
+			swap (forced_restricted, remember_forced_restricted);
+			swap (forced_cur, remember_forced_cur);
 		}
 		GameMove first = GameMove.invert (first_inverted);
 //		auto cur = GameState (problem);
@@ -1061,6 +1100,8 @@ class Game
 		immutable char USED = '@';
 		char [] temp = problem.contents.dup;
 		reverse (tiles); // moves are considered in reverse order
+//		writeln (tiles);
+//		writeln (temp);
 		p_res.contents = "";
 		foreach (ref c; temp)
 		{
@@ -1072,7 +1113,7 @@ class Game
 		foreach (ref c; temp)
 		{
 			bool found = false;
-			foreach (t; tiles)
+			foreach (ref t; tiles)
 			{
 				if (t == c || t == c + TileBag.IS_RESTRICTED)
 				{
@@ -1085,6 +1126,7 @@ class Game
 			enforce (found);
 		}
 		enforce (p_res.contents.length == problem.contents.length);
+//		writeln (p_res.contents);
 
 		return tuple (gm_res, p_res);
 	}

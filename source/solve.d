@@ -121,10 +121,10 @@ void main (string [] args)
 			game.moves_guide = necessary_guide;
 			game.problem = p_restricted;
 			game.forced_lock_wildcards = true;
-			int beam_width = 100;
+			int beam_width = 1500;
 			int beam_depth = 0;
-			stderr.writeln (p.name, ' ',
-			    beam_width, ' ', beam_depth);
+			stderr.writefln ("%s w=%s d=%s", p.name,
+			    beam_width, beam_depth);
 			stderr.flush ();
 			game.play (beam_width, beam_depth, Game.Keep.False);
 			log_progress (game);
@@ -400,7 +400,7 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-		if (i != 'X' - 'A')
+		if (i != 'H' - 'A')
 		{
 			continue;
 		}
@@ -483,7 +483,7 @@ void main (string [] args)
 
 		GameState [ByteString] lower_cache;
 		GameState [ByteString] upper_cache;
-		foreach (goal_pair; goal_pairs.take (250))
+		foreach (goal_pair; goal_pairs.take (50))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
