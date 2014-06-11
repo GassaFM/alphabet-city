@@ -331,11 +331,6 @@ class Game
 					res = min (res,
 					    cur.board[row + pos][col].empty -
 					    1);
-/*
-					writeln
-					    (cur.board[row + pos][col].letter,
-					    ' ', cur_move.word[pos].letter);
-*/
 				}
 			}
 		}
@@ -367,7 +362,6 @@ class Game
 			    cur.board[7][0].active +
 			    cur.board[14][0].active) % 3 != 0)
 			{
-//				stderr.writeln ("!");
 				return;
 			}
 		}
@@ -377,21 +371,6 @@ class Game
 			    cur.board[0][7].active +
 			    cur.board[0][14].active) % 3 != 0)
 			{
-//				stderr.writeln ("!");
-				return;
-			}
-		}
-
-		if (forced_word !is null)
-		{
-			if (forced_word.length != forced_cur)
-			{
-				return;
-			}
-			if (forced_imaginary)
-			{
-				imaginary_result = cur;
-				imaginary_result.board.normalize ();
 				return;
 			}
 		}
@@ -407,17 +386,27 @@ class Game
 			return;
 		}
 
+		if (forced_word !is null)
+		{
+			if (forced_word.length != forced_cur)
+			{
+				return;
+			}
+			if (forced_imaginary)
+			{
+				imaginary_result = cur;
+				imaginary_result.board.score += add_score;
+				imaginary_result.board.value += add_score;
+				imaginary_result.board.normalize ();
+				return;
+			}
+		}
+
 		auto next = cur;
 		next.board.score += add_score;
 //		next.board.value += add_score;
-//		writeln (next.tiles);
-//		stdout.flush ();
 		next.tiles.rack.normalize ();
-//		writeln (next.tiles);
-//		stdout.flush ();
 		next.tiles.fill_rack ();
-//		writeln (next.tiles);
-//		stdout.flush ();
 
 		next.board.value = next.board.score;
 		foreach (goal; goals)
@@ -453,14 +442,12 @@ class Game
 			next.board.value += cur_value;
 		}
 
-//		writeln ("here 4 ", forced_cur);
 		next.board.normalize ();
 		next.closest_move = new GameMove (cur, row, col, add_score);
 		if (bias)
 		{
 			next.board.value += GameTools.bias_value (next, bias);
 		}
-//		writeln (next);
 
 		if (moves_guide !is null)
 		{
@@ -471,22 +458,21 @@ class Game
 			{
 				ok = min (ok,
 				    is_move_present (next, cur_move));
-//				writeln ("here 5 ", ok);
 				if (ok == 1)
 				{
 //					next.board.value += forced_move_bonus;
 				}
 				else if (ok == 0)
 				{
-					if (!moves_can_happen (null,
-					    cur_move, next))
+					int future_score =
+					    moves_can_happen (null,
+					    cur_move, next);
+					if (future_score == NA)
 					{
-/*
-						writeln ("here 5 bad ",
-						    cur_move.word);
-*/
 						return;
 					}
+					next.board.value += future_score -
+					    next.board.score;
 					break;
 				}
 				else if (ok == NA)
@@ -498,7 +484,6 @@ class Game
 					assert (false);
 				}
 			}
-//			writeln ("ok = ", ok);
 		}
 
 		if (depth > 0)
@@ -764,13 +749,6 @@ class Game
 				stdout.flush ();
 			}
 
-			cur.board.total++;
-			scope (exit)
-			{
-				cur.board[row][col] = BoardCell.NONE;
-				cur.board.total--;
-			}
-
 			if (forced_restricted)
 			{
 				cur.tiles.dec_restricted (forced_tile);
@@ -779,14 +757,23 @@ class Game
 					cur.tiles.inc_restricted (forced_tile);
 				}
 				cur.board[row][col] = forced_tile;
+				cur.board.total++;
 				scope (exit)
 				{
 					cur.board[row][col] = BoardCell.NONE;
+					cur.board.total--;
 				}
 				step_recur (cur, row, col,
 				    vert, score, mult, vt,
 				    flags + MULT_ACT);
 				return;
+			}
+
+			cur.board.total++;
+			scope (exit)
+			{
+				cur.board[row][col] = BoardCell.NONE;
+				cur.board.total--;
 			}
 
 			foreach (ref c; cur.tiles.rack.contents)
@@ -924,7 +911,6 @@ class Game
 		    cur_move = cur_move.chained_move)
 		{
 			int ok = is_move_present (cur, cur_move);
-//			writeln (cur_move.word, ' ', ok);
 			if (ok == 1)
 			{
 			}
@@ -933,7 +919,6 @@ class Game
 				int tiles_cursor = cur.tiles.cursor;
 				int move_cursor = cur_move.tiles_before +
 				    Rack.MAX_SIZE;
-//				writeln (tiles_cursor, ' ', move_cursor);
 				if (move_cursor > tiles_cursor)
 				{
 					return false;
@@ -982,8 +967,8 @@ class Game
 		}
 	}
 
-//	bool moves_can_happen (GameMove first_inverted, GameMove second)
-	bool moves_can_happen (GameMove first_inverted, GameMove second,
+//	int moves_can_happen (GameMove first_inverted, GameMove second)
+	int moves_can_happen (GameMove first_inverted, GameMove second,
 	    GameState cur)
 	{ // if GameState becomes a reference type, make a copy!
 		bool remember_forced_imaginary = true;
@@ -1023,7 +1008,7 @@ class Game
 				{
 					writeln ("(1) false");
 				}
-				return false;
+				return NA;
 			}
 			cur = imaginary_result;
 		}
@@ -1050,7 +1035,7 @@ class Game
 				{
 					writeln ("(2) false");
 			        }
-				return false;
+				return NA;
 			}
 			cur = imaginary_result;
 		}
@@ -1058,7 +1043,7 @@ class Game
 		{
 			writeln ("true!");
 		}
-		return true;
+		return imaginary_result.board.value;
 	}
 
 	Tuple !(GameMove, Problem) reduce_move_history (GameMove history)
@@ -1074,8 +1059,8 @@ class Game
 			// TODO: parameterize!
 			bool is_necessary =
 			    (cur_move.word.length == Board.SIZE) ||
-			    !moves_can_happen (cur_move.chained_move, gm_res,
-			    GameState (problem));
+			    moves_can_happen (cur_move.chained_move, gm_res,
+			    GameState (problem)) == NA;
 
 			if (is_necessary)
 			{
@@ -1095,13 +1080,11 @@ class Game
 				}
 			}
 		}
-		enforce (tiles.length == problem.contents.length);
+		enforce (tiles.length <= problem.contents.length);
 
 		immutable char USED = '@';
 		char [] temp = problem.contents.dup;
 		reverse (tiles); // moves are considered in reverse order
-//		writeln (tiles);
-//		writeln (temp);
 		p_res.contents = "";
 		foreach (ref c; temp)
 		{
@@ -1123,10 +1106,12 @@ class Game
 					break;
 				}
 			}
-			enforce (found);
+			if (!found)
+			{
+				p_res.contents ~= c;
+			}
 		}
 		enforce (p_res.contents.length == problem.contents.length);
-//		writeln (p_res.contents);
 
 		return tuple (gm_res, p_res);
 	}

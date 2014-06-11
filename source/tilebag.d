@@ -184,13 +184,27 @@ struct TileBag
 	void dec_restricted (const ref BoardCell t)
 	{
 		rack.total--;
-		counter[t.letter]--;
+		if (t.wildcard)
+		{
+			counter[LET]--;
+		}
+		else
+		{
+			counter[t.letter]--;
+		}
 	}
 
 	void inc_restricted (const ref BoardCell t)
 	{
 		rack.total++;
-		counter[t.letter]++;
+		if (t.wildcard)
+		{
+			counter[LET]++;
+		}
+		else
+		{
+			counter[t.letter]++;
+		}
 	}
 
 	bool empty () @property const
