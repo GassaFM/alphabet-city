@@ -1,5 +1,6 @@
 module manager;
 
+import std.algorithm;
 import std.conv;
 import std.exception;
 import std.range;
@@ -65,7 +66,22 @@ class Manager
 		}
 	}
 
-	void read_log (const char [] file_name)
+	void output (ref GameState cur, const char [] short_name)
+	{
+		writeln (toUpper (short_name), ':');
+		string [] moves;
+		for (GameMove cur_move = cur.closest_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			moves ~= to !(string) (cur_move);
+		}
+		reverse (moves);
+		writeln (join (moves, ",\n"));
+		writeln (';');
+	}
+
+	void process_log (const char [] file_name,
+	    void delegate (ref GameState, const char []) dg)
 	{
 		File f;
 		try
@@ -76,7 +92,8 @@ class Manager
 		{
 			return;
 		}
-		writeln ("Processing log: ", file_name);
+		stderr.writeln ("Processing log: ", file_name);
+		stderr.flush ();
 		while (true)
 		{
 			string s;
@@ -92,8 +109,18 @@ class Manager
 			}
 			string short_name = toLower (s[0..1]);
 			auto cur = GameState.read (f);
-			consider (cur, short_name);
+			dg (cur, short_name);
 		}
+	}
+
+	void read_log (const char [] file_name)
+	{
+		process_log (file_name, &consider);
+	}
+
+	void extract_log (const char [] file_name)
+	{
+		process_log (file_name, &output);
 	}
 
 	this (ProblemSet new_problem_set)

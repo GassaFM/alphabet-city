@@ -196,7 +196,12 @@ class Goal
 		int start = lower_limit;
 		foreach (tile_num; lower_limit..upper_limit)
 		{
-			cur_counter[tile_bag.contents[tile_num]]++;
+			auto cur_tile = tile_bag.contents[tile_num];
+			if (cur_tile & TileBag.IS_RESTRICTED)
+			{
+				continue;
+			}
+			cur_counter[cur_tile]++;
 			if (!got_total && (total_counter << cur_counter))
 			{
 				got_total = true;
@@ -211,7 +216,13 @@ class Goal
 						res = Pair (start,
 						    tile_num + 1);
 					}
-					cur_counter[tile_bag[start]]--;
+					auto prev_tile =
+					    tile_bag.contents[start];
+					if (!(cur_tile &
+					    TileBag.IS_RESTRICTED))
+					{
+						cur_counter[prev_tile]--;
+					}
 					start++;
 				}
 				while (forbidden_counter << cur_counter);
@@ -230,7 +241,12 @@ class Goal
 		TileCounter cur_counter;
 		foreach (tile_num; lower_limit..upper_limit)
 		{
-			cur_counter[tile_bag.contents[tile_num]]++;
+			auto cur_tile = tile_bag.contents[tile_num];
+			if (cur_tile & TileBag.IS_RESTRICTED)
+			{
+				continue;
+			}
+			cur_counter[cur_tile]++;
 			if (total_counter << cur_counter)
 			{
 				return Pair (lower_limit, tile_num + 1);
@@ -249,7 +265,12 @@ class Goal
 		TileCounter cur_counter;
 		foreach_reverse (tile_num; lower_limit..upper_limit)
 		{
-			cur_counter[tile_bag.contents[tile_num]]++;
+			auto cur_tile = tile_bag.contents[tile_num];
+			if (cur_tile & TileBag.IS_RESTRICTED)
+			{
+				continue;
+			}
+			cur_counter[cur_tile]++;
 			if (total_counter << cur_counter)
 			{
 				return Pair (tile_num, upper_limit);

@@ -2,6 +2,7 @@ module board;
 
 import std.algorithm;
 import std.conv;
+import std.exception;
 import std.random;
 
 import general;
@@ -154,6 +155,19 @@ struct Board
 			return true;
 		}
 		return false;
+	}
+
+	bool is_row_filled (int row) const
+	{
+		enforce (!is_flipped);
+		foreach (col; 0..Board.SIZE)
+		{
+			if (contents[row][col].empty)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	void flip ()

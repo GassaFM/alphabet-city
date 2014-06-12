@@ -58,6 +58,275 @@ void log_guide (GameMove start_move, string name = "a")
 	stderr.flush ();
 }
 
+void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
+    GameState prev_best, GameMove prev_guide = null)
+{
+	auto goals_earliest = goals.dup;
+	foreach (ref cur_goal; goals_earliest)
+	{
+		cur_goal = new Goal (cur_goal);
+		cur_goal.stored_best_times =
+		    cur_goal.calc_earliest_times
+		    (TileBag (p), 0, TOTAL_TILES * 3 / 4);
+		cur_goal.stored_times = cur_goal.calc_times
+		    (TileBag (p),
+		    cur_goal.stored_best_times.x,
+		    cur_goal.stored_best_times.y);
+	}
+	goals_earliest = goals_earliest.filter
+	    !(a => a.get_best_times.x != NA &&
+//	      a.get_times[0] >= a.get_best_times.y - 14 &&
+//	      a.get_times[0] - a.get_times[2] <= 14 &&
+	      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
+	sort !((a, b) => a.stored_best_times < b.stored_best_times)
+	    (goals_earliest);
+	sort !((a, b) => a.score_rating > b.score_rating)
+	    (goals_earliest);
+
+	auto goals_latest = goals.dup;
+	foreach (ref cur_goal; goals_latest)
+	{
+		cur_goal = new Goal (cur_goal);
+		cur_goal.stored_best_times =
+		    cur_goal.calc_latest_times
+		    (TileBag (p), TOTAL_TILES * 1 / 4, TOTAL_TILES);
+		cur_goal.stored_times = cur_goal.calc_times
+		    (TileBag (p),
+		    cur_goal.stored_best_times.x,
+		    cur_goal.stored_best_times.y);
+	}
+	goals_latest = goals_latest.filter
+	    !(a => a.get_best_times.x != NA &&
+//	      a.get_times[0] >= a.get_best_times.y - 14 &&
+//	      a.get_times[0] - a.get_times[2] <= 14 &&
+	      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
+	sort !((a, b) => a.stored_best_times < b.stored_best_times)
+	    (goals_latest);
+	sort !((a, b) => a.score_rating < b.score_rating)
+	    (goals_latest);
+
+	immutable int SLACK = 0;
+	Goal [] [] goal_pairs;
+	foreach (goal1; goals_earliest.take (1000))
+	{
+		foreach_reverse (goal2; goals_latest.take (1000))
+		{
+			if (goal1.get_best_times.y + SLACK >
+			    goal2.get_best_times.x - SLACK)
+			{
+				continue;
+//				break;
+			}
+			goal_pairs ~= [goal1, goal2];
+		}
+	}
+	stderr.writeln ("Goal pairs for ", p.name, ' ',
+	    goal_pairs.length);
+	stderr.flush ();
+	immutable int PERMIT = 100;
+	sort !((a, b) => a[0].score_rating + a[1].score_rating +
+	    max (a[0].score_rating, a[1].score_rating) >
+	    b[0].score_rating + b[1].score_rating +
+	    max (b[0].score_rating, b[1].score_rating), SwapStrategy.stable)
+	    (goal_pairs);
+	sort !((a, b) => a[0].score_rating + a[1].score_rating >
+	    b[0].score_rating + b[1].score_rating, SwapStrategy.stable)
+	    (goal_pairs);
+
+	GameState [ByteString] lower_cache;
+	GameState [ByteString] upper_cache;
+	foreach (goal_pair; goal_pairs.take (30))
+	{
+		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
+		stderr.flush ();
+		auto cur_goals = goal_pair.dup;
+		foreach (ref goal; cur_goals)
+		{
+			goal = new Goal (goal);
+		}
+
+		int beam_width = 1000;
+		int beam_depth = 0;
+		int bias = 12;
+//		int cur_middle = goal_pair[0].stored_best_times.y;
+		int cur_middle =
+		    min (goal_pair[0].stored_best_times.y + PERMIT,
+		        goal_pair[1].stored_best_times.x);
+//		int cur_middle = (goal_pair[0].stored_best_times.y +
+//		    goal_pair[1].stored_best_times.x) >> 1;
+		cur_goals[0].letter_bonus = 100;
+		cur_goals[1].letter_bonus = 100;
+
+		auto p_first = Problem (p.name,
+		    p.contents[0..cur_middle]);
+		GameState cur_state;
+
+		if (cur_goals[0].word !in lower_cache)
+		{
+			auto game = new Game (p_first, t, s);
+			game.goals = [cur_goals[0]];
+			cur_goals[0].row = Board.SIZE - 1;
+			game.bias = -bias;
+			game.moves_guide = prev_guide;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			lower_cache[cur_goals[0].word] = game.best;
+		}
+		auto lower_state = lower_cache[cur_goals[0].word];
+/*
+		writeln ("Best lower state:");
+		writeln (lower_state);
+*/
+
+		cur_state = GameState.init;
+		if (lower_state.board.is_row_filled (0) ||
+		    lower_state.board.is_row_filled (Board.SIZE - 1))
+		{
+			auto complete_guide = GameMove.invert
+			    (lower_state.closest_move);
+			log_guide (complete_guide, "complete");
+
+			auto game = new Game (p, t, s);
+			auto temp_history = game.reduce_move_history
+			    (complete_guide);
+			auto necessary_guide = temp_history[0];
+			auto p_restricted = temp_history[1];
+			log_guide (necessary_guide, "necessary");
+
+			game.goals = [cur_goals[1]];
+			cur_goals[0].row = Board.SIZE - 1;
+			cur_goals[1].row = 0;
+			game.bias = +bias;
+			game.moves_guide = necessary_guide;
+			game.problem = p_restricted;
+			game.forced_lock_wildcards = true;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			cur_state = game.best;
+		}
+
+		if (cur_state.board.is_row_filled (0) &&
+		    cur_state.board.is_row_filled (Board.SIZE - 1))
+		{
+			auto complete_guide = GameMove.invert
+			    (cur_state.closest_move);
+			log_guide (complete_guide, "complete");
+
+			auto game = new Game (p, t, s);
+			auto temp_history = game.reduce_move_history
+			    (complete_guide);
+			auto necessary_guide = temp_history[0];
+			auto p_restricted = temp_history[1];
+			log_guide (necessary_guide, "necessary");
+
+			game.bias = 0;
+			game.moves_guide = necessary_guide;
+			game.problem = p_restricted;
+			game.forced_lock_wildcards = true;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width * 4,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width * 4, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			cur_state = GameState.init;
+		}
+
+		if (cur_goals[0].word !in upper_cache)
+		{
+			auto game = new Game (p_first, t, s);
+			game.goals = [cur_goals[0]];
+			cur_goals[0].row = 0;
+			game.bias = +bias;
+			game.moves_guide = prev_guide;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			upper_cache[cur_goals[0].word] = game.best;
+		}
+		auto upper_state = upper_cache[cur_goals[0].word];
+/*
+		writeln ("Best upper state:");
+		writeln (upper_state);
+*/
+
+		cur_state = GameState.init;
+		if (upper_state.board.is_row_filled (0) ||
+		    upper_state.board.is_row_filled (Board.SIZE - 1))
+		{
+			auto complete_guide = GameMove.invert
+			    (upper_state.closest_move);
+			log_guide (complete_guide, "complete");
+
+			auto game = new Game (p, t, s);
+			auto temp_history = game.reduce_move_history
+			    (complete_guide);
+			auto necessary_guide = temp_history[0];
+			auto p_restricted = temp_history[1];
+			log_guide (necessary_guide, "necessary");
+
+			game.goals = [cur_goals[1]];
+			cur_goals[0].row = 0;
+			cur_goals[1].row = Board.SIZE - 1;
+			game.bias = -bias;
+			game.moves_guide = necessary_guide;
+			game.problem = p_restricted;
+			game.forced_lock_wildcards = true;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			cur_state = game.best;
+		}
+
+		if (cur_state.board.is_row_filled (0) &&
+		    cur_state.board.is_row_filled (Board.SIZE - 1))
+		{
+			auto complete_guide = GameMove.invert
+			    (cur_state.closest_move);
+			log_guide (complete_guide, "complete");
+
+			auto game = new Game (p, t, s);
+			auto temp_history = game.reduce_move_history
+			    (complete_guide);
+			auto necessary_guide = temp_history[0];
+			auto p_restricted = temp_history[1];
+			log_guide (necessary_guide, "necessary");
+
+			game.bias = 0;
+			game.moves_guide = necessary_guide;
+			game.problem = p_restricted;
+			game.forced_lock_wildcards = true;
+			stderr.writefln ("%s w=%s d=%s b=%s " ~
+			    "%(%s\n    %)", p.name, beam_width * 4,
+			    beam_depth, game.bias, game.goals);
+			stderr.flush ();
+			game.play (beam_width * 4, beam_depth,
+			    Game.Keep.False);
+			log_progress (game);
+			cur_state = GameState.init;
+		}
+	}
+}
+
 void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -110,10 +379,25 @@ void main (string [] args)
 		return;
 	}
 
+	version (extract)
+	{
+		m.extract_log ("log.txt");
+		foreach (c; 1..100)
+		{
+			m.extract_log ("log" ~ to !(string) (c) ~ ".txt");
+		}
+		m.close ();
+		return;
+	}
+
 	version (refine)
 	{
 		foreach (i; 0..LET)
 		{
+			if (i != 'R' - 'A')
+			{
+				continue;
+			}
 			auto p = ps.problem[i];
 			auto game = new Game (p, t, s);
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
@@ -341,29 +625,33 @@ void main (string [] args)
 
 			if (true)
 			{
-				auto complete_guide = GameMove.invert
+				auto middle_complete_guide = GameMove.invert
 				    (middle_state.closest_move);
 
 				auto game = new Game (p, t, s);
 				auto temp_history = game.reduce_move_history
-				    (complete_guide);
-				auto necessary_guide = temp_history[0];
+				    (middle_complete_guide);
+				auto middle_necessary_guide = temp_history[0];
 				auto p_restricted = temp_history[1];
 
-				int tiles_spent =
-				    GameTools.tiles_total (necessary_guide);
-				int tiles_max =
-				    GameTools.tiles_peak (necessary_guide);
-				if (0 < tiles_spent && tiles_spent < 20 &&
-				    tiles_max <= 5)
+				int middle_tiles_total = GameTools.tiles_total
+				    (middle_necessary_guide);
+				int middle_tiles_peak = GameTools.tiles_peak
+				    (middle_necessary_guide);
+				if (0 < middle_tiles_total &&
+				    middle_tiles_total < 20 &&
+				    middle_tiles_peak <= 5)
 				{
-					log_guide (complete_guide,
+					log_guide (middle_complete_guide,
 					    "complete");
-					log_guide (necessary_guide,
+					log_guide (middle_necessary_guide,
 					    "necessary");
-					stderr.writeln (tiles_spent, ' ',
-					    tiles_max);
+					stderr.writeln (middle_tiles_total,
+					    ' ', middle_tiles_peak);
 					stderr.flush ();
+					put_lo_hi (p_restricted, t, s,
+					    goals, middle_state,
+					    middle_necessary_guide);
 	                	}
 			}
 		}
@@ -449,287 +737,7 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'Y' - 'A')
-		{
-			continue;
-		}
-*/
 		auto p = ps.problem[i];
-/*
-		if (m.best[p.short_name].board.score >= 2713)
-		{
-			continue;
-		}
-*/
-
-		auto goals_earliest = goals.dup;
-		foreach (ref cur_goal; goals_earliest)
-		{
-			cur_goal = new Goal (cur_goal);
-			cur_goal.stored_best_times =
-			    cur_goal.calc_earliest_times
-			    (TileBag (p), 0, TOTAL_TILES * 3 / 4);
-			cur_goal.stored_times = cur_goal.calc_times
-			    (TileBag (p),
-			    cur_goal.stored_best_times.x,
-			    cur_goal.stored_best_times.y);
-		}
-		goals_earliest = goals_earliest.filter
-		    !(a => a.get_best_times.x != NA &&
-//		      a.get_times[0] >= a.get_best_times.y - 14 &&
-//		      a.get_times[0] - a.get_times[2] <= 14 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
-		sort !((a, b) => a.stored_best_times < b.stored_best_times)
-		    (goals_earliest);
-		sort !((a, b) => a.score_rating > b.score_rating)
-		    (goals_earliest);
-
-		auto goals_latest = goals.dup;
-		foreach (ref cur_goal; goals_latest)
-		{
-			cur_goal = new Goal (cur_goal);
-			cur_goal.stored_best_times =
-			    cur_goal.calc_latest_times
-			    (TileBag (p), TOTAL_TILES * 1 / 4, TOTAL_TILES);
-			cur_goal.stored_times = cur_goal.calc_times
-			    (TileBag (p),
-			    cur_goal.stored_best_times.x,
-			    cur_goal.stored_best_times.y);
-		}
-		goals_latest = goals_latest.filter
-		    !(a => a.get_best_times.x != NA &&
-//		      a.get_times[0] >= a.get_best_times.y - 14 &&
-//		      a.get_times[0] - a.get_times[2] <= 14 &&
-		      a.get_times[0] - a.get_times[$ - 1] <= 75).array ();
-		sort !((a, b) => a.stored_best_times < b.stored_best_times)
-		    (goals_latest);
-		sort !((a, b) => a.score_rating < b.score_rating)
-		    (goals_latest);
-
-		immutable int SLACK = 0;
-		Goal [] [] goal_pairs;
-		foreach (goal1; goals_earliest.take (1000))
-		{
-			foreach_reverse (goal2; goals_latest.take (1000))
-			{
-				if (goal1.get_best_times.y + SLACK >
-				    goal2.get_best_times.x - SLACK)
-				{
-					continue;
-//					break;
-				}
-				goal_pairs ~= [goal1, goal2];
-			}
-		}
-		stderr.writeln ("Goal pairs for ", p.name, ' ',
-		    goal_pairs.length);
-		stderr.flush ();
-		immutable int PERMIT = 100;
-/*
-		sort !((a, b) => a[0].score_rating + a[1].score_rating -
-		    abs (a[0].stored_best_times.x + PERMIT - 50) * 25 >
-		    b[0].score_rating + b[1].score_rating -
-		    abs (b[0].stored_best_times.x + PERMIT - 50) * 25)
-		    (goal_pairs);
-*/
-		sort !((a, b) => a[0].score_rating + a[1].score_rating +
-		    max (a[0].score_rating, a[1].score_rating) >
-		    b[0].score_rating + b[1].score_rating +
-		    max (b[0].score_rating, b[1].score_rating))
-		    (goal_pairs);
-
-		GameState [ByteString] lower_cache;
-		GameState [ByteString] upper_cache;
-		foreach (goal_pair; goal_pairs.take (30))
-		{
-			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
-			stderr.flush ();
-			auto cur_goals = goal_pair.dup;
-			foreach (ref goal; cur_goals)
-			{
-				goal = new Goal (goal);
-			}
-
-			int beam_width = 2500;
-			int beam_depth = 0;
-			int bias = 8;
-//			int cur_middle = goal_pair[0].stored_best_times.y;
-			int cur_middle =
-			    min (goal_pair[0].stored_best_times.y + PERMIT,
-			        goal_pair[1].stored_best_times.x);
-//			int cur_middle = (goal_pair[0].stored_best_times.y +
-//			    goal_pair[1].stored_best_times.x) >> 1;
-			cur_goals[0].letter_bonus = 100;
-			cur_goals[1].letter_bonus = 100;
-
-			auto p_first = Problem (p.name,
-			    p.contents[0..cur_middle]);
-			GameState cur_state;
-
-			if (cur_goals[0].word !in lower_cache)
-			{
-				auto game = new Game (p_first, t, s);
-				game.goals = [cur_goals[0]];
-				cur_goals[0].row = Board.SIZE - 1;
-				game.bias = -bias;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				lower_cache[cur_goals[0].word] = game.best;
-			}
-			auto lower_state = lower_cache[cur_goals[0].word];
-/*
-			writeln ("Best lower state:");
-			writeln (lower_state);
-*/
-
-			cur_state = GameState.init;
-			if (lower_state.board.score >=
-			    cur_goals[0].score_rating)
-			{
-				auto complete_guide = GameMove.invert
-				    (lower_state.closest_move);
-				log_guide (complete_guide, "complete");
-
-				auto game = new Game (p, t, s);
-				auto temp_history = game.reduce_move_history
-				    (complete_guide);
-				auto necessary_guide = temp_history[0];
-				auto p_restricted = temp_history[1];
-				log_guide (necessary_guide, "necessary");
-
-				game.goals = [cur_goals[1]];
-				cur_goals[0].row = Board.SIZE - 1;
-				cur_goals[1].row = 0;
-				game.bias = +bias;
-				game.moves_guide = necessary_guide;
-				game.problem = p_restricted;
-				game.forced_lock_wildcards = true;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				cur_state = game.best;
-			}
-
-			if (cur_state.board.score >=
-			    cur_goals[0].score_rating +
-			    cur_goals[1].score_rating)
-			{
-				auto complete_guide = GameMove.invert
-				    (cur_state.closest_move);
-				log_guide (complete_guide, "complete");
-
-				auto game = new Game (p, t, s);
-				auto temp_history = game.reduce_move_history
-				    (complete_guide);
-				auto necessary_guide = temp_history[0];
-				auto p_restricted = temp_history[1];
-				log_guide (necessary_guide, "necessary");
-
-				game.bias = 0;
-				game.moves_guide = necessary_guide;
-				game.problem = p_restricted;
-				game.forced_lock_wildcards = true;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width * 4,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width * 4, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				cur_state = GameState.init;
-			}
-
-			if (cur_goals[0].word !in upper_cache)
-			{
-				auto game = new Game (p_first, t, s);
-				game.goals = [cur_goals[0]];
-				cur_goals[0].row = 0;
-				game.bias = +bias;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				upper_cache[cur_goals[0].word] = game.best;
-			}
-			auto upper_state = upper_cache[cur_goals[0].word];
-/*
-			writeln ("Best upper state:");
-			writeln (upper_state);
-*/
-
-			cur_state = GameState.init;
-			if (upper_state.board.score >=
-			    cur_goals[0].score_rating)
-			{
-				auto complete_guide = GameMove.invert
-				    (upper_state.closest_move);
-				log_guide (complete_guide, "complete");
-
-				auto game = new Game (p, t, s);
-				auto temp_history = game.reduce_move_history
-				    (complete_guide);
-				auto necessary_guide = temp_history[0];
-				auto p_restricted = temp_history[1];
-				log_guide (necessary_guide, "necessary");
-
-				game.goals = [cur_goals[1]];
-				cur_goals[0].row = 0;
-				cur_goals[1].row = Board.SIZE - 1;
-				game.bias = -bias;
-				game.moves_guide = necessary_guide;
-				game.problem = p_restricted;
-				game.forced_lock_wildcards = true;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				cur_state = game.best;
-			}
-
-			if (cur_state.board.score >=
-			    cur_goals[0].score_rating +
-			    cur_goals[1].score_rating)
-			{
-				auto complete_guide = GameMove.invert
-				    (cur_state.closest_move);
-				log_guide (complete_guide, "complete");
-
-				auto game = new Game (p, t, s);
-				auto temp_history = game.reduce_move_history
-				    (complete_guide);
-				auto necessary_guide = temp_history[0];
-				auto p_restricted = temp_history[1];
-				log_guide (necessary_guide, "necessary");
-
-				game.bias = 0;
-				game.moves_guide = necessary_guide;
-				game.problem = p_restricted;
-				game.forced_lock_wildcards = true;
-				stderr.writefln ("%s w=%s d=%s b=%s " ~
-				    "%(%s\n    %)", p.name, beam_width * 4,
-				    beam_depth, game.bias, game.goals);
-				stderr.flush ();
-				game.play (beam_width * 4, beam_depth,
-				    Game.Keep.False);
-				log_progress (game);
-				cur_state = GameState.init;
-			}
-		}
+		put_lo_hi (p, t, s, goals, GameState ());
 	}
 }

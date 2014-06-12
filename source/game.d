@@ -199,6 +199,42 @@ class GameMove
 		return next;
 	}
 
+	static GameMove merge_guides (GameMove first, GameMove second)
+	{
+		GameMove res;
+		while (first !is null || second !is null)
+		{
+			GameMove next;
+			if (first is null)
+			{
+				next = second;
+			}
+			else if (second is null)
+			{
+				next = first;
+			}
+			else if (first.tiles_before < second.tiles_before)
+			{
+				next = first;
+			}
+			else if (first.tiles_before > second.tiles_before)
+			{
+				next = second;
+			}
+			else
+			{
+				enforce (false);
+			}
+
+			next = new GameMove (next);
+			next.is_chain_forward ^= true;
+			next.chained_move = res;
+			res = next;
+		}
+		res = GameMove.invert (res);
+		return res;
+	}
+
 	void normalize (ref GameState cur)
 	{
 		tiles_before = cur.board.total; // cur.board is before the move
