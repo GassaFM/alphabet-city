@@ -20,6 +20,7 @@ import manager;
 import problem;
 import scoring;
 import tilebag;
+import tools;
 import trie;
 
 void log_progress (Game game)
@@ -64,6 +65,22 @@ void main (string [] args)
 	auto s = new Scoring ();
 	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
+/*
+	{
+		auto goals_center = GoalBuilder.build_center_goals (t);
+		writefln ("%(%s\n%)", goals_center);
+		auto goals_center2 = GoalBuilder.build_fat_center_goals
+		    (read_all_lines ("data/goals-center-full.txt"));
+		sort !((a, b) => a.possible_masks.length >
+		    b.possible_masks.length) (goals_center2);
+		foreach (goal; goals_center2)
+		{
+			writefln ("%s %s %s", goal, goal.mask_forbidden,
+			    goal.possible_masks.length);
+		}
+		return;
+	}
+*/
 	auto goals = GoalBuilder.build_fat_goals
 	    (read_all_lines ("data/goals.txt"), true);
 	foreach (ref goal; goals)
@@ -71,8 +88,17 @@ void main (string [] args)
 		goal.stage = Goal.Stage.COMBINED;
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
-
+	auto goals_center = GoalBuilder.build_fat_center_goals
+	    (read_all_lines ("data/goals-center-full.txt"));
+	foreach (ref goal; goals_center)
+	{
+		goal.row = Board.CENTER;
+		goal.stage = Goal.Stage.COMBINED;
+		goal.stored_score_rating = goal.calc_score_rating (s);
+	}
 	auto m = new Manager (ps);
+	GC.collect ();
+
 	version (manager)
 	{
 		m.read_log ("log.txt");
@@ -83,12 +109,6 @@ void main (string [] args)
 		m.close ();
 		return;
 	}
-	
-	immutable int UPPER_LIMIT = TOTAL_TILES;
-//	immutable int LOWER_LIMIT = UPPER_LIMIT - Rack.MAX_SIZE;
-//	immutable int LOWER_LIMIT = UPPER_LIMIT - 11;
-//	immutable int LOWER_LIMIT = TOTAL_TILES >> 1;
-	immutable int LOWER_LIMIT = 0;
 
 	version (refine)
 	{
@@ -143,10 +163,6 @@ void main (string [] args)
 		}
 		return;
 	}
-
-	GC.collect ();
-
-	immutable int MIDDLE = 50;
 
 	if (args.length > 1)
 	{
@@ -261,6 +277,102 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
+/*
+		if (i != 'J' - 'A')
+		{
+			continue;
+		}
+*/
+		auto p = ps.problem[i];
+
+		auto goals_middle = goals_center.dup;
+		foreach (ref cur_goal; goals_middle)
+		{
+			cur_goal = new Goal (cur_goal);
+			cur_goal.stored_best_times =
+			    cur_goal.calc_earliest_times
+			    (TileBag (p), 0, TOTAL_TILES);
+			cur_goal.stored_times = cur_goal.calc_times
+			    (TileBag (p),
+			    cur_goal.stored_best_times.x,
+			    cur_goal.stored_best_times.y);
+		}
+		sort !((a, b) => a.score_rating > b.score_rating,
+		    SwapStrategy.stable)
+		    (goals_middle);
+		sort !((a, b) => a.stored_best_times.y <
+		    b.stored_best_times.y, SwapStrategy.stable)
+		    (goals_middle);
+
+		foreach (loop_goal; goals_middle.take (250))
+		{
+			stderr.writefln ("%s %s", p.name, loop_goal);
+			stderr.flush ();
+			auto cur_goals = [loop_goal];
+			foreach (ref temp_goal; cur_goals)
+			{
+				temp_goal = new Goal (temp_goal);
+			}
+			
+			int beam_width = 50;
+			int beam_depth = 0;
+			int bias = 0;
+			int cur_middle = loop_goal.stored_best_times.y;
+			cur_goals[0].letter_bonus = 100;
+
+			auto p_first = Problem (p.name,
+			    p.contents[0..cur_middle]);
+
+			GameState middle_state;
+			if (true)
+			{
+				auto game = new Game (p_first, t, s);
+				game.goals = [cur_goals[0]];
+				game.bias = 0;
+				stderr.writefln ("%s w=%s d=%s b=%s " ~
+				    "%(%s\n    %)", p.name, beam_width,
+				    beam_depth, game.bias, game.goals);
+				stderr.flush ();
+				game.play (beam_width, beam_depth,
+				    Game.Keep.False);
+				log_progress (game);
+				middle_state = game.best;
+			}
+
+			if (true)
+			{
+				auto complete_guide = GameMove.invert
+				    (middle_state.closest_move);
+
+				auto game = new Game (p, t, s);
+				auto temp_history = game.reduce_move_history
+				    (complete_guide);
+				auto necessary_guide = temp_history[0];
+				auto p_restricted = temp_history[1];
+
+				int tiles_spent =
+				    GameTools.tiles_total (necessary_guide);
+				int tiles_max =
+				    GameTools.tiles_peak (necessary_guide);
+				if (0 < tiles_spent && tiles_spent < 20 &&
+				    tiles_max <= 5)
+				{
+					log_guide (complete_guide,
+					    "complete");
+					log_guide (necessary_guide,
+					    "necessary");
+					stderr.writeln (tiles_spent, ' ',
+					    tiles_max);
+					stderr.flush ();
+	                	}
+			}
+		}
+	}
+	return;
+
+/*
+	foreach (i; 0..LET)
+	{
 		auto p = ps.problem[i];
 
 		auto goals_main = goals.dup;
@@ -333,13 +445,16 @@ void main (string [] args)
 		}
 	}
 	return;
+*/
 
 	foreach (i; 0..LET)
 	{
-		if (i != 'X' - 'A')
+/*
+		if (i != 'Y' - 'A')
 		{
 			continue;
 		}
+*/
 		auto p = ps.problem[i];
 /*
 		if (m.best[p.short_name].board.score >= 2713)
@@ -418,13 +533,15 @@ void main (string [] args)
 		    abs (b[0].stored_best_times.x + PERMIT - 50) * 25)
 		    (goal_pairs);
 */
-		sort !((a, b) => a[0].score_rating + a[1].score_rating >
-		    b[0].score_rating + b[1].score_rating)
+		sort !((a, b) => a[0].score_rating + a[1].score_rating +
+		    max (a[0].score_rating, a[1].score_rating) >
+		    b[0].score_rating + b[1].score_rating +
+		    max (b[0].score_rating, b[1].score_rating))
 		    (goal_pairs);
 
 		GameState [ByteString] lower_cache;
 		GameState [ByteString] upper_cache;
-		foreach (goal_pair; goal_pairs.take (50))
+		foreach (goal_pair; goal_pairs.take (30))
 		{
 			stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 			stderr.flush ();
@@ -434,9 +551,9 @@ void main (string [] args)
 				goal = new Goal (goal);
 			}
 
-			int beam_width = 1500;
+			int beam_width = 2500;
 			int beam_depth = 0;
-			int bias = 7;
+			int bias = 8;
 //			int cur_middle = goal_pair[0].stored_best_times.y;
 			int cur_middle =
 			    min (goal_pair[0].stored_best_times.y + PERMIT,

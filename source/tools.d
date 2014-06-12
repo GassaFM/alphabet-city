@@ -270,7 +270,8 @@ static class GameTools
 		return res;
 	}
 
-	static int bias_value_by_cell (ref GameState cur, int bias)
+	static int bias_value_by_cell (const ref GameState cur,
+	    const int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -305,7 +306,8 @@ static class GameTools
 		return res * abs (bias);
 	}
 
-	static int bias_value_by_column (ref GameState cur, int bias)
+	static int bias_value_by_column (const ref GameState cur,
+	    const int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -342,7 +344,8 @@ static class GameTools
 		return res * abs (bias);
 	}
 
-	static int bias_value_by_column_plus (ref GameState cur, int bias)
+	static int bias_value_by_column_plus (const ref GameState cur,
+	    const int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -381,7 +384,8 @@ static class GameTools
 		return res * abs (bias);
 	}
 
-	static int bias_value_by_column_invert (ref GameState cur, int bias)
+	static int bias_value_by_column_invert (const ref GameState cur,
+	    const int bias)
 	{
 		enforce (bias);
 		enforce (!cur.board.is_flipped);
@@ -464,4 +468,40 @@ static class GameTools
 	}
 
 	alias bias_value = bias_value_by_column_plus;
+
+	static int tiles_total (GameMove start_move)
+	{
+		int res = 0;
+		for (GameMove cur_move = start_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			foreach (t; cur_move.word)
+			{
+				if (t.active)
+				{
+					res++;
+				}
+			}
+		}
+		return res;
+	}
+
+	static int tiles_peak (GameMove start_move)
+	{
+		int res = 0;
+		for (GameMove cur_move = start_move; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			int cur = 0;
+			foreach (t; cur_move.word)
+			{
+				if (t.active)
+				{
+					cur++;
+				}
+			}
+			res = max (res, cur);
+		}
+		return res;
+	}
 }

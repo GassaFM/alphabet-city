@@ -2,6 +2,7 @@ module goal;
 
 import core.bitop;
 import std.algorithm;
+import std.array;
 import std.ascii;
 import std.conv;
 import std.exception;
@@ -433,8 +434,7 @@ static class GoalBuilder
 		}
 
 		recur (0, 0, 0, 0, 0);
-		sort !((a, b) => toLower (to !(string) (a.word)) <
-		    toLower (to !(string) (b.word))) (res);
+		sort !((a, b) => a.word < b.word) (res);
 
 		debug {writeln ("GoalBuilder: built ", res.length, " goals");}
 		return res;
@@ -479,14 +479,130 @@ static class GoalBuilder
 		}
 		debug {writeln ("GoalBuilder: loaded ", temp.length,
 		    " fat goals made of ", num_processed, " simple goals");}
+
 		Goal [] res;
 		res.reserve (temp.length);
 		foreach (cur_goal; temp)
 		{
 			res ~= cur_goal;
 		}
+		sort !((a, b) => a.word < b.word) (res);
 		return res;
 	}
+	
+	static Goal [] build_center_goals (Trie trie)
+	{
+		auto cur_word = new byte [Board.SIZE];
+		Goal [] res;
+
+		void recur (int mask, int vm, int lm, int vs, int ls)
+		{
+			// include center
+			if (lm == Board.CENTER + 1)
+			{
+				if (vs == NA || ls == 0)
+				{
+					return;
+				}
+			}
+			if (lm == Board.SIZE)
+			{
+				if (ls == 1 || trie.contents[vm].word)
+//				if (trie.contents[vm].word &&
+//				    ls >= Board.SIZE - Rack.MAX_SIZE)
+				{
+					res ~= new Goal (cur_word[0..lm],
+					    mask, 0, 0, false);
+				}
+				return;
+			}
+
+			foreach (byte ch; 0..LET)
+			{
+				cur_word[lm] = ch;
+				int nvm = trie.contents[vm].next (ch);
+				int nvs = (vs == NA) ? NA :
+				    trie.contents[vs].next (ch);
+				if (nvm == NA)
+				{
+					continue;
+				}
+				if (ls == 0)
+				{
+					// forbid current letter
+					recur (mask | (1 << lm), nvm,
+					    lm + 1, vs, ls);
+					// use current letter
+					if (lm > 0 && nvs != NA)
+					{
+						recur (mask, nvm,
+						    lm + 1, nvs, ls + 1);
+					}
+				}
+				else if (vs != NA)
+				{
+					// forbid current letter
+					if (trie.contents[vs].word)
+					{
+						recur (mask | (1 << lm), nvm,
+						    lm + 1, NA, ls);
+					}
+					// use current letter
+					if (lm + 1 < Board.SIZE && nvs != NA)
+					{
+						recur (mask, nvm,
+						    lm + 1, nvs, ls + 1);
+					}
+				}
+				else
+				{
+					// forbid current letter
+					recur (mask | (1 << lm), nvm,
+					    lm + 1, vs, ls);
+				}
+			}
+		}
+
+		recur (0, 0, 0, 0, 0);
+		sort !((a, b) => a.word < b.word) (res);
+		debug {writeln ("GoalBuilder: built ", res.length,
+		    " center goals");}
+		return res;
+	}
+
+	static Goal [] build_fat_center_goals (const char [] [] line_list)
+	{
+		Goal [string] temp;
+		int num_processed = 0;
+		foreach (line; line_list)
+		{
+			num_processed++;
+			string cur_line = to !(string) (line).toLower ();
+			if (cur_line !in temp)
+			{
+				temp[cur_line] = new Goal (line, 0, 0, 0);
+			}
+			else
+			{
+				temp[cur_line].add_masked_word (line);
+			}
+		}
+
+		Goal [] res;
+		foreach (cur_goal; temp)
+		{
+			if (any !(x => popcnt (x) <= Rack.MAX_SIZE)
+			    (cur_goal.possible_masks))
+			{
+				res ~= cur_goal;
+			}
+		}
+		sort !((a, b) => a.word < b.word) (res);
+		res.reserve (0);
+		debug {writeln ("GoalBuilder: loaded and built ", res.length,
+		    " fat center goals");}
+		return res;
+	}	
 }
 
 class CompoundGoal
