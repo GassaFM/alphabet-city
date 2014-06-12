@@ -445,6 +445,7 @@ class Game
 		next.tiles.fill_rack ();
 
 		next.board.value = next.board.score;
+		TileCounter counter;
 		foreach (goal; goals)
 		{
 			int cur_value;
@@ -453,22 +454,27 @@ class Game
 				case Goal.Stage.PREPARE:
 					cur_value =
 					    GameTools.calc_goal_value_prepare
-					    (next, goal, this);
+					    (next, goal, this, counter);
 					break;
 				case Goal.Stage.MAIN:
 					cur_value =
 					    GameTools.calc_goal_value_main
-					    (next, goal, this);
+					    (next, goal, this, counter);
 					break;
 				case Goal.Stage.DONE:
 					cur_value =
 					    GameTools.calc_goal_value_done
-					    (next, goal, this);
+					    (next, goal, this, counter);
 					break;
 				case Goal.Stage.COMBINED:
 					cur_value =
 					    GameTools.calc_goal_value_combined
-					    (next, goal, this);
+					    (next, goal, this, counter);
+					break;
+				case Goal.Stage.CENTER:
+					cur_value =
+					    GameTools.calc_goal_value_center
+					    (next, goal, this, counter);
 					break;
 			}
 			if (cur_value == NA)

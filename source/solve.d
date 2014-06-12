@@ -59,7 +59,7 @@ void log_guide (GameMove start_move, string name = "a")
 }
 
 void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
-    GameState prev_best, GameMove prev_guide = null)
+    Goal [] prev_goals = null, GameMove prev_guide = null)
 {
 	auto goals_earliest = goals.dup;
 	foreach (ref cur_goal; goals_earliest)
@@ -135,7 +135,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 
 	GameState [ByteString] lower_cache;
 	GameState [ByteString] upper_cache;
-	foreach (goal_pair; goal_pairs.take (30))
+	foreach (goal_pair; goal_pairs.take (50))
 	{
 		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 		stderr.flush ();
@@ -145,7 +145,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			goal = new Goal (goal);
 		}
 
-		int beam_width = 1000;
+		int beam_width = 2500;
 		int beam_depth = 0;
 		int bias = 12;
 //		int cur_middle = goal_pair[0].stored_best_times.y;
@@ -159,12 +159,14 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 
 		auto p_first = Problem (p.name,
 		    p.contents[0..cur_middle]);
+		auto p_first_clean = Problem.clean (p_first);
+		auto p_clean = Problem.clean (p);
 		GameState cur_state;
 
 		if (cur_goals[0].word !in lower_cache)
 		{
-			auto game = new Game (p_first, t, s);
-			game.goals = [cur_goals[0]];
+			auto game = new Game (p_first_clean, t, s);
+			game.goals = prev_goals ~ [cur_goals[0]];
 			cur_goals[0].row = Board.SIZE - 1;
 			game.bias = -bias;
 			game.moves_guide = prev_guide;
@@ -178,10 +180,6 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			lower_cache[cur_goals[0].word] = game.best;
 		}
 		auto lower_state = lower_cache[cur_goals[0].word];
-/*
-		writeln ("Best lower state:");
-		writeln (lower_state);
-*/
 
 		cur_state = GameState.init;
 		if (lower_state.board.is_row_filled (0) ||
@@ -191,7 +189,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			    (lower_state.closest_move);
 			log_guide (complete_guide, "complete");
 
-			auto game = new Game (p, t, s);
+			auto game = new Game (p_clean, t, s);
 			auto temp_history = game.reduce_move_history
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
@@ -222,7 +220,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			    (cur_state.closest_move);
 			log_guide (complete_guide, "complete");
 
-			auto game = new Game (p, t, s);
+			auto game = new Game (p_clean, t, s);
 			auto temp_history = game.reduce_move_history
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
@@ -245,8 +243,8 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 
 		if (cur_goals[0].word !in upper_cache)
 		{
-			auto game = new Game (p_first, t, s);
-			game.goals = [cur_goals[0]];
+			auto game = new Game (p_first_clean, t, s);
+			game.goals = prev_goals ~ [cur_goals[0]];
 			cur_goals[0].row = 0;
 			game.bias = +bias;
 			game.moves_guide = prev_guide;
@@ -260,10 +258,6 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			upper_cache[cur_goals[0].word] = game.best;
 		}
 		auto upper_state = upper_cache[cur_goals[0].word];
-/*
-		writeln ("Best upper state:");
-		writeln (upper_state);
-*/
 
 		cur_state = GameState.init;
 		if (upper_state.board.is_row_filled (0) ||
@@ -273,7 +267,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			    (upper_state.closest_move);
 			log_guide (complete_guide, "complete");
 
-			auto game = new Game (p, t, s);
+			auto game = new Game (p_clean, t, s);
 			auto temp_history = game.reduce_move_history
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
@@ -304,7 +298,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			    (cur_state.closest_move);
 			log_guide (complete_guide, "complete");
 
-			auto game = new Game (p, t, s);
+			auto game = new Game (p_clean, t, s);
 			auto temp_history = game.reduce_move_history
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
@@ -362,7 +356,7 @@ void main (string [] args)
 	foreach (ref goal; goals_center)
 	{
 		goal.row = Board.CENTER;
-		goal.stage = Goal.Stage.COMBINED;
+		goal.stage = Goal.Stage.CENTER;
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 	auto m = new Manager (ps);
@@ -561,12 +555,10 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'J' - 'A')
+		if (i != 'R' - 'A')
 		{
 			continue;
 		}
-*/
 		auto p = ps.problem[i];
 
 		auto goals_middle = goals_center.dup;
@@ -602,7 +594,7 @@ void main (string [] args)
 			int beam_depth = 0;
 			int bias = 0;
 			int cur_middle = loop_goal.stored_best_times.y;
-			cur_goals[0].letter_bonus = 100;
+			cur_goals[0].letter_bonus = 1000;
 
 			auto p_first = Problem (p.name,
 			    p.contents[0..cur_middle]);
@@ -650,8 +642,11 @@ void main (string [] args)
 					    ' ', middle_tiles_peak);
 					stderr.flush ();
 					put_lo_hi (p_restricted, t, s,
-					    goals, middle_state,
-					    middle_necessary_guide);
+					    goals, cur_goals, null);
+/*
+					put_lo_hi (p_restricted, t, s,
+					    goals, [], middle_necessary_guide);
+*/
 	                	}
 			}
 		}
@@ -738,6 +733,6 @@ void main (string [] args)
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
-		put_lo_hi (p, t, s, goals, GameState ());
+		put_lo_hi (p, t, s, goals);
 	}
 }

@@ -4,12 +4,29 @@ import std.conv;
 import std.stdio;
 import std.string;
 
+import tilebag;
+
 struct Problem
 {
 	string name;
 	string short_name;
 	string contents;
 	string virtual;
+
+	static Problem clean (const ref Problem original)
+	{
+		char [] new_contents = to !(char []) (original.contents);
+		foreach (ref c; new_contents)
+		{
+			c &= ~TileBag.IS_RESTRICTED;
+		}
+		char [] new_virtual = to !(char []) (original.virtual);
+		foreach (ref c; new_virtual)
+		{
+			c &= ~TileBag.IS_RESTRICTED;
+		}
+		return Problem (original.name, new_contents, new_virtual);
+	}
 
 	this (const char [] new_name, const char [] new_contents,
 	    const char [] new_virtual = "")

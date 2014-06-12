@@ -14,7 +14,7 @@ import tilebag;
 static class GameTools
 {
 	static int calc_goal_value_prepare (ref GameState cur, Goal goal,
-	    Game game)
+	    Game game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -27,7 +27,6 @@ static class GameTools
 		assert (col + goal.word.length == Board.SIZE);
 		// else: check to the right not implemented
 
-		TileCounter counter;
 		foreach (pos, letter; goal.word)
 		{
 			if (cur.board[row][col + pos].empty)
@@ -84,7 +83,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_main (ref GameState cur, Goal goal,
-	    Game game)
+	    Game game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -99,7 +98,6 @@ static class GameTools
 
 		bool has_empty = false;
 		bool has_full = false;
-		TileCounter counter;
 		foreach (pos, letter; goal.word)
 		{
 			if ((goal.mask_forbidden & (1 << pos)) != 0)
@@ -135,7 +133,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_done (ref GameState cur, Goal goal,
-	    Game game)
+	    Game game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -156,7 +154,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_combined (ref GameState cur, Goal goal,
-	    Game game)
+	    Game game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -175,7 +173,120 @@ static class GameTools
 		bool has_empty = false;
 		bool has_full = false;
 		int cur_mask = 0;
-		TileCounter counter;
+		foreach (pos, letter; goal.word)
+		{
+			if ((goal.mask_forbidden & (1 << pos)) != 0)
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					has_empty = true;
+					counter[letter]++;
+					cur_mask |= 1 << pos;
+				}
+				else
+				{
+					if (letter !=
+					    cur.board[row][col + pos].letter)
+					{
+						return NA;
+					}
+					has_full = true;
+				}
+				if (has_empty && has_full)
+				{
+					return NA;
+				}
+			}
+			else
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					counter[letter]++;
+					cur_mask |= 1 << pos;
+				}
+				else
+				{
+					if (letter !=
+					    cur.board[row][col + pos].letter)
+					{
+						return NA;
+					}
+				}
+			}
+		}
+
+		if (!has_empty)
+		{
+			return goal.letter_bonus * max_num;
+		}
+		if (!(counter << cur.tiles.counter))
+		{
+			return NA;
+		}
+		if (!goal.is_mask_allowed (cur_mask))
+		{
+			return NA;
+		}
+
+		int res = 0;
+		int num = 0;
+		foreach (int pos, letter; goal.word)
+		{
+			if (cur.board[row][col + pos].empty)
+			{
+				cur.board[row][col + pos] = letter |
+				    (1 << BoardCell.ACTIVE_SHIFT);
+				scope (exit)
+				{
+					cur.board[row][col + pos] =
+					    BoardCell.NONE;
+				}
+				int add = game.check_vertical (cur,
+				    row, col + pos);
+				if (add == NA)
+				{
+					return NA;
+				}
+				res += add;
+			}
+			else
+			{
+				if (goal.word.length == Board.SIZE &&
+				    (pos == 3 || pos == 11 || num >= max_num))
+				{ // encourage bingo and double-letter bonus
+					assert (true);
+				}
+				else
+				{
+					res += goal.letter_bonus >>
+					    cur.board[row][col + pos].wildcard;
+				}
+				num++;
+			}
+		}
+		return res;
+	}
+
+	static int calc_goal_value_center (ref GameState cur, Goal goal,
+	    Game game, ref TileCounter counter)
+	{
+		if (cur.board.is_flipped != goal.is_flipped)
+		{
+			cur.board.flip ();
+		}
+		int row = goal.row;
+		int col = goal.col;
+		assert (col == 0);
+		// else: check to the left not implemented
+		assert (col + goal.word.length == Board.SIZE);
+		// else: check to the right not implemented
+
+		// cast should be safe since goal.word.length is surely int32
+		int max_num = cast (int) (goal.word.length);
+
+		bool has_empty = false;
+		bool has_full = false;
+		int cur_mask = 0;
 		foreach (pos, letter; goal.word)
 		{
 			if ((goal.mask_forbidden & (1 << pos)) != 0)
