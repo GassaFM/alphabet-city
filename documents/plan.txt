@@ -37,10 +37,18 @@ Smart goals: (+)
 Result: X: 2528 -> 2627
 
 Words:
-1. Try constructing the third 15-letter word
+1. (+) Try constructing the third 15-letter word
   on the center row in the process.
 
 Random Ideas:
 1. If Q is coming soon, try to put it on the current board,
   and give bonus value if possible. 
   The closer the Q, the larger the bonus.
+
+20140614:
+Random Ideas:
+1. Speedup - One-Letter Goals.
+  For each tile or letter (especially unique ones),
+  store where it should go.
+  This will allow to detect impossible moves quicker,
+  when drawing that tile from the rack.
