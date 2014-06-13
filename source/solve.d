@@ -135,7 +135,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 
 	GameState [ByteString] lower_cache;
 	GameState [ByteString] upper_cache;
-	foreach (goal_pair; goal_pairs.take (50))
+	foreach (goal_pair; goal_pairs.take (250))
 	{
 		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 		stderr.flush ();
@@ -145,7 +145,7 @@ void put_lo_hi (Problem p, Trie t, Scoring s, Goal [] goals,
 			goal = new Goal (goal);
 		}
 
-		int beam_width = 2500;
+		int beam_width = 1250;
 		int beam_depth = 0;
 		int bias = 12;
 //		int cur_middle = goal_pair[0].stored_best_times.y;
@@ -344,8 +344,12 @@ void main (string [] args)
 		return;
 	}
 */
+/*
 	auto goals = GoalBuilder.build_fat_goals
 	    (read_all_lines ("data/goals.txt"), true);
+*/
+	auto goals = GoalBuilder.build_fat_goals
+	    (read_all_lines ("data/goals.txt"), false);
 	foreach (ref goal; goals)
 	{
 		goal.stage = Goal.Stage.COMBINED;
@@ -553,12 +557,8 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
-		if (i != 'R' - 'A')
-		{
-			continue;
-		}
 		auto p = ps.problem[i];
 
 		auto goals_middle = goals_center.dup;
@@ -579,8 +579,11 @@ void main (string [] args)
 		sort !((a, b) => a.stored_best_times.y <
 		    b.stored_best_times.y, SwapStrategy.stable)
 		    (goals_middle);
+		sort !((a, b) => a.possible_masks.length >
+		    b.possible_masks.length, SwapStrategy.stable)
+		    (goals_middle);
 
-		foreach (loop_goal; goals_middle.take (250))
+		foreach (loop_goal; goals_middle.take (52))
 		{
 			stderr.writefln ("%s %s", p.name, loop_goal);
 			stderr.flush ();
@@ -590,7 +593,7 @@ void main (string [] args)
 				temp_goal = new Goal (temp_goal);
 			}
 			
-			int beam_width = 50;
+			int beam_width = 125;
 			int beam_depth = 0;
 			int bias = 0;
 			int cur_middle = loop_goal.stored_best_times.y;
