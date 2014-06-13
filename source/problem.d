@@ -18,12 +18,18 @@ struct Problem
 		char [] new_contents = to !(char []) (original.contents);
 		foreach (ref c; new_contents)
 		{
-			c &= ~TileBag.IS_RESTRICTED;
+			if (c != '?')
+			{
+				c &= ~TileBag.IS_RESTRICTED;
+			}
 		}
 		char [] new_virtual = to !(char []) (original.virtual);
 		foreach (ref c; new_virtual)
 		{
-			c &= ~TileBag.IS_RESTRICTED;
+			if (c != '?')
+			{
+				c &= ~TileBag.IS_RESTRICTED;
+			}
 		}
 		return Problem (original.name, new_contents, new_virtual);
 	}

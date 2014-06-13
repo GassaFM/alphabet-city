@@ -218,7 +218,7 @@ class Goal
 					}
 					auto prev_tile =
 					    tile_bag.contents[start];
-					if (!(cur_tile &
+					if (!(prev_tile &
 					    TileBag.IS_RESTRICTED))
 					{
 						cur_counter[prev_tile]--;

@@ -149,7 +149,7 @@ static class GameTools
 				return NA;
 			}
 		}
-
+		
 		return 0;
 	}
 
