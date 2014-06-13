@@ -471,6 +471,11 @@ class Game
 					    GameTools.calc_goal_value_combined
 					    (next, goal, this, counter);
 					break;
+				case Goal.Stage.GREEDY:
+					cur_value =
+					    GameTools.calc_goal_value_greedy
+					    (next, goal, this, counter);
+					break;
 				case Goal.Stage.CENTER:
 					cur_value =
 					    GameTools.calc_goal_value_center

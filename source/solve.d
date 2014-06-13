@@ -614,7 +614,7 @@ void main (string [] args)
 	    (read_all_lines ("data/goals.txt"), false);
 	foreach (ref goal; goals_relaxed)
 	{
-		goal.stage = Goal.Stage.COMBINED;
+		goal.stage = Goal.Stage.GREEDY;
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 

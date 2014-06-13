@@ -17,7 +17,7 @@ import trie;
 
 class Goal
 {
-	enum Stage: byte {PREPARE, MAIN, DONE, COMBINED, CENTER};
+	enum Stage: byte {PREPARE, MAIN, DONE, COMBINED, GREEDY, CENTER};
 	static immutable int DEFAULT_LETTER_BONUS = 100;
 
 	ByteString word;
