@@ -62,7 +62,12 @@ class Goal
 
 	int count_forbidden () const
 	{
-		return popcnt (mask_forbidden);
+		int res = int.max;
+		foreach (mask; possible_masks)
+		{
+			res = min (res, popcnt (mask));
+		}
+		return res;
 	}
 
 	int calc_score_rating (Scoring scoring = global_scoring) const
@@ -396,6 +401,7 @@ class Goal
 //		res ~= ' ' ~ to !(string) (letter_bonus);
 		res ~= ' ' ~ to !(string) (stored_score_rating);
 		res ~= ' ' ~ to !(string) (stored_holes_rating);
+		res ~= ' ' ~ to !(string) (count_forbidden ());
 		res ~= ' ' ~ to !(string) (stored_best_times);
 		res ~= ' ' ~ to !(string) (stored_times);
 		return res;
