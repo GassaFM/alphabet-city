@@ -329,6 +329,13 @@ static class GameTools
 			}
 		}
 
+		// First and last letters must be masked for this to work
+		if (!has_empty)
+		{
+			// cast should be safe for the same reason as above
+			return goal.letter_bonus *
+			    cast (int) (goal.word.length);
+		}
 		if (!(counter << cur.tiles.counter))
 		{
 			return NA;
@@ -361,18 +368,10 @@ static class GameTools
 			}
 			else
 			{
-				if (goal.word.length == Board.SIZE &&
-				    (pos == 3 || pos == 11 || num >= max_num))
-				{ // encourage bingo and double-letter bonus
-					assert (true);
-				}
-				else
-				{
-					res += goal.letter_bonus >> (cur.board
-					    [row][col + pos].wildcard +
-					    (pos == 3 || pos == 11 ||
-					    num >= max_num));
-				}
+				res += goal.letter_bonus >> (cur.board
+				    [row][col + pos].wildcard +
+				    (pos == 3 || pos == 11 ||
+				    num >= max_num));
 				num++;
 			}
 		}
