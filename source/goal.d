@@ -60,6 +60,11 @@ class Goal
 		return false;
 	}
 
+	int count_forbidden () const
+	{
+		return popcnt (mask_forbidden);
+	}
+
 	int calc_score_rating (Scoring scoring = global_scoring) const
 	{
 		int score = 0;

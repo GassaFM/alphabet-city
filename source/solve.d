@@ -140,8 +140,8 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
     Problem p, Trie t, Scoring s, Goal [] [] goal_pairs,
     Goal [] prev_goals = null, GameMove prev_guide = null)
 {
-	GameState [ByteString] lower_cache;
-	GameState [ByteString] upper_cache;
+//	GameState [ByteString] lower_cache;
+//	GameState [ByteString] upper_cache;
 	foreach (goal_pair; goal_pairs)
 	{
 		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
@@ -164,12 +164,18 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 		auto p_first_clean = Problem.clean (p_first);
 		auto p_clean = Problem.clean (p);
 
+		auto p_restricted = Problem.restrict_back
+		    (p_clean, cur_goals[1].word);
+		auto p_first_restricted = Problem (p.name,
+		    p_restricted.contents[0..cur_middle]);
+
 		void do_it (byte row0, byte row1, int start_bias,
 		    ref GameState [ByteString] cache)
 		{
 			if (cur_goals[0].word !in cache)
 			{
-				auto game = new Game (p_first_clean, t, s);
+				auto game =
+				    new Game (p_first_restricted, t, s);
 				game.goals = prev_goals ~ [cur_goals[0]];
 				cur_goals[0].row = row0;
 				cur_goals[1].row = row1;
@@ -246,9 +252,17 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 			}
 		}
 
+/*
 		do_it (Board.SIZE - 1, 0, -bias, lower_cache);
 
 		do_it (0, Board.SIZE - 1, +bias, upper_cache);
+*/
+
+                GameState [ByteString] temp_cache1;
+		do_it (Board.SIZE - 1, 0, -bias, temp_cache1);
+
+                GameState [ByteString] temp_cache2;
+		do_it (0, Board.SIZE - 1, +bias, temp_cache2);
 	}
 }
 
@@ -303,17 +317,20 @@ void put_two (int new_beam_width, int new_beam_depth, int new_bias,
 	auto p_clean = Problem.clean (p);
 	auto initial_state = GameState (p_clean);
 
-	immutable int SLACK = 0;
+	immutable int SLACK = TOTAL_TILES;
 	Goal [] [] goal_pairs;
 	foreach (goal1; goals_earliest.take (1000))
 	{
 		foreach (goal2; goals_latest.take (1000))
 		{
+			// first check
 			if (goal1.get_best_times.y -
 			    goal2.get_best_times.x > SLACK)
 			{
 				continue;
 			}
+
+			// second check
 			TileCounter goals_counter;
 			foreach (letter; goal1.word)
 			{
@@ -327,6 +344,19 @@ void put_two (int new_beam_width, int new_beam_depth, int new_bias,
 			{
 				continue;
 			}
+
+			// third check
+			auto p_restricted = Problem.restrict_back
+			    (p, goal2.word);
+			auto p_first_restricted = Problem (p.name,
+			    p_restricted.contents[0..goal1.get_best_times.y]);
+			if (p_first_restricted.count_restricted () >
+			    Rack.MAX_SIZE - goal1.count_forbidden ())
+			{
+				continue;
+			}
+
+			// include the pair
 			goal_pairs ~= [goal1, goal2];
 		}
 	}
@@ -585,10 +615,10 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
 /*
-		if (i != 'H' - 'A')
+		if (i != 'R' - 'A')
 		{
 			continue;
 		}

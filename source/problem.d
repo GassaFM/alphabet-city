@@ -1,9 +1,11 @@
 module problem;
 
 import std.conv;
+import std.exception;
 import std.stdio;
 import std.string;
 
+import general;
 import tilebag;
 
 struct Problem
@@ -32,6 +34,38 @@ struct Problem
 			}
 		}
 		return Problem (original.name, new_contents, new_virtual);
+	}
+
+	static Problem restrict_back (const ref Problem original,
+	    ByteString word)
+	{
+		assert (original.virtual.length == 0); // not implemented
+		char [] new_contents = to !(char []) (original.contents);
+		foreach (letter; word)
+		{
+			bool found = false;
+			foreach_reverse (ref c; new_contents)
+			{
+				if (letter + 'A' == c)
+				{
+					found = true;
+					c |= TileBag.IS_RESTRICTED;
+					break;
+				}
+			}
+			enforce (found);
+		}
+		return Problem (original.name, new_contents);
+	}
+
+	int count_restricted () const
+	{
+		int res = 0;
+		foreach (c; contents)
+		{
+			res += (c & TileBag.IS_RESTRICTED) != 0;
+		}
+		return res;
 	}
 
 	this (const char [] new_name, const char [] new_contents,
