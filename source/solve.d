@@ -625,7 +625,7 @@ void main (string [] args)
 		}
 		auto p = ps.problem[i];
 
-		put_two (250, 0, 8, p, t, s,
+		put_two (2500, 0, 8, p, t, s,
 		    goals, goals, [], null);
 //		put_two (1250, 0, 8, p, t, s,
 //		    goals_relaxed, goals, [], null);
