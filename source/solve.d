@@ -150,12 +150,14 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 		foreach (ref goal; cur_goals)
 		{
 			goal = new Goal (goal);
+			goal.stage = Goal.Stage.COMBINED;
 		}
 
 		int beam_width = new_beam_width;
 		int beam_depth = new_beam_depth;
 		int bias = new_bias;
-		int cur_middle = goal_pair[0].stored_best_times.y;
+		int cur_middle = max (goal_pair[0].stored_best_times.y,
+		    goal_pair[1].stored_best_times.x);
 		cur_goals[0].letter_bonus = 100;
 		cur_goals[1].letter_bonus = 100;
 
@@ -319,9 +321,9 @@ void put_two (int new_beam_width, int new_beam_depth, int new_bias,
 
 	immutable int SLACK = TOTAL_TILES;
 	Goal [] [] goal_pairs;
-	foreach (goal1; goals_earliest.take (1000))
+	foreach (goal1; goals_earliest.take (1250))
 	{
-		foreach (goal2; goals_latest.take (1000))
+		foreach (goal2; goals_latest.take (1250))
 		{
 			// first check
 			if (goal1.get_best_times.y -
@@ -615,16 +617,18 @@ void main (string [] args)
 		return;
 	}
 
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
-		if (i != 'S' - 'A')
+		if (i != 'D' - 'A')
 		{
 			continue;
 		}
 		auto p = ps.problem[i];
 
-		put_two (1250, 0, 8, p, t, s,
-		    goals_relaxed, goals, [], null);
+		put_two (250, 0, 8, p, t, s,
+		    goals, goals, [], null);
+//		put_two (1250, 0, 8, p, t, s,
+//		    goals_relaxed, goals, [], null);
 
 /*
 		auto goals_middle = goals_center.dup;
