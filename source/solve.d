@@ -624,7 +624,7 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-		if (i != 'X' - 'A')
+		if (i != 'G' - 'A')
 		{
 			continue;
 		}
