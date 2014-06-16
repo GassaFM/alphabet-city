@@ -136,14 +136,19 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 	}
 }
 
-void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
+void put_goal_pairs (int new_beam_width, int new_beam_depth,
+    int new_bias0, int new_bias1,
     Problem p, Trie t, Scoring s, Goal [] [] goal_pairs,
     Goal [] prev_goals = null, GameMove prev_guide = null)
 {
 //	GameState [ByteString] lower_cache;
 //	GameState [ByteString] upper_cache;
-	foreach (goal_pair; goal_pairs)
+	foreach (counter, goal_pair; goal_pairs)
 	{
+		if (counter < 23)
+		{
+			continue;
+		}
 		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 		stderr.flush ();
 		auto cur_goals = goal_pair.dup;
@@ -155,9 +160,8 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 
 		int beam_width = new_beam_width;
 		int beam_depth = new_beam_depth;
-		int bias = new_bias;
 		int cur_middle = max (goal_pair[0].stored_best_times.y,
-		    goal_pair[1].stored_best_times.x);
+		    goal_pair[1].stored_best_times.x, TOTAL_TILES / 2);
 		cur_goals[0].letter_bonus = 100;
 		cur_goals[1].letter_bonus = 100;
 
@@ -171,7 +175,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 		auto p_first_restricted = Problem (p.name,
 		    p_restricted.contents[0..cur_middle]);
 
-		void do_it (byte row0, byte row1, int start_bias,
+		void do_it (byte row0, byte row1, int bias0, int bias1,
 		    ref GameState [ByteString] cache)
 		{
 			if (cur_goals[0].word !in cache)
@@ -181,7 +185,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 				game.goals = prev_goals ~ [cur_goals[0]];
 				cur_goals[0].row = row0;
 				cur_goals[1].row = row1;
-				game.bias = +start_bias;
+				game.bias = bias0;
 				game.moves_guide = prev_guide;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
 				    "%(%s\n    %)", p.name, beam_width,
@@ -212,7 +216,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 				game.goals = [cur_goals[1]];
 				cur_goals[0].row = row0;
 				cur_goals[1].row = row1;
-				game.bias = -start_bias;
+				game.bias = bias1;
 				game.moves_guide = necessary_guide;
 				game.problem = p_restricted;
 				game.forced_lock_wildcards = true;
@@ -261,14 +265,15 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth, int new_bias,
 */
 
                 GameState [ByteString] temp_cache1;
-		do_it (Board.SIZE - 1, 0, -bias, temp_cache1);
+		do_it (Board.SIZE - 1, 0, -new_bias0, +new_bias1, temp_cache1);
 
                 GameState [ByteString] temp_cache2;
-		do_it (0, Board.SIZE - 1, +bias, temp_cache2);
+		do_it (0, Board.SIZE - 1, +new_bias0, -new_bias1, temp_cache2);
 	}
 }
 
-void put_two (int new_beam_width, int new_beam_depth, int new_bias,
+void put_two (int new_beam_width, int new_beam_depth,
+    int new_bias0, int new_bias1,
     Problem p, Trie t, Scoring s, Goal [] goals1, Goal [] goals2,
     Goal [] prev_goals = null, GameMove prev_guide = null)
 {
@@ -374,9 +379,9 @@ void put_two (int new_beam_width, int new_beam_depth, int new_bias,
 	    b[0].score_rating + b[1].score_rating, SwapStrategy.stable)
 	    (goal_pairs);
 
-	put_goal_pairs (new_beam_width, new_beam_depth, new_bias,
-	    p, t, s,
-	    goal_pairs.take (250).array (), prev_goals, prev_guide);
+	put_goal_pairs (new_beam_width, new_beam_depth,
+	    new_bias0, new_bias1, p, t, s,
+	    goal_pairs.take (50).array (), prev_goals, prev_guide);
 }
 
 void main (string [] args)
@@ -619,14 +624,14 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-		if (i != 'D' - 'A')
+		if (i != 'X' - 'A')
 		{
 			continue;
 		}
 		auto p = ps.problem[i];
 
-		put_two (2500, 0, 8, p, t, s,
-		    goals, goals, [], null);
+		put_two (2500, 0, 2, 5, p, t, s,
+		    goals_relaxed, goals, [], null);
 //		put_two (1250, 0, 8, p, t, s,
 //		    goals_relaxed, goals, [], null);
 
@@ -654,6 +659,7 @@ void main (string [] args)
 		    (goals_middle);
 
 		foreach (loop_goal; goals_middle.take (52))
+//		foreach (loop_goal; goals_middle.take (250))
 		{
 			stderr.writefln ("%s %s", p.name, loop_goal);
 			stderr.flush ();
@@ -703,10 +709,9 @@ void main (string [] args)
 				    (middle_necessary_guide);
 				int middle_tiles_peak = GameTools.tiles_peak
 				    (middle_necessary_guide);
-//				if (0 < middle_tiles_total &&
-//				    middle_tiles_total < 20 &&
-//				    middle_tiles_peak <= 5)
-				if (true)
+				if (0 < middle_tiles_total &&
+				    middle_tiles_total < 20 &&
+				    middle_tiles_peak <= 5)
 				{
 					log_guide (middle_complete_guide,
 					    "complete");
@@ -715,15 +720,17 @@ void main (string [] args)
 					stderr.writeln (middle_tiles_total,
 					    ' ', middle_tiles_peak);
 					stderr.flush ();
-					put_one (250, 0, 8,
-					    p_restricted, t, s,
-					    goals, cur_goals, null);
-//					put_two (1250, 0, 12,
+//					put_one (250, 0, 8,
 //					    p_restricted, t, s,
 //					    goals, cur_goals, null);
-//					put_two (1250, 0, 12,
+//					put_two (1250, 0, 5,
 //					    p_restricted, t, s,
-//					    goals, [], middle_necessary_guide);
+//					    goals_relaxed, goals,
+//					    cur_goals, null);
+					put_two (1250, 0, 12,
+					    p_restricted, t, s,
+					    goals_relaxed, goals,
+					    [], middle_necessary_guide);
 	                	}
 			}
 		}

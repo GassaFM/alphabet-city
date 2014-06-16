@@ -1109,6 +1109,22 @@ class Game
 			    moves_can_happen (cur_move.chained_move, gm_res,
 			    GameState (problem)) == NA;
 
+/*
+			// HACK; TODO: parameterize!
+			GameMove temp_move = cur_move;
+			foreach (j; 0..1)
+			{
+				if (temp_move !is null)
+				{
+					temp_move = temp_move.chained_move;
+				}
+			}
+			if (temp_move is null)
+			{
+				is_necessary = false;
+			}
+*/
+
 			if (is_necessary)
 			{
 				GameMove temp = new GameMove (cur_move);
