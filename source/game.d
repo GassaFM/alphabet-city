@@ -667,10 +667,23 @@ class Game
 	    int vert, int score, int mult, int vt, int flags)
 	{
 		assert (!cur.board[row][col].empty);
-		if (!check_board[row][col].empty &&
-		    check_board[row][col] != cur.board[row][col])
+		if (check_board.is_flipped == cur.board.is_flipped)
 		{
-			return;
+			if (!check_board[row][col].empty &&
+			    check_board[row][col].letter !=
+			    cur.board[row][col].letter)
+			{
+				return;
+			}
+		}
+		else
+		{
+			if (!check_board[col][row].empty &&
+			    check_board[col][row].letter !=
+			    cur.board[row][col].letter)
+			{
+				return;
+			}
 		}
 		vt = trie.contents[vt].next (cur.board[row][col]);
 		if (vt == NA)
