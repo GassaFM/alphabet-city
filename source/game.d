@@ -338,6 +338,7 @@ class Game
 	int depth;
 	int resume_step = NA;
 
+	Board check_board;
 	GameMove moves_guide;
 	BoardCell [] forced_word;
 	int forced_cur;
@@ -345,6 +346,7 @@ class Game
 	bool forced_imaginary;
 	bool forced_lock_wildcards;
 	bool forced_restricted;
+	bool forced_allow_empty;
 	GameState imaginary_result;
 
 	bool allow_mirror () @property const
@@ -414,6 +416,10 @@ class Game
 		int num = cur.board.total;
 		int add_score = vert + score * mult +
 		    scoring.bingo * (flags >= Rack.MAX_SIZE * MULT_ACT);
+		if (num > TOTAL_TILES)
+		{
+			writeln (cur);
+		}
 		if (depth == 0 && forced_word is null &&
 		    gsp[num].length == bests_num &&
 		    gs[num][gsp[num][$ - 1]].board.value >=
@@ -513,7 +519,7 @@ class Game
 				{
 					int future_score =
 					    moves_can_happen (null,
-					    cur_move, next);
+					    cur_move, next, true);
 					if (future_score == NA)
 					{
 						return;
@@ -661,6 +667,11 @@ class Game
 	    int vert, int score, int mult, int vt, int flags)
 	{
 		assert (!cur.board[row][col].empty);
+		if (!check_board[row][col].empty &&
+		    check_board[row][col] != cur.board[row][col])
+		{
+			return;
+		}
 		vt = trie.contents[vt].next (cur.board[row][col]);
 		if (vt == NA)
 		{
@@ -714,6 +725,22 @@ class Game
 				return;
 			}
 			auto forced_tile = forced_word[forced_cur];
+			bool put_fake = forced_allow_empty &&
+			    !forced_tile.active &&
+			    cur.board[row][col].empty;
+			BoardCell temp_tile = forced_tile;
+			if (put_fake)
+			{
+//				writeln ("!", row, ' ', col, ' ', forced_tile);
+				swap (cur.board[row][col], temp_tile);
+			}
+			scope (exit)
+			{
+				if (put_fake)
+				{
+					swap (cur.board[row][col], temp_tile);
+				}
+			}
 			forced_cur++;
 			scope (exit)
 			{
@@ -910,7 +937,7 @@ class Game
 		{
 			foreach (col; 0..Board.SIZE)
 			{
-				if (cur.board.can_start_move (row, col,
+				if (cur.board.suggest_start_move (row, col,
 				    cur.tiles.rack.usable_total))
 				{
 					move_recur (cur, row, col, 0, 0, 1,
@@ -920,13 +947,17 @@ class Game
 		}
 	}
 
-	void perform_move (ref GameState cur, GameMove cur_move)
+	void perform_move (ref GameState cur, GameMove cur_move,
+	    bool allow_empty)
 	{
 		BoardCell [] remember_forced_word = cur_move.word;
+		bool remember_forced_allow_empty = allow_empty;
 		swap (forced_word, remember_forced_word);
+		swap (remember_forced_allow_empty, forced_allow_empty);
 		scope (exit)
 		{
 			swap (forced_word, remember_forced_word);
+			swap (remember_forced_allow_empty, forced_allow_empty);
 		}
 
 		int row = cur_move.row;
@@ -947,7 +978,8 @@ class Game
 
 		if (cur.board.can_start_move (row, col, Rack.MAX_SIZE))
 		{
-			move_recur (cur, row, col, 0, 0, 1, Trie.ROOT, 0);
+			move_recur (cur, row, col, 0, 0, 1, Trie.ROOT,
+			    allow_empty ? FLAG_CONN : 0);
 		}
 	}
 
@@ -979,7 +1011,7 @@ class Game
 					swap (forced_restricted,
 					    remember_forced_restricted);
 				}
-				perform_move (cur, cur_move);
+				perform_move (cur, cur_move, false);
 				return true;
 			}
 			else if (ok == NA)
@@ -1016,7 +1048,7 @@ class Game
 
 //	int moves_can_happen (GameMove first_inverted, GameMove second)
 	int moves_can_happen (GameMove first_inverted, GameMove second,
-	    GameState cur)
+	    GameState cur, bool allow_empty)
 	{ // if GameState becomes a reference type, make a copy!
 		bool remember_forced_imaginary = true;
 		swap (forced_imaginary, remember_forced_imaginary);
@@ -1041,7 +1073,7 @@ class Game
 			}
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
-			perform_move (cur, cur_move);
+			perform_move (cur, cur_move, allow_empty);
 			version (debug_forced)
 			{
 				writeln (">1: ", cur_move);
@@ -1068,7 +1100,7 @@ class Game
 			}
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
-			perform_move (cur, cur_move);
+			perform_move (cur, cur_move, allow_empty);
 			version (debug_forced)
 			{
 				writeln (">2: ", cur_move);
@@ -1107,12 +1139,12 @@ class Game
 			bool is_necessary =
 			    (cur_move.word.length == Board.SIZE) ||
 			    moves_can_happen (cur_move.chained_move, gm_res,
-			    GameState (problem)) == NA;
+			    GameState (problem), false) == NA;
 
 /*
 			// HACK; TODO: parameterize!
 			GameMove temp_move = cur_move;
-			foreach (j; 0..1)
+			foreach (j; 0..5)
 			{
 				if (temp_move !is null)
 				{
@@ -1195,7 +1227,7 @@ class Game
 			cur_move.normalize (temp);
 			imaginary_result = GameState ();
 			imaginary_result.board.value = NA;
-			perform_move (temp, cur_move);
+			perform_move (temp, cur_move, false);
 			if (imaginary_result.board.value == NA)
 			{
 				enforce (false);
@@ -1205,8 +1237,76 @@ class Game
 		return GameMove.invert (start);
 	}
 
+	bool suggest_check_board_tile (byte row, byte col, byte tile)
+	{
+		if (check_board[row][col].empty)
+		{
+			check_board[row][col].letter = tile;
+			check_board.total++;
+		}
+		else if (check_board[row][col].letter != tile)
+		{
+			stderr.writeln ("check_board conflict ", row, ' ',
+			    col, ' ', tile, ' ', check_board[row][col]);
+			return false;
+		}
+		return true;
+	}
+	
+	bool prepare_check_board ()
+	{
+		check_board = Board ();
+
+		for (GameMove cur_move = moves_guide; cur_move !is null;
+		    cur_move = cur_move.chained_move)
+		{
+			if (cur_move.is_flipped != check_board.is_flipped)
+			{
+				check_board.flip ();
+			}
+			byte row = cur_move.row;
+			byte col = cur_move.col;
+			foreach (pos; 0..cur_move.word.length)
+			{
+				if (!suggest_check_board_tile (row,
+				    to !(byte) (col + pos),
+				    cur_move.word[pos].letter))
+				{
+					return false;
+				}
+			}
+		}
+
+		foreach (cur_goal; goals)
+		{
+			if (cur_goal.is_flipped != check_board.is_flipped)
+			{
+				check_board.flip ();
+			}
+			byte row = cur_goal.row;
+			byte col = cur_goal.col;
+			foreach (pos; 0..cur_goal.word.length)
+			{
+				if (!suggest_check_board_tile (row,
+				    to !(byte) (col + pos),
+				    cur_goal.word[pos]))
+				{
+					return false;
+				}
+			}
+		}
+
+		check_board.normalize ();
+		return true;
+	}
+	
 	void go (int upper_limit, Keep keep)
 	{
+		if (!prepare_check_board ())
+		{
+			return;
+		}
+
 		foreach (k; resume_step..upper_limit + 1)
 		{
 			version (verbose)

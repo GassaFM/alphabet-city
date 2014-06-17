@@ -145,10 +145,12 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 //	GameState [ByteString] upper_cache;
 	foreach (counter, goal_pair; goal_pairs)
 	{
-		if (counter < 23)
+// /*
+		if (counter < 24)
 		{
 			continue;
 		}
+// */
 		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
 		stderr.flush ();
 		auto cur_goals = goal_pair.dup;
@@ -381,7 +383,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 
 	put_goal_pairs (new_beam_width, new_beam_depth,
 	    new_bias0, new_bias1, p, t, s,
-	    goal_pairs.take (50).array (), prev_goals, prev_guide);
+	    goal_pairs.take (25).array (), prev_goals, prev_guide);
 }
 
 void main (string [] args)
@@ -461,6 +463,10 @@ void main (string [] args)
 	{
 		foreach (i; 0..LET)
 		{
+			if (i < 'Q' - 'A')
+			{
+				continue;
+			}
 			auto p = ps.problem[i];
 			auto game = new Game (p, t, s);
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
@@ -495,6 +501,8 @@ void main (string [] args)
 			}
 			stderr.writefln ("necessary guide (%s): %(%s, %)",
 			    gm2.length, gm2);
+			stderr.writeln (p_restricted.contents.count
+			    !("a >= 'a'") (), ' ', p_restricted);
 			stderr.flush ();
 
 			game.moves_guide = necessary_guide;
@@ -624,16 +632,14 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-		if (i != 'G' - 'A')
+		if (i != 'C' - 'A')
 		{
 			continue;
 		}
 		auto p = ps.problem[i];
 
-		put_two (2500, 0, 2, 5, p, t, s,
-		    goals_relaxed, goals, [], null);
-//		put_two (1250, 0, 8, p, t, s,
-//		    goals_relaxed, goals, [], null);
+		put_two (100, 0, 4, 8, p, t, s,
+		    goals_relaxed ~ goals, goals, [], null);
 
 /*
 		auto goals_middle = goals_center.dup;

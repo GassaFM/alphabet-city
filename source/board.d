@@ -104,14 +104,21 @@ struct Board
 
 	bool can_start_move (int row, int col, int len)
 	{
-		// 1. Correctness part, can not be skipped.
 		// non-empty tile immediately preceding the path
 		if (col > 0 && !contents[row][col - 1].empty)
 		{
 			return false;
 		}
-		// version to check against
-//		return true;
+		return true;
+	}
+
+	bool suggest_start_move (int row, int col, int len)
+	{
+		// 1. Correctness part, can not be skipped.
+		if (!can_start_move (row, col, len))
+		{
+			return false;
+		}
 		// 2. Optimization part, can be skipped.
 		// one tile only
 		if (col + 1 == SIZE)
