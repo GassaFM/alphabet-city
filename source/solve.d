@@ -136,6 +136,12 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 	}
 }
 
+int get_middle (const ref Goal [] goal_pair)
+{
+	return max (goal_pair[0].stored_best_times.y,
+	    goal_pair[1].stored_best_times.x, TOTAL_TILES / 2);
+}
+
 void put_goal_pairs (int new_beam_width, int new_beam_depth,
     int new_bias0, int new_bias1,
     Problem p, Trie t, Scoring s, Goal [] [] goal_pairs,
@@ -145,13 +151,15 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 //	GameState [ByteString] upper_cache;
 	foreach (counter, goal_pair; goal_pairs)
 	{
-// /*
+/*
 		if (counter < 24)
 		{
 			continue;
 		}
-// */
-		stderr.writefln ("%s %(%s\n    %)", p.name, goal_pair);
+*/
+		stderr.writefln ("%s sum=%s %(%s\n    %)", p.name,
+		    goal_pair[0].score_rating + goal_pair[1].score_rating,
+		    goal_pair);
 		stderr.flush ();
 		auto cur_goals = goal_pair.dup;
 		foreach (ref goal; cur_goals)
@@ -162,8 +170,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 
 		int beam_width = new_beam_width;
 		int beam_depth = new_beam_depth;
-		int cur_middle = max (goal_pair[0].stored_best_times.y,
-		    goal_pair[1].stored_best_times.x, TOTAL_TILES / 2);
+		int cur_middle = get_middle (goal_pair);
 		cur_goals[0].letter_bonus = 100;
 		cur_goals[1].letter_bonus = 100;
 
@@ -210,7 +217,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 
 				auto game = new Game (p_clean, t, s);
 				auto temp_history = game.reduce_move_history
-				    (complete_guide);
+				    !((GameMove a) => true) (complete_guide);
 				auto necessary_guide = temp_history[0];
 				auto p_restricted = temp_history[1];
 				log_guide (necessary_guide, "necessary");
@@ -241,7 +248,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 
 				auto game = new Game (p_clean, t, s);
 				auto temp_history = game.reduce_move_history
-				    (complete_guide);
+				    !((GameMove a) => true) (complete_guide);
 				auto necessary_guide = temp_history[0];
 				auto p_restricted = temp_history[1];
 				log_guide (necessary_guide, "necessary");
@@ -354,11 +361,13 @@ void put_two (int new_beam_width, int new_beam_depth,
 				continue;
 			}
 
+			auto cur_pair = [goal1, goal2];
 			// third check
 			auto p_restricted = Problem.restrict_back
 			    (p, goal2.word);
+			int cur_middle = get_middle (cur_pair);
 			auto p_first_restricted = Problem (p.name,
-			    p_restricted.contents[0..goal1.get_best_times.y]);
+			    p_restricted.contents[0..cur_middle]);
 			if (p_first_restricted.count_restricted () >
 			    Rack.MAX_SIZE - goal1.count_forbidden ())
 			{
@@ -366,7 +375,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 			}
 
 			// include the pair
-			goal_pairs ~= [goal1, goal2];
+			goal_pairs ~= cur_pair;
 		}
 	}
 	stderr.writeln ("Goal pairs for ", p.name, ' ', goal_pairs.length);
@@ -383,7 +392,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 
 	put_goal_pairs (new_beam_width, new_beam_depth,
 	    new_bias0, new_bias1, p, t, s,
-	    goal_pairs.take (25).array (), prev_goals, prev_guide);
+	    goal_pairs.take (15).array (), prev_goals, prev_guide);
 }
 
 void main (string [] args)
@@ -463,10 +472,12 @@ void main (string [] args)
 	{
 		foreach (i; 0..LET)
 		{
+/*
 			if (i < 'Q' - 'A')
 			{
 				continue;
 			}
+*/
 			auto p = ps.problem[i];
 			auto game = new Game (p, t, s);
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
@@ -488,6 +499,8 @@ void main (string [] args)
 			stderr.flush ();
 
 			auto temp_history = game.reduce_move_history
+			    !((GameMove a) => true)
+//			    !((GameMove a) => a.count_active > 1)
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
 			auto p_restricted = temp_history[1];
@@ -630,15 +643,17 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
+/*
 		if (i != 'C' - 'A')
 		{
 			continue;
 		}
+*/
 		auto p = ps.problem[i];
 
-		put_two (100, 0, 4, 8, p, t, s,
+		put_two (1250, 0, 3, 6, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
 
 /*

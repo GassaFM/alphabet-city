@@ -103,6 +103,16 @@ class GameMove
 	int score;
 	GameMove chained_move;
 
+	int count_active () const
+	{
+		int res = 0;
+		foreach (tile; word)
+		{
+			res += tile.active;
+		}
+		return res;
+	}
+
 	this (ref GameState cur, int new_row, int new_col, int add_score = NA)
 	{
 		row = to !(byte) (new_row);
@@ -1138,7 +1148,8 @@ class Game
 		return imaginary_result.board.value;
 	}
 
-	Tuple !(GameMove, Problem) reduce_move_history (GameMove history)
+	Tuple !(GameMove, Problem) reduce_move_history
+	    (alias pred) (GameMove history)
 	{
 		GameMove gm_res = null;
 		Problem p_res = problem;
@@ -1154,21 +1165,7 @@ class Game
 			    moves_can_happen (cur_move.chained_move, gm_res,
 			    GameState (problem), false) == NA;
 
-/*
-			// HACK; TODO: parameterize!
-			GameMove temp_move = cur_move;
-			foreach (j; 0..5)
-			{
-				if (temp_move !is null)
-				{
-					temp_move = temp_move.chained_move;
-				}
-			}
-			if (temp_move is null)
-			{
-				is_necessary = false;
-			}
-*/
+			is_necessary &= pred (cur_move);
 
 			if (is_necessary)
 			{

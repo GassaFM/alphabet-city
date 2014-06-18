@@ -1,7 +1,5 @@
-L: 3051 (3051)
- H7 ET    4,
- H6 LET    3,
- H4 UNLET    6,
+L: 3050 (3050)
+ H4 UNLET   12,
  3G DRIVEL   19,
  M1 ESS   28,
  N1 NO   10,
