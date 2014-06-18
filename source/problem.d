@@ -63,7 +63,8 @@ struct Problem
 		int res = 0;
 		foreach (c; contents)
 		{
-			res += (c & TileBag.IS_RESTRICTED) != 0;
+			res += (c != '?') &&
+			    ((c & TileBag.IS_RESTRICTED) != 0);
 		}
 		return res;
 	}

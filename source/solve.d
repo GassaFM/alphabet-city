@@ -339,12 +339,14 @@ void put_two (int new_beam_width, int new_beam_depth,
 	{
 		foreach (goal2; goals_latest.take (1250))
 		{
+//			writeln ("1>", goal1, "\n2>", goal2);
 			// first check
 			if (goal1.get_best_times.y -
 			    goal2.get_best_times.x > SLACK)
 			{
 				continue;
 			}
+//			writeln ("passed 1");
 
 			// second check
 			TileCounter goals_counter;
@@ -360,6 +362,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 			{
 				continue;
 			}
+//			writeln ("passed 2");
 
 			auto cur_pair = [goal1, goal2];
 			// third check
@@ -368,11 +371,16 @@ void put_two (int new_beam_width, int new_beam_depth,
 			int cur_middle = get_middle (cur_pair);
 			auto p_first_restricted = Problem (p.name,
 			    p_restricted.contents[0..cur_middle]);
+//			writeln (p_restricted);
+//			writeln (p_first_restricted);
+//			writeln (p_first_restricted.count_restricted ());
+//			writeln (Rack.MAX_SIZE - goal1.count_forbidden ());
 			if (p_first_restricted.count_restricted () >
 			    Rack.MAX_SIZE - goal1.count_forbidden ())
 			{
 				continue;
 			}
+//			writeln ("passed 3");
 
 			// include the pair
 			goal_pairs ~= cur_pair;
@@ -646,14 +654,14 @@ void main (string [] args)
 	foreach_reverse (i; 0..LET)
 	{
 /*
-		if (i != 'C' - 'A')
+		if (i != 'X' - 'A')
 		{
 			continue;
 		}
 */
 		auto p = ps.problem[i];
 
-		put_two (1250, 0, 3, 6, p, t, s,
+		put_two (3200, 0, 2, 4, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
 
 /*

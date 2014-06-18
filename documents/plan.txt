@@ -52,3 +52,8 @@ Random Ideas:
   store where it should go.
   This will allow to detect impossible moves quicker,
   when drawing that tile from the rack.
+
+20140618:
+Beam Search improvements:
+1. Add associative array by currently covered pre-goal line mask.
+2. Add associative array by currently covered goal mask.
