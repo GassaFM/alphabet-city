@@ -25,3 +25,4 @@ K
 140618 Z 2964 -> 2995 best
 140618 X 2687 -> 2709 up
 140618 W 2914 -> 3076 best, Collier N/A, Zapor N/A
+140619 U 3060 -> 3188 up+best, Collier N/A, Zapor beaten
