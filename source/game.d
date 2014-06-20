@@ -1055,8 +1055,9 @@ class Game
 		if (moves_guide !is null)
 		{
 			if (move_start_guided (cur))
-			{
-				return;
+			{ // allow making the move after a free one
+				assert (true);
+//				return;
 			}
 		}
 		move_horizontal (cur);
