@@ -480,10 +480,12 @@ void main (string [] args)
 	{
 		foreach (i; 0..LET)
 		{
+/*
 			if (i != 'X' - 'A')
 			{
 				continue;
 			}
+*/
 
 			auto p = ps.problem[i];
 			auto game = new Game (p, t, s);
@@ -506,8 +508,8 @@ void main (string [] args)
 			stderr.flush ();
 
 			auto temp_history = game.reduce_move_history
-//			    !((GameMove a) => true)
-			    !((GameMove a) => a.count_active > 1)
+			    !((GameMove a) => true)
+//			    !((GameMove a) => a.count_active > 1)
 			    (complete_guide);
 			auto necessary_guide = temp_history[0];
 			auto p_restricted = temp_history[1];
@@ -652,14 +654,16 @@ void main (string [] args)
 
 	foreach_reverse (i; 0..LET)
 	{
-		if (i != 'P' - 'A')
+		if (i != 'X' - 'A')
 		{
 			continue;
 		}
 		auto p = ps.problem[i];
 
-		put_two (3200, 0, 2, 4, p, t, s,
+		put_two (10000, 0, 1, 2, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
+//		put_two (10000, 0, 2, 4, p, t, s,
+//		    goals_relaxed ~ goals, goals, [], null);
 
 /*
 		auto goals_middle = goals_center.dup;

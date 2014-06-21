@@ -42,3 +42,5 @@ K
 140621 I 2768 -> 2780 up
 140621 H 2758 -> 2905 up 0.01 + Best 0.05 WS MC RZ down, Ashley Wood N/A ID N/A
 140621 G 2834 -> 2883 Best 0.02 WS MC down, RZ ID N/A
+140621 X 2710 -> 2730 up 0.00
+140622 F 2943 -> 3126 Best 0.06 RZ down 0.02 ID N/A
