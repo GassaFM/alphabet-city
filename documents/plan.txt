@@ -62,3 +62,18 @@ Beam Search improvements:
 Random Ideas:
 1. Have two goals and a lesser goal for letter Q.
 2. Fix tile usage bug in removing critical moves.
+
+20140623:
+Random Ideas:
+1. Have a parallel word of medium length near the long words.
+  Search for a suitable word at the beginning.
+2. Add the center goal after the two larger goals, not before that.
+  Use all 70 letters left for that goal.
+  Bear in mind that the center letter must be one of the first seven.
+  Allow pieces disconnected from the center in the center goal.
+  Maybe try to forbid just the first and the last letter.
+
+Beam Search improvements:
+1. Add associative array by sectors:
+  areas close to where we have to put letters.
+2. Search with bias=0 and three goals.
