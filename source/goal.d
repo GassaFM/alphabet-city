@@ -12,7 +12,7 @@ import std.string;
 import board;
 import general;
 import scoring;
-import tilebag;
+import tile_bag;
 import trie;
 
 class Goal
@@ -242,7 +242,7 @@ class Goal
 	}
 
 	Pair calc_earliest_times (TileBag tile_bag, int lower_limit = 0,
-	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) // const
 	{
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
@@ -259,6 +259,20 @@ class Goal
 			cur_counter[cur_tile]++;
 			if (total_counter << cur_counter)
 			{
+			        // HACK: adjust score rating
+				stored_score_rating = calc_score_rating
+				    (global_scoring);
+				foreach (i; 0..LET)
+				{
+					int diff = total_counter[i] -
+					    cur_counter[i];
+					if (diff > 0)
+					{
+						stored_score_rating -= diff *
+						    global_scoring.
+						    tile_value[i] * 27;
+					}
+				}
 				return Pair (lower_limit, tile_num + 1);
 			}
 		}
@@ -266,7 +280,7 @@ class Goal
 	}
 
 	Pair calc_latest_times (TileBag tile_bag, int lower_limit = 0,
-	    int upper_limit = TOTAL_TILES, int wildcards = 0) const
+	    int upper_limit = TOTAL_TILES, int wildcards = 0) // const
 	{
 		assert (wildcards == 0); // wildcards > 0: not implemented yet
 		auto taken = new bool [tile_bag.contents.length];
@@ -283,6 +297,20 @@ class Goal
 			cur_counter[cur_tile]++;
 			if (total_counter << cur_counter)
 			{
+			        // HACK: adjust score rating
+				stored_score_rating = calc_score_rating
+				    (global_scoring);
+				foreach (i; 0..LET)
+				{
+					int diff = total_counter[i] -
+					    cur_counter[i];
+					if (diff > 0)
+					{
+						stored_score_rating -= diff *
+						    global_scoring.
+						    tile_value[i] * 27;
+					}
+				}
 				return Pair (tile_num, upper_limit);
 			}
 		}

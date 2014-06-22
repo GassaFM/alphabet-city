@@ -8,7 +8,9 @@ import std.stdio;
 import std.string;
 
 import board;
-import game;
+import game_complex;
+import game_move;
+import game_state;
 import general;
 import problem;
 

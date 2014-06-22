@@ -6,15 +6,17 @@ import std.math;
 import std.stdio;
 
 import board;
-import game;
+import game_complex;
+import game_state;
+import game_move;
 import general;
 import goal;
-import tilebag;
+import tile_bag;
 
 static class GameTools
 {
 	static int calc_goal_value_prepare (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -83,7 +85,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_main (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -133,7 +135,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_done (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -154,7 +156,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_combined (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -268,7 +270,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_greedy (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{
@@ -379,7 +381,7 @@ static class GameTools
 	}
 
 	static int calc_goal_value_center (ref GameState cur, Goal goal,
-	    Game game, ref TileCounter counter)
+	    GameComplex game, ref TileCounter counter)
 	{
 		if (cur.board.is_flipped != goal.is_flipped)
 		{

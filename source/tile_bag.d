@@ -1,4 +1,4 @@
-module tilebag;
+module tile_bag;
 
 import std.array;
 import std.conv;
@@ -9,6 +9,7 @@ import std.stdio;
 import board;
 import general;
 import problem;
+import scoring;
 
 struct RackEntry
 {
@@ -296,11 +297,11 @@ struct TileCounter
 			{
 				contents[LET]++;
 			}
-			else if ('A' <= c && c <= 'Z')
+			else if ('A' <= c && c <= 'Z' + 1)
 			{
 				contents[c - 'A']++;
 			}
-			else if ('a' <= c && c <= 'z')
+			else if ('a' <= c && c <= 'z' + 1)
 			{
 				contents[c - 'a']++;
 			}
@@ -313,7 +314,7 @@ struct TileCounter
 */
 
 	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<")
+	    if (op == "<<<")
 	{
 		foreach (i; 0..LET + 1)
 		{
@@ -325,16 +326,23 @@ struct TileCounter
 		return true;
 	}
 
-/*
 	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<<")
+	    if (op == "<<")
 	{
-		int extra = contents[LET] - other.contents[LET];
+		int extra = other.contents[LET] - contents[LET];
+		if (extra < 0)
+		{
+			return false;
+		}
 		foreach (i; 0..LET)
 		{
 			int diff = contents[i] - other.contents[i];
 			if (diff > 0)
 			{
+				if (global_scoring.tile_value[i] > 1)
+				{
+					return false;
+				}
 				extra -= diff;
 				if (extra < 0)
 				{
@@ -344,7 +352,6 @@ struct TileCounter
 		}
 		return true;
 	}
-*/
 
 	string toString () const
 	{

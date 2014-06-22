@@ -19,7 +19,7 @@ Random Ideas:
 1. (+) Check for a flipped version of oxyphenbutazone, too.
   Take care of the bias calculation when flipping.
 2. Local improvement:
-  Remove one critical move.
+  (buggy) Remove one critical move.
   Remove some non-critical moves.
   Do a search, maybe the critical move can be replaced with a better one.
 
@@ -57,3 +57,8 @@ Random Ideas:
 Beam Search improvements:
 1. Add associative array by currently covered pre-goal line mask.
 2. Add associative array by currently covered goal mask.
+
+20140622:
+Random Ideas:
+1. Have two goals and a lesser goal for letter Q.
+2. Fix tile usage bug in removing critical moves.

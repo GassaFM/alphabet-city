@@ -12,18 +12,20 @@ import std.string;
 import std.typecons;
 
 import board;
-import game;
+import game_complex;
+import game_move;
+import game_state;
 import fifteen;
 import general;
 import goal;
 import manager;
 import problem;
 import scoring;
-import tilebag;
+import tile_bag;
 import tools;
 import trie;
 
-void log_progress (Game game)
+void log_progress (GameComplex game)
 {
 	static bool started_output = false;
 
@@ -31,7 +33,7 @@ void log_progress (Game game)
 	    game.best.board.score, " (",
 	    game.best.board.value, ')');
 	stderr.flush ();
-	if (game.best.board.score < 2300 ||
+	if (game.best.board.score < 2600 ||
 	    game.best.tiles.contents.length < TOTAL_TILES)
 	{
 		return;
@@ -101,7 +103,7 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 		GameState lower_state;
 		if (true)
 		{
-			auto game = new Game (p_first_clean, t, s);
+			auto game = new GameComplex (p_first_clean, t, s);
 			game.goals = prev_goals ~ [cur_goals[0]];
 			cur_goals[0].row = Board.SIZE - 1;
 			game.bias = -bias;
@@ -111,7 +113,7 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 			    beam_depth, game.bias, game.goals);
 			stderr.flush ();
 			game.play (beam_width, beam_depth,
-			    Game.Keep.False);
+			    GameComplex.Keep.False);
 			log_progress (game);
 			lower_state = game.best;
 		}
@@ -119,7 +121,7 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 		GameState upper_state;
 		if (true)
 		{
-			auto game = new Game (p_first_clean, t, s);
+			auto game = new GameComplex (p_first_clean, t, s);
 			game.goals = prev_goals ~ [cur_goals[0]];
 			cur_goals[0].row = 0;
 			game.bias = +bias;
@@ -129,7 +131,7 @@ void put_one (int new_beam_width, int new_beam_depth, int new_bias,
 			    beam_depth, game.bias, game.goals);
 			stderr.flush ();
 			game.play (beam_width, beam_depth,
-			    Game.Keep.False);
+			    GameComplex.Keep.False);
 			log_progress (game);
 			upper_state = game.best;
 		}
@@ -151,12 +153,6 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 //	GameState [ByteString] upper_cache;
 	foreach (counter, goal_pair; goal_pairs)
 	{
-/*
-		if (counter < 24)
-		{
-			continue;
-		}
-*/
 		stderr.writefln ("%s sum=%s %(%s\n    %)", p.name,
 		    goal_pair[0].score_rating + goal_pair[1].score_rating,
 		    goal_pair);
@@ -165,7 +161,10 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 		foreach (ref goal; cur_goals)
 		{
 			goal = new Goal (goal);
-			goal.stage = Goal.Stage.COMBINED;
+			// TODO: let's now test without that line
+			// TODO: try COMBINED; after that, if unsuccessful,
+			//       try GREEDY when appropriate
+//			goal.stage = Goal.Stage.COMBINED;
 		}
 
 		int beam_width = new_beam_width;
@@ -190,7 +189,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 			if (cur_goals[0].word !in cache)
 			{
 				auto game =
-				    new Game (p_first_restricted, t, s);
+				    new GameComplex (p_first_restricted, t, s);
 				game.goals = prev_goals ~ [cur_goals[0]];
 				cur_goals[0].row = row0;
 				cur_goals[1].row = row1;
@@ -201,7 +200,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
+				    GameComplex.Keep.False);
 				log_progress (game);
 				cache[cur_goals[0].word] = game.best;
 			}
@@ -215,7 +214,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 				    (inner_state.closest_move);
 				log_guide (complete_guide, "complete");
 
-				auto game = new Game (p_clean, t, s);
+				auto game = new GameComplex (p_clean, t, s);
 				auto temp_history = game.reduce_move_history
 				    !((GameMove a) => true) (complete_guide);
 				auto necessary_guide = temp_history[0];
@@ -234,7 +233,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
+				    GameComplex.Keep.False);
 				log_progress (game);
 				cur_state = game.best;
 			}
@@ -246,7 +245,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 				    (cur_state.closest_move);
 				log_guide (complete_guide, "complete");
 
-				auto game = new Game (p_clean, t, s);
+				auto game = new GameComplex (p_clean, t, s);
 				auto temp_history = game.reduce_move_history
 				    !((GameMove a) => true) (complete_guide);
 				auto necessary_guide = temp_history[0];
@@ -262,7 +261,7 @@ void put_goal_pairs (int new_beam_width, int new_beam_depth,
 				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width * 4, beam_depth,
-				    Game.Keep.False);
+				    GameComplex.Keep.False);
 				log_progress (game);
 			}
 		}
@@ -299,10 +298,11 @@ void put_two (int new_beam_width, int new_beam_depth,
 		    cur_goal.stored_best_times.y);
 	}
 	goals_earliest = goals_earliest.filter
-	    !(a => a.get_best_times.x != NA &&
+	    !(a => a.get_best_times.x != NA).array ();
+//	    !(a => a.get_best_times.x != NA &&
 //	      a.get_times[0] >= a.get_best_times.y - 14 &&
 //	      a.get_times[0] - a.get_times[2] <= 14 &&
-	      a.get_times[0] - a.get_times[$ - 1] <= TOTAL_TILES).array ();
+//	      a.get_times[0] - a.get_times[$ - 1] <= TOTAL_TILES).array ();
 	sort !((a, b) => a.stored_best_times < b.stored_best_times)
 	    (goals_earliest);
 	sort !((a, b) => a.score_rating > b.score_rating)
@@ -321,10 +321,11 @@ void put_two (int new_beam_width, int new_beam_depth,
 		    cur_goal.stored_best_times.y);
 	}
 	goals_latest = goals_latest.filter
-	    !(a => a.get_best_times.x != NA &&
+	    !(a => a.get_best_times.x != NA).array ();
+//	    !(a => a.get_best_times.x != NA &&
 //	      a.get_times[0] >= a.get_best_times.y - 14 &&
 //	      a.get_times[0] - a.get_times[2] <= 14 &&
-	      a.get_times[0] - a.get_times[$ - 1] <= TOTAL_TILES).array ();
+//	      a.get_times[0] - a.get_times[$ - 1] <= TOTAL_TILES).array ();
 	sort !((a, b) => a.stored_best_times > b.stored_best_times)
 	    (goals_latest);
 	sort !((a, b) => a.score_rating > b.score_rating)
@@ -339,14 +340,20 @@ void put_two (int new_beam_width, int new_beam_depth,
 	{
 		foreach (goal2; goals_latest.take (1250))
 		{
-//			writeln ("1>", goal1, "\n2>", goal2);
+			version (debug_pairs)
+			{
+				writeln ("1>", goal1, "\n2>", goal2);
+			}
 			// first check
 			if (goal1.get_best_times.y -
 			    goal2.get_best_times.x > SLACK)
 			{
 				continue;
 			}
-//			writeln ("passed 1");
+			version (debug_pairs)
+			{
+				writeln ("passed 1");
+			}
 
 			// second check
 			TileCounter goals_counter;
@@ -362,7 +369,10 @@ void put_two (int new_beam_width, int new_beam_depth,
 			{
 				continue;
 			}
-//			writeln ("passed 2");
+			version (debug_pairs)
+			{
+				writeln ("passed 2");
+			}
 
 			auto cur_pair = [goal1, goal2];
 			// third check
@@ -380,10 +390,18 @@ void put_two (int new_beam_width, int new_beam_depth,
 			{
 				continue;
 			}
-//			writeln ("passed 3");
+			version (debug_pairs)
+			{
+				writeln ("passed 3");
+			}
 
 			// include the pair
 			goal_pairs ~= cur_pair;
+			version (debug_pairs)
+			{
+				writeln (cur_pair[0].score_rating +
+				    cur_pair[1].score_rating);
+			}
 		}
 	}
 	stderr.writeln ("Goal pairs for ", p.name, ' ', goal_pairs.length);
@@ -400,7 +418,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 
 	put_goal_pairs (new_beam_width, new_beam_depth,
 	    new_bias0, new_bias1, p, t, s,
-	    goal_pairs.take (15).array (), prev_goals, prev_guide);
+	    goal_pairs.take (15).drop (0).array (), prev_goals, prev_guide);
 }
 
 void main (string [] args)
@@ -488,7 +506,7 @@ void main (string [] args)
 */
 
 			auto p = ps.problem[i];
-			auto game = new Game (p, t, s);
+			auto game = new GameComplex (p, t, s);
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
 			temp.closest_move = game.restore_moves (temp);
 			auto complete_guide = GameMove.invert
@@ -535,7 +553,8 @@ void main (string [] args)
 			stderr.writefln ("%s w=%s d=%s", p.name,
 			    beam_width, beam_depth);
 			stderr.flush ();
-			game.play (beam_width, beam_depth, Game.Keep.False);
+			game.play (beam_width, beam_depth,
+			    GameComplex.Keep.False);
 			log_progress (game);
 		}
 		return;
@@ -585,7 +604,7 @@ void main (string [] args)
 
 		do
 		{
-			auto game = new Game (p_first, t, s);
+			auto game = new GameComplex (p_first, t, s);
 			game.goals = [cur_goals[0]];
 			cur_goals[0].row = Board.SIZE - 1;
 			game.bias = -bias;
@@ -593,7 +612,8 @@ void main (string [] args)
 			    p.name, beam_width, beam_depth, bias,
 			    game.goals);
 			stderr.flush ();
-			game.play (beam_width, beam_depth, Game.Keep.True);
+			game.play (beam_width, beam_depth,
+			    GameComplex.Keep.True);
 			log_progress (game);
 
 			if (game.best.board.score < cur_goals[0].score_rating)
@@ -610,7 +630,7 @@ void main (string [] args)
 			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
-			    cur_middle /* - 10 */, Game.Keep.False,
+			    cur_middle /* - 10 */, GameComplex.Keep.False,
 			    true, false, true);
 			log_progress (game);
 		}
@@ -618,7 +638,7 @@ void main (string [] args)
 
 		do
 		{
-			auto game = new Game (p_first, t, s);
+			auto game = new GameComplex (p_first, t, s);
 			game.goals = [cur_goals[0]];
 			cur_goals[0].row = 0;
 			game.bias = +bias;
@@ -626,7 +646,8 @@ void main (string [] args)
 			    p.name, beam_width, beam_depth, bias,
 			    game.goals);
 			stderr.flush ();
-			game.play (beam_width, beam_depth, Game.Keep.True);
+			game.play (beam_width, beam_depth,
+			    GameComplex.Keep.True);
 			log_progress (game);
 
 			if (game.best.board.score < cur_goals[0].score_rating)
@@ -643,7 +664,7 @@ void main (string [] args)
 			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
-			    cur_middle /* - 10 */, Game.Keep.False,
+			    cur_middle /* - 10 */, GameComplex.Keep.False,
 			    true, false, true);
 			log_progress (game);
 		}
@@ -652,18 +673,22 @@ void main (string [] args)
 		return;
 	}
 
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
-		if (i != 'X' - 'A')
+/*
+		if (i != 'T' - 'A' && i != 'I' - 'A')
 		{
 			continue;
 		}
+*/
 		auto p = ps.problem[i];
 
+//		put_two (250, 0, 4, 8, p, t, s,
+//		    goals_relaxed ~ goals, goals, [], null);
+//		put_two (3200, 0, 2, 4, p, t, s,
+//		    goals_relaxed ~ goals, goals, [], null);
 		put_two (10000, 0, 1, 2, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
-//		put_two (10000, 0, 2, 4, p, t, s,
-//		    goals_relaxed ~ goals, goals, [], null);
 
 /*
 		auto goals_middle = goals_center.dup;
@@ -711,7 +736,7 @@ void main (string [] args)
 			GameState middle_state;
 			if (true)
 			{
-				auto game = new Game (p_first, t, s);
+				auto game = new GameComplex (p_first, t, s);
 				game.goals = [cur_goals[0]];
 				game.bias = 0;
 				stderr.writefln ("%s w=%s d=%s b=%s " ~
@@ -719,7 +744,7 @@ void main (string [] args)
 				    beam_depth, game.bias, game.goals);
 				stderr.flush ();
 				game.play (beam_width, beam_depth,
-				    Game.Keep.False);
+				    GameComplex.Keep.False);
 				log_progress (game);
 				middle_state = game.best;
 			}
@@ -729,7 +754,7 @@ void main (string [] args)
 				auto middle_complete_guide = GameMove.invert
 				    (middle_state.closest_move);
 
-				auto game = new Game (p, t, s);
+				auto game = new GameComplex (p, t, s);
 				auto temp_history = game.reduce_move_history
 				    (middle_complete_guide);
 				auto middle_necessary_guide = temp_history[0];

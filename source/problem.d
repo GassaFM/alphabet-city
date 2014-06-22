@@ -6,7 +6,7 @@ import std.stdio;
 import std.string;
 
 import general;
-import tilebag;
+import tile_bag;
 
 struct Problem
 {
@@ -51,6 +51,18 @@ struct Problem
 					found = true;
 					c |= TileBag.IS_RESTRICTED;
 					break;
+				}
+			}
+			if (!found)
+			{ // use wildcard
+				foreach_reverse (ref c; new_contents)
+				{
+					if (c == '?' || c == 'A' + LET)
+					{
+						found = true;
+						c = 'a' + LET;
+						break;
+					}
 				}
 			}
 			enforce (found);
