@@ -314,7 +314,7 @@ struct TileCounter
 */
 
 	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<<")
+	    if (op == "<<")
 	{
 		foreach (i; 0..LET + 1)
 		{
@@ -327,7 +327,7 @@ struct TileCounter
 	}
 
 	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<")
+	    if (op == "<<<")
 	{
 		int extra = other.contents[LET] - contents[LET];
 		if (extra < 0)

@@ -4,7 +4,7 @@ export ALLEGRO5_PATH_WINDOWS="C:\\programs\\git\\DAllegro5"
 export ALLEGRO5_PATH_LINUX="/c/programs/git/DAllegro5"
 export LINKER_FLAGS="-L/STACK:268435456"
 export OUTPUT_NAME="binary\\$NAME.exe"
-export SOURCES=`ls source/*.d`
+export SOURCES=`ls source/{,search/}*.d`
 #echo $SOURCES
 #export ARCHITECTURE_OPTIONS="-m32"
 export ARCHITECTURE_OPTIONS="-m64"

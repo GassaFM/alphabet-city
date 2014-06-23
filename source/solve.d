@@ -12,6 +12,7 @@ import std.string;
 import std.typecons;
 
 import board;
+import game;
 import game_complex;
 import game_move;
 import game_state;
@@ -21,6 +22,7 @@ import goal;
 import manager;
 import problem;
 import scoring;
+import search.beam;
 import tile_bag;
 import tools;
 import trie;
@@ -673,21 +675,31 @@ void main (string [] args)
 		return;
 	}
 
+/*
+	foreach (i; 0..1)
+	{
+		auto p = ps.problem[i];
+		[GameState (p)]
+		    .beam_search (p, t, s, 250, 0)
+		    .writeln;
+	}
+*/
+
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'T' - 'A' && i != 'I' - 'A')
+// /*
+		if (i != 'N' - 'A')
 		{
 			continue;
 		}
-*/
+// */
 		auto p = ps.problem[i];
 
 //		put_two (250, 0, 4, 8, p, t, s,
 //		    goals_relaxed ~ goals, goals, [], null);
 //		put_two (3200, 0, 2, 4, p, t, s,
 //		    goals_relaxed ~ goals, goals, [], null);
-		put_two (10000, 0, 1, 2, p, t, s,
+		put_two (12500, 0, 1, 2, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
 
 /*
