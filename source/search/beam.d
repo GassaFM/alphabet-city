@@ -1,35 +1,82 @@
 module search.beam;
 
+import std.algorithm;
+import std.array;
 import std.range;
 import std.traits;
+
+T [] inverse_permutation (T) (T [] perm)
+{
+	auto n = perm.length;
+	auto res = new T [n];
+	foreach (i; 0..n)
+	{
+		res[perm[i]] = i;
+	}
+	return res;
+}
 
 class BeamSearchStorage (alias get_hash,
     alias check_good_post_dup,
     alias compare_inner,
-    alias are_equal,
     State)
+//    if (is (HashType get_hash (State.init)))
 {
 	private State [] payload;
 	int width;
-	int buffer;
+	int buffer_size;
 	bool ready;
 
 	void repack ()
 	{
 		alias HashType = ReturnType !(get_hash);
-		int [HashType] s;
+		int [HashType] marked;
+		foreach (ref cur_state; payload)
+		{
+			HashType cur_hash = get_hash (cur_state);
+			if (cur_hash in marked)
+			{
+				int better = compare_inner (cur_state,
+				    payload[marked[cur_hash]]);
+				if (better > 0)
+				{
+					payload[marked[cur_hash]] = cur_state;
+				}
+				cur_state = State.init;
+			}
+
+			int new_length = min (payload.length, width);
+			auto perm = new_length.iota ().array ();
+			partialSort !((a, b) => compare_inner (payload[a],
+			    payload[b]) > 0, SwapStrategy.unstable)
+			    (perm, new_length);
+			auto inv = inverse_permutation (perm);
+
+			foreach (i; 0..new_length)
+			{
+				int j = perm[i];
+				if (i != j)
+				{
+					swap (payload[i], payload[j]);
+					swap (perm[inv[i]], perm[inv[j]]);
+					swap (inv[i], inv[j]);
+				}
+			}
+
+			payload.length = new_length;
+			payload.assumeSafeAppend ();
+			assert (isSorted !((a, b) => compare_inner (a, b) > 0)
+			    (payload));
+		}
 	}
 
 	void put (ref State cur_state)
 	{
 		if (payload.empty)
 		{
-			payload.reserve (width + buffer);
+			payload.reserve (width + buffer_size);
 		}
 
-		import std.stdio: writeln;
-		writeln ("put ", cur_state, ' ', payload.length, ' ',
-		    payload.capacity);
 		if (payload.length >= payload.capacity)
 		{
 			repack ();
@@ -69,16 +116,16 @@ class BeamSearchStorage (alias get_hash,
 		payload = payload[1..$];
 	}
 
-	this (int new_width, int new_buffer)
+	this (int new_width, int new_buffer_size)
 	in
 	{
 		assert (new_width > 0);
-		assert (new_buffer > 0);
+		assert (new_buffer_size > 0);
 	}
 	body
 	{
 		width = new_width;
-		buffer = new_buffer;
+		buffer_size = new_buffer_size;
 	}
 }
 
@@ -90,14 +137,13 @@ private class BeamSearch (int max_level,
     alias check_good_post_dup,
     alias compare_best,
     alias compare_inner,
-    alias are_equal,
     State)
 {
 	int width;
 	int depth;
 
 	alias CurStorage = BeamSearchStorage !(get_hash, check_good_post_dup,
-	    compare_inner, are_equal, State);
+	    compare_inner, State);
 	CurStorage [] storage;
 	State best;
 
@@ -117,10 +163,7 @@ private class BeamSearch (int max_level,
 	{
 		foreach (ref State next_state; gen_next (cur_state))
 		{
-			if (check_good_pre_dup (next_state))
-			{
-				put (next_state);
-			}
+			put (next_state);
 			if (cur_depth > 0)
 			{
 				visit (next_state, cur_depth - 1);
@@ -138,6 +181,10 @@ private class BeamSearch (int max_level,
 
 	void put (ref State cur_state)
 	{
+		if (!check_good_pre_dup (cur_state))
+		{
+			return;
+		}
 		int cur_level = get_level (cur_state);
 		if (cur_level > max_level)
 		{
@@ -153,10 +200,7 @@ private class BeamSearch (int max_level,
 	{
 		foreach (cur_state; init_states)
 		{
-			if (check_good_pre_dup (cur_state))
-			{
-				put (cur_state);
-			}
+			put (cur_state);
 		}
 
 		foreach (level; 0..max_level + 1)
@@ -179,7 +223,6 @@ State beam_search (int max_level,
     alias check_good_post_dup,
     alias compare_best,
     alias compare_inner,
-    alias are_equal,
     State, StateRange)
     (StateRange init_states, int width, int depth)
     if (isForwardRange !(StateRange) &&
@@ -187,13 +230,12 @@ State beam_search (int max_level,
 {
 	return new BeamSearch !(max_level, get_level, get_hash, gen_next,
 	    check_good_pre_dup, check_good_post_dup,
-	    compare_best, compare_inner, are_equal, State)
+	    compare_best, compare_inner, State)
 	    (width, depth).go (init_states);
 }
 
 unittest
 {
-	import std.stdio: writeln;
 	auto a = [2, 3, 5];
 
 	auto b = beam_search !(100, a => a, (int a) => a,
@@ -201,20 +243,20 @@ unittest
 	    a => true, a => true,
 	    (a, b) => (a > b) - (a < b),
 	    (a, b) => (a > b) - (a < b),
-	    (a, b) => (a == b), int) (a, 10, 1);
+	    int) (a, 10, 1);
 	assert (b == 2 * 7 * 7);
 	auto c = beam_search !(100, a => a, (int a) => a,
 	    a => [a * 7, a * 11, a * 13],
 	    a => true, a => true,
 	    (a, b) => (a > b) - (a < b),
 	    (a, b) => (a > b) - (a < b),
-	    (a, b) => (a == b), int, int []) (a, 1, 0);
+	    int, int []) (a, 1, 0);
 	assert (c == 2 * 7 * 7);
 	auto d = beam_search !(100, a => a, (int a) => a,
 	    a => [a * 2, a * 3, a * 5],
 	    a => true, a => true,
 	    (a, b) => (a > b) - (a < b),
 	    (a, b) => (a > b) - (a < b),
-	    (a, b) => (a == b), int, int []) (a, 1, 2);
+	    int, int []) (a, 1, 2);
 	assert (d == 100);
 }
