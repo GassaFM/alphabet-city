@@ -688,7 +688,7 @@ void main (string [] args)
 	foreach (i; 0..LET)
 	{
 // /*
-		if (i != 'N' - 'A')
+		if (i != 'S' - 'A')
 		{
 			continue;
 		}
@@ -699,9 +699,9 @@ void main (string [] args)
 //		    goals_relaxed ~ goals, goals, [], null);
 //		put_two (3200, 0, 2, 4, p, t, s,
 //		    goals_relaxed ~ goals, goals, [], null);
-		put_two (12500, 0, 1, 2, p, t, s,
+		put_two (25000, 0, 1, 2, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
-
+ 
 /*
 		auto goals_middle = goals_center.dup;
 		foreach (ref cur_goal; goals_middle)

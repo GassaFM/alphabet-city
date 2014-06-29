@@ -2,12 +2,13 @@ module search.beam;
 
 import std.algorithm;
 import std.array;
+import std.conv;
 import std.range;
 import std.traits;
 
 T [] inverse_permutation (T) (T [] perm)
 {
-	auto n = perm.length;
+	auto n = to !(int) (perm.length);
 	auto res = new T [n];
 	foreach (i; 0..n)
 	{

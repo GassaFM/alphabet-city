@@ -54,3 +54,10 @@ K
 140622 I 2780 -> 2782 up
 140622 I 2782 -> 2831 up
 140623 ID or WS or John Morris: Best by 0.02
+140624 N 2884 -> 2912 up 0.01 + Best 0.01 ID [WS] N/A others down
+140625 RZ up 1.00
+140625 ID up 0.97
+140626 RZ Best by 0.01 (claim 18 points)
+140627 Y 2740 -> 2830 up 0.01 + Best 0.02 WS MC down RZ ID N/A
+140628 RZ up 0.98 (claim I)
+140629 S 2800 -> 2830 Best 0.01 WS -0.01 others N/A
