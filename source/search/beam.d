@@ -18,7 +18,7 @@ T [] inverse_permutation (T) (T [] perm)
 }
 
 class BeamSearchStorage (alias get_hash,
-    alias check_good_post_dup,
+    alias process_post_dup,
     alias compare_inner,
     State)
 //    if (is (HashType get_hash (State.init)))
@@ -86,7 +86,7 @@ class BeamSearchStorage (alias get_hash,
 
 		payload ~= cur_state;
 
-		if (check_good_post_dup (payload))
+		if (process_post_dup (payload))
 		{
 			ready = false;
 		}
@@ -134,8 +134,8 @@ private class BeamSearch (int max_level,
     alias get_level,
     alias get_hash,
     alias gen_next,
-    alias check_good_pre_dup,
-    alias check_good_post_dup,
+    alias process_pre_dup,
+    alias process_post_dup,
     alias compare_best,
     alias compare_inner,
     State)
@@ -143,7 +143,7 @@ private class BeamSearch (int max_level,
 	int width;
 	int depth;
 
-	alias CurStorage = BeamSearchStorage !(get_hash, check_good_post_dup,
+	alias CurStorage = BeamSearchStorage !(get_hash, process_post_dup,
 	    compare_inner, State);
 	CurStorage [] storage;
 	State best;
@@ -182,7 +182,7 @@ private class BeamSearch (int max_level,
 
 	void put (ref State cur_state)
 	{
-		if (!check_good_pre_dup (cur_state))
+		if (!process_pre_dup (cur_state))
 		{
 			return;
 		}
@@ -220,8 +220,8 @@ State beam_search (int max_level,
     alias get_level,
     alias get_hash,
     alias gen_next,
-    alias check_good_pre_dup,
-    alias check_good_post_dup,
+    alias process_pre_dup,
+    alias process_post_dup,
     alias compare_best,
     alias compare_inner,
     State, StateRange)
@@ -230,7 +230,7 @@ State beam_search (int max_level,
         is (typeof ((ElementType !(StateRange).init == State.init))))
 {
 	return new BeamSearch !(max_level, get_level, get_hash, gen_next,
-	    check_good_pre_dup, check_good_post_dup,
+	    process_pre_dup, process_post_dup,
 	    compare_best, compare_inner, State)
 	    (width, depth).go (init_states);
 }

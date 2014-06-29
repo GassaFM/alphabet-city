@@ -420,7 +420,7 @@ void put_two (int new_beam_width, int new_beam_depth,
 
 	put_goal_pairs (new_beam_width, new_beam_depth,
 	    new_bias0, new_bias1, p, t, s,
-	    goal_pairs.take (15).drop (0).array (), prev_goals, prev_guide);
+	    goal_pairs.take (50).drop (33).array (), prev_goals, prev_guide);
 }
 
 void main (string [] args)

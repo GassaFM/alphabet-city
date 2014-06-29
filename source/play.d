@@ -30,6 +30,8 @@ struct Play (DictClass)
 	int score_mult = 1;
 	int vt = DictClass.ROOT;
 
+	GameMove cur_move;
+
 	void consider ()
 	{
 		version (debug_play)
@@ -39,9 +41,12 @@ struct Play (DictClass)
 		int add_score = vert_score + main_score * score_mult +
 		    scoring.bingo * (active_tiles == Rack.MAX_SIZE);
 		cur.board.score += add_score;
+		cur.closest_move = new GameMove (cur_move);
+		cur.closest_move.score = add_score;
 		scope (exit)
 		{
 			cur.board.score -= add_score;
+			cur.closest_move = cur_move.chained_move;
 		}
 		(*process) (*cur);
 	}
@@ -144,6 +149,7 @@ struct Play (DictClass)
 		connections += (vert_add > 0) ||
 		    (row == Board.CENTER && col == Board.CENTER);
 		vert_score += vert_add;
+		cur_move.word ~= cur.board[row][col];
 		scope (exit)
 		{
 			main_score = main_score_saved;
@@ -151,6 +157,8 @@ struct Play (DictClass)
 			connections -= (vert_add > 0) ||
 			    (row == Board.CENTER && col == Board.CENTER);
 			vert_score -= vert_add;
+			cur_move.word.length--;
+			cur_move.word.assumeSafeAppend ();
 		}
 		scoring.account (main_score, score_mult,
 		    cur.board[row][col], row, col);
@@ -197,9 +205,9 @@ struct Play (DictClass)
 		active_tiles++;
 		scope (exit)
 		{
-			cur.board[row][col] = BoardCell.NONE;
 			cur.board.total--;
 			active_tiles--;
+			cur.board[row][col] = BoardCell.NONE;
 		}
 
 		foreach (ref c; cur.tiles.rack.contents)
@@ -242,6 +250,7 @@ struct Play (DictClass)
 		{
 			writeln ("move_horizontal");
 		}
+		cur_move.initialize (*cur);
 		for (row = 0; row < Board.SIZE; row++)
 		{
 			for (col = 0; col < Board.SIZE; col++)
@@ -249,6 +258,7 @@ struct Play (DictClass)
 				if (cur.board.suggest_start_move (row, col,
 				    cur.tiles.rack.usable_total))
 				{
+					cur_move.start_at (row, col);
 					move_recur ();
 				}
 			}
@@ -263,7 +273,7 @@ struct Play (DictClass)
 		cur.board.flip ();
 	}
 
-	ref Play opCall (ref GameState new_cur)
+	ref typeof (this) opCall (ref GameState new_cur)
 	{
 		cur = &new_cur;
 		return this;
@@ -282,6 +292,8 @@ struct Play (DictClass)
 	{
 		dict = new_dict;
 		scoring = new_scoring;
+
+		cur_move = new GameMove ();
 	}
 }
 
@@ -293,6 +305,7 @@ unittest
 	auto cur = GameState (Problem ("?:", "ABCDEFG"));
 	foreach (next; play (cur))
 	{
+		assert (next.board.score > 0);
 		writeln (next);
 		stdout.flush ();
 	}

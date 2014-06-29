@@ -15,6 +15,32 @@ import tile_bag;
 
 static class GameTools
 {
+	static int calc_goal_value (ref GameState cur, Goal goal,
+	    GameComplex game, ref TileCounter counter)
+	{
+		final switch (goal.stage)
+		{
+			case Goal.Stage.PREPARE:
+				return calc_goal_value_prepare
+				    (cur, goal, game, counter);
+			case Goal.Stage.MAIN:
+				return calc_goal_value_main
+				    (cur, goal, game, counter);
+			case Goal.Stage.DONE:
+				return calc_goal_value_done
+				    (cur, goal, game, counter);
+			case Goal.Stage.COMBINED:
+				return calc_goal_value_combined
+				    (cur, goal, game, counter);
+			case Goal.Stage.GREEDY:
+				return calc_goal_value_greedy
+				    (cur, goal, game, counter);
+			case Goal.Stage.CENTER:
+				return calc_goal_value_center
+				    (cur, goal, game, counter);
+		}
+	}
+
 	static int calc_goal_value_prepare (ref GameState cur, Goal goal,
 	    GameComplex game, ref TileCounter counter)
 	{
@@ -497,7 +523,10 @@ static class GameTools
 	static int bias_value_by_cell (const ref GameState cur,
 	    const int bias)
 	{
-		enforce (bias);
+		if (bias == 0)
+		{
+			return 0;
+		}
 		enforce (!cur.board.is_flipped);
 		int res = 0;
 		if (bias > 0)
@@ -533,7 +562,10 @@ static class GameTools
 	static int bias_value_by_column (const ref GameState cur,
 	    const int bias)
 	{
-		enforce (bias);
+		if (bias == 0)
+		{
+			return 0;
+		}
 		enforce (!cur.board.is_flipped);
 		int res = 0;
 		if (bias > 0)
@@ -571,7 +603,10 @@ static class GameTools
 	static int bias_value_by_column_plus (const ref GameState cur,
 	    const int bias)
 	{
-		enforce (bias);
+		if (bias == 0)
+		{
+			return 0;
+		}
 		enforce (!cur.board.is_flipped);
 		int res = 0;
 		if (bias > 0)
@@ -611,7 +646,10 @@ static class GameTools
 	static int bias_value_by_column_invert (const ref GameState cur,
 	    const int bias)
 	{
-		enforce (bias);
+		if (bias == 0)
+		{
+			return 0;
+		}
 		enforce (!cur.board.is_flipped);
 		int res = 0;
 		if (bias > 0)

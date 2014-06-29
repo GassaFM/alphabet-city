@@ -33,6 +33,24 @@ class GameMove
 		return res;
 	}
 
+	void start_at (byte new_row, byte new_col)
+	{
+		row = new_row;
+		col = new_col;
+	}
+
+	void initialize (ref GameState cur)
+	{
+		tiles_before = cur.board.total; // cur.board is BEFORE the move
+		is_flipped = cur.board.is_flipped;
+		chained_move = cur.closest_move;
+		word.reserve (Board.SIZE + 1);
+	}
+
+	this ()
+	{
+	}
+
 	this (ref GameState cur, int new_row, int new_col, int add_score = NA)
 	{
 		row = to !(byte) (new_row);
@@ -41,7 +59,7 @@ class GameMove
 		{
 			col--;
 		}
-		tiles_before = cur.board.total; // cur.board is after the move
+		tiles_before = cur.board.total; // cur.board is AFTER the move
 		foreach (cur_col; col..new_col + 1)
 		{
 			auto cur_tile = cur.board[row][cur_col];
