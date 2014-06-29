@@ -1,9 +1,12 @@
 module play;
 
+import std.stdio;
+
 import board;
 import game_move;
 import game_state;
 import general;
+import problem;
 import scoring;
 import tile_bag;
 import trie;
@@ -29,6 +32,10 @@ struct Play (DictClass)
 
 	void consider ()
 	{
+		version (debug_play)
+		{
+			writeln ("consider ", row, ' ', col);
+		}
 		int add_score = vert_score + main_score * score_mult +
 		    scoring.bingo * (active_tiles == Rack.MAX_SIZE);
 		cur.board.score += add_score;
@@ -41,23 +48,28 @@ struct Play (DictClass)
 
 	int check_vertical ()
 	{
+		version (debug_play)
+		{
+			writeln ("check_vertical ", row, ' ', col);
+		}
 		if (!cur.board[row][col].active)
 		{
 			return 0;
 		}
+
 		int cur_row = row;
-		while (cur_row > 0 && !cur.board[cur_row][col].empty)
+		while (cur_row > 0 && !cur.board[cur_row - 1][col].empty)
 		{
 			cur_row--;
 		}
-		if (cur_row == row)
+
+		if (cur_row == row &&
+		    (cur_row == Board.SIZE - 1 ||
+		    cur.board[cur_row + 1][col].empty))
 		{
-			if (cur_row == Board.SIZE - 1 ||
-			    cur.board[cur_row + 1][col].empty)
-			{
-				return 0;
-			}
+			return 0;
 		}
+
 		int score = 0;
 		int mult = 1;
 		int v = DictClass.ROOT;
@@ -75,6 +87,7 @@ struct Play (DictClass)
 		}
 		while (cur_row < Board.SIZE &&
 		    !cur.board[cur_row][col].empty);
+
 		if (!dict.contents[v].word)
 		{
 			return NA;
@@ -84,6 +97,10 @@ struct Play (DictClass)
 
 	void step_recur ()
 	{
+		version (debug_play)
+		{
+			writeln ("step_recur ", row, ' ', col);
+		}
 		assert (!cur.board[row][col].empty);
 /*
 		if (check_board.is_flipped == cur.board.is_flipped)
@@ -106,36 +123,37 @@ struct Play (DictClass)
 		}
 */
 		int vt_saved = vt;
+		scope (exit)
+		{
+			vt = vt_saved;
+		}
 		vt = dict.contents[vt].next (cur.board[row][col]);
 		if (vt == NA)
 		{
 			return;
 		}
 
-		int add = check_vertical ();
-		if (add == NA)
+		int vert_add = check_vertical ();
+		if (vert_add == NA)
 		{
 			return;
 		}
 
 		int main_score_saved = main_score;
 		int score_mult_saved = score_mult;
-		scoring.account (main_score, score_mult,
-		    cur.board[row][col], row, col);
-		connections += (add > 0);
-		connections += (row == Board.CENTER &&
-		    col == Board.CENTER);
-		vert_score += add;
+		connections += (vert_add > 0) ||
+		    (row == Board.CENTER && col == Board.CENTER);
+		vert_score += vert_add;
 		scope (exit)
 		{
-			connections -= (add > 0);
-			connections -= (row == Board.CENTER &&
-			    col == Board.CENTER);
-			vert_score -= add;
 			main_score = main_score_saved;
 			score_mult = score_mult_saved;
-			vt = vt_saved;
+			connections -= (vert_add > 0) ||
+			    (row == Board.CENTER && col == Board.CENTER);
+			vert_score -= vert_add;
 		}
+		scoring.account (main_score, score_mult,
+		    cur.board[row][col], row, col);
 
 		if (col + 1 == Board.SIZE || cur.board[row][col + 1].empty)
 		{
@@ -160,7 +178,11 @@ struct Play (DictClass)
 
 	void move_recur ()
 	{
-		if (cur.board[row][col].empty)
+		version (debug_play)
+		{
+			writeln ("move_recur ", row, ' ', col);
+		}
+		if (!cur.board[row][col].empty)
 		{
 			connections++;
 			scope (exit)
@@ -216,6 +238,10 @@ struct Play (DictClass)
 
 	void move_horizontal ()
 	{
+		version (debug_play)
+		{
+			writeln ("move_horizontal");
+		}
 		for (row = 0; row < Board.SIZE; row++)
 		{
 			for (col = 0; col < Board.SIZE; col++)
@@ -237,13 +263,19 @@ struct Play (DictClass)
 		cur.board.flip ();
 	}
 
-	void opApply (ref GameState new_cur,
-	    int delegate (ref GameState) new_process)
+	ref Play opCall (ref GameState new_cur)
 	{
 		cur = &new_cur;
+		return this;
+	}
+
+	int opApply (int delegate (ref GameState) new_process)
+	{
 		process = &new_process;
 
 		move_start ();
+
+		return 0;
 	}
 
 	this (DictClass new_dict, Scoring new_scoring)
@@ -257,5 +289,11 @@ unittest
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
-	auto play = new Play !(Trie) (t, s);
+	auto play = Play !(Trie) (t, s);
+	auto cur = GameState (Problem ("?:", "ABCDEFG"));
+	foreach (next; play (cur))
+	{
+		writeln (next);
+		stdout.flush ();
+	}
 }
