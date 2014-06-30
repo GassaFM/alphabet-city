@@ -51,7 +51,8 @@ class GameComplex
 
 	bool allow_mirror () @property const
 	{ // mirror boards not allowed if no goals and no moves_guide
-		return !goals.empty || moves_guide !is null;
+//		return !goals.empty || moves_guide !is null;
+		return true;
 	}
 
 	int is_move_present (ref GameState cur, GameMove cur_move)
@@ -93,6 +94,7 @@ class GameComplex
 	void consider (ref GameState cur, int row, int col,
 	    int vert, int score, int mult, int flags)
 	{
+/*
 		// DIRTY HACK; TODO: parameterize!
 		if (cur.board.is_flipped)
 		{
@@ -112,6 +114,7 @@ class GameComplex
 				return;
 			}
 		}
+*/
 
 		int num = cur.board.total;
 		int add_score = vert + score * mult +
@@ -970,7 +973,7 @@ class GameComplex
 			foreach (pos; 0..cur_move.word.length)
 			{
 				if (!suggest_check_board_tile (row,
-				    to !(byte) (col + pos),
+				    cast (byte) (col + pos),
 				    cur_move.word[pos].letter))
 				{
 					return false;
@@ -989,7 +992,7 @@ class GameComplex
 			foreach (pos; 0..cur_goal.word.length)
 			{
 				if (!suggest_check_board_tile (row,
-				    to !(byte) (col + pos),
+				    cast (byte) (col + pos),
 				    cur_goal.word[pos]))
 				{
 					return false;

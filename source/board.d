@@ -39,7 +39,7 @@ struct BoardCell
 
 	byte wildcard (const byte new_wildcard) @property
 	{
-		contents = to !(byte) ((contents & ~(1 << WILDCARD_SHIFT)) |
+		contents = cast (byte) ((contents & ~(1 << WILDCARD_SHIFT)) |
 		    (new_wildcard << WILDCARD_SHIFT));
 		return new_wildcard;
 	}
@@ -51,7 +51,7 @@ struct BoardCell
 
 	byte active (const byte new_active) @property
 	{
-		contents = to !(byte) ((contents & ~(1 << ACTIVE_SHIFT)) |
+		contents = cast (byte) ((contents & ~(1 << ACTIVE_SHIFT)) |
 		    (new_active << ACTIVE_SHIFT));
 		return new_active;
 	}

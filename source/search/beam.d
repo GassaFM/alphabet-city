@@ -50,18 +50,15 @@ class BeamSearchStorage (alias get_hash,
 			int new_length = min (payload.length, width);
 			auto perm = (cast (int) (payload.length))
 			    .iota ().array ();
+/*
 			partialSort !((a, b) => compare_inner (payload[a],
 			    payload[b]) > 0, SwapStrategy.unstable)
 			    (perm, new_length);
+*/
+			sort !((a, b) => compare_inner (payload[a],
+			    payload[b]) > 0, SwapStrategy.stable)
+			    (perm);
 			auto inv = inverse_permutation (perm);
-			static if (is (HashType == ulong))
-			{
-				writeln ("before: ", payload
-				    .map !(a => a.board.value) ()
-				    .array ());
-				writeln (perm);
-				writeln (inv);
-			}
 
 			foreach (i; 0..new_length)
 			{
@@ -78,12 +75,6 @@ class BeamSearchStorage (alias get_hash,
 			payload.assumeSafeAppend ();
 			assert (isSorted !((a, b) => compare_inner (a, b) > 0)
 			    (payload));
-			static if (is (HashType == ulong))
-			{
-				writeln ("after: ", payload
-				    .map !(a => a.board.value) ()
-				    .array ());
-			}
 		}
 	}
 

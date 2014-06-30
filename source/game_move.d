@@ -64,8 +64,8 @@ class GameMove
 
 	this (ref GameState cur, int new_row, int new_col, int add_score = NA)
 	{
-		row = to !(byte) (new_row);
-		col = to !(byte) (new_col);
+		row = cast (byte) (new_row);
+		col = cast (byte) (new_col);
 		while (col > 0 && !cur.board[row][col - 1].empty)
 		{
 			col--;
@@ -103,12 +103,12 @@ class GameMove
 		{
 			if ('A' <= ch && ch <= 'Z')
 			{
-				word[i].letter = to !(byte) (ch - 'A');
+				word[i].letter = cast (byte) (ch - 'A');
 				word[i].wildcard = false;
 			}
 			else if ('a' <= ch && ch <= 'z')
 			{
-				word[i].letter = to !(byte) (ch - 'a');
+				word[i].letter = cast (byte) (ch - 'a');
 				word[i].wildcard = true;
 			}
 			else
