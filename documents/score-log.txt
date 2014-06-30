@@ -61,3 +61,5 @@ K
 140627 Y 2740 -> 2830 up 0.01 + Best 0.02 WS MC down RZ ID N/A
 140628 RZ up 0.98 (claim I)
 140629 S 2800 -> 2830 Best 0.01 WS -0.01 others N/A
+140701 E 2964 -> 2969 Best 0.00
+140701 F 3126 -> 3130 Best 0.00

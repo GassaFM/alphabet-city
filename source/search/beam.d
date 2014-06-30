@@ -244,10 +244,10 @@ State beam_search (int max_level,
     if (isForwardRange !(StateRange) &&
         (ElementType !(StateRange).init is State.init))
 {
-	return new BeamSearch !(max_level, get_level, get_hash, gen_next,
+	return (new BeamSearch !(max_level, get_level, get_hash, gen_next,
 	    process_pre_dup, process_post_dup,
 	    compare_best, compare_inner, State)
-	    (width, depth).go (init_states);
+	    (width, depth)).go (init_states);
 }
 
 unittest

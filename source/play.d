@@ -14,7 +14,7 @@ import trie;
 struct Play (DictClass)
 {
 //	enum MoveGenerator {Rack, Word};
-	
+
 	DictClass stored_dict;
 	Scoring stored_scoring;
 
@@ -22,11 +22,23 @@ struct Play (DictClass)
 
 	GameMove stored_cur_move;
 
-	void move_start (ref GameState cur, DictClass dict, Scoring scoring,
-	    byte row, byte col, byte connections, byte active_tiles,
-	    int vert_score, int main_score, int score_mult, int vt,
-	    GameMove cur_move, int delegate (ref GameState) process)
+	void move_start (ref GameState cur,
+	    int delegate (ref GameState) process)
 	{
+		DictClass dict = stored_dict;
+		Scoring scoring = stored_scoring;
+
+		byte row = byte.max;
+		byte col = byte.max;
+		byte connections = 0;
+		byte active_tiles = 0;
+		int vert_score = 0;
+		int main_score = 0;
+		int score_mult = 1;
+		int vt = DictClass.ROOT;
+
+		GameMove cur_move = stored_cur_move;
+
 		void consider ()
 		{
 			version (debug_play)
@@ -103,97 +115,8 @@ struct Play (DictClass)
 			return score * mult;
 		}
 
-		void step_recur () ()
-		{ // templated to recurse into move_recur
-			version (debug_play)
-			{
-				writeln ("step_recur ", row, ' ', col);
-			}
-			assert (!cur.board[row][col].empty);
-
-/*
-			if (check_board.is_flipped == cur.board.is_flipped)
-			{
-				if (!check_board[row][col].empty &&
-				    check_board[row][col].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
-			}
-			else
-			{
-				if (!check_board[col][row].empty &&
-				    check_board[col][row].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
-			}
-*/
-
-			int vt_saved = vt;
-			scope (exit)
-			{
-				vt = vt_saved;
-			}
-			vt = dict.contents[vt].next (cur.board[row][col]);
-			if (vt == NA)
-			{
-				return;
-			}
-
-			int vert_add = check_vertical ();
-			if (vert_add == NA)
-			{
-				return;
-			}
-
-			int main_score_saved = main_score;
-			int score_mult_saved = score_mult;
-			connections += (vert_add > 0) ||
-			    (row == Board.CENTER &&
-			    col == Board.CENTER);
-			vert_score += vert_add;
-			cur_move.word ~= cur.board[row][col];
-			scope (exit)
-			{
-				main_score = main_score_saved;
-				score_mult = score_mult_saved;
-				connections -= (vert_add > 0) ||
-				    (row == Board.CENTER &&
-				    col == Board.CENTER);
-				vert_score -= vert_add;
-				cur_move.word.length--;
-				cur_move.word.assumeSafeAppend ();
-			}
-			scoring.account (main_score, score_mult,
-			    cur.board[row][col], row, col);
-
-			if (col + 1 == Board.SIZE ||
-			    cur.board[row][col + 1].empty)
-			{
-				if (dict.contents[vt].word &&
-				    connections &&
-				    (active_tiles >= (1 +
-				    (cur.board.is_flipped && vert_score))))
-				{ // 1-letter h+v move ~always not flipped
-					consider ();
-				}
-			}
-			if (col + 1 < Board.SIZE)
-			{
-				col++;
-				scope (exit)
-				{
-					col--;
-				}
-				move_recur ();
-			}
-		}
-
-		void move_recur ()
-		{
+		void move_recur () ()
+		{ // templated to recurse into step_recur
 			version (debug_play)
 			{
 				writeln ("move_recur ", row, ' ', col);
@@ -255,6 +178,110 @@ struct Play (DictClass)
 			}
 		}
 
+		void step_recur ()
+		{
+			version (debug_play)
+			{
+				writeln ("step_recur ", row, ' ', col);
+			}
+			assert (!cur.board[row][col].empty);
+
+/*
+			if (check_board.is_flipped == cur.board.is_flipped)
+			{
+				if (!check_board[row][col].empty &&
+				    check_board[row][col].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
+			}
+			else
+			{
+				if (!check_board[col][row].empty &&
+				    check_board[col][row].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
+			}
+*/
+
+			int vt_saved = vt;
+			scope (exit)
+			{
+				vt = vt_saved;
+			}
+			vt = dict.contents[vt].next (cur.board[row][col]);
+			if (vt == NA)
+			{
+				return;
+			}
+
+			int vert_add = check_vertical ();
+			if (vert_add == NA)
+			{
+				return;
+			}
+
+			int main_score_saved = main_score;
+			int score_mult_saved = score_mult;
+			connections += (vert_add > 0) ||
+			    (row == Board.CENTER &&
+			    col == Board.CENTER);
+			vert_score += vert_add;
+			cur_move.word ~= cur.board[row][col];
+/*
+			scope (exit)
+			{
+				main_score = main_score_saved;
+				score_mult = score_mult_saved;
+				connections -= (vert_add > 0) ||
+				    (row == Board.CENTER &&
+				    col == Board.CENTER);
+				vert_score -= vert_add;
+				cur_move.word.length--;
+				cur_move.word.assumeSafeAppend ();
+			}
+*/
+			scoring.account (main_score, score_mult,
+			    cur.board[row][col], row, col);
+
+			if (col + 1 == Board.SIZE ||
+			    cur.board[row][col + 1].empty)
+			{
+				if (dict.contents[vt].word &&
+				    connections &&
+				    (active_tiles >= (1 +
+				    (cur.board.is_flipped && vert_score))))
+				{ // 1-letter h+v move ~always not flipped
+					consider ();
+				}
+			}
+			if (col + 1 < Board.SIZE)
+			{
+				col++;
+/*
+				scope (exit)
+				{
+					col--;
+				}
+*/
+				move_recur ();
+
+				col--;
+			}
+
+			main_score = main_score_saved;
+			score_mult = score_mult_saved;
+			connections -= (vert_add > 0) ||
+			    (row == Board.CENTER &&
+			    col == Board.CENTER);
+			vert_score -= vert_add;
+			cur_move.word.length--;
+			cur_move.word.assumeSafeAppend ();
+		}
+
 		void move_horizontal ()
 		{
 			version (debug_play)
@@ -291,9 +318,7 @@ struct Play (DictClass)
 
 	int opApply (int delegate (ref GameState) new_process)
 	{
-		move_start (*stored_cur, stored_dict, stored_scoring,
-		    byte.max, byte.max, 0, 0, 0, 0, 1, DictClass.ROOT,
-		    stored_cur_move, new_process);
+		move_start (*stored_cur, new_process);
 
 		return 0;
 	}

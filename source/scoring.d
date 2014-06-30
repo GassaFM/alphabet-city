@@ -35,7 +35,9 @@ class Scoring
 					if (word == BONUS_NAME[b])
 					{
 						board_bonus[i][j] =
-						    to !(Bonus) (b);
+						    cast (Bonus) (b);
+// BUG with ldc 0.12.1:
+//						    to !(Bonus) (b);
 						found = true;
 						break;
 					}

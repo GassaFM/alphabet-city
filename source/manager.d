@@ -21,7 +21,7 @@ class Manager
 
 	static string file_name (const char [] problem_name) pure
 	{
-		return "data/best/" ~ problem_name ~ ".txt";
+		return to !(string) ("data/best/" ~ problem_name ~ ".txt");
 	}
 
 	void load_file (const char [] problem_name)

@@ -5,6 +5,9 @@ export ALLEGRO5_PATH_LINUX="/c/programs/git/DAllegro5"
 export LINKER_FLAGS="-L/STACK:268435456"
 export OUTPUT_NAME="binary\\$NAME.exe"
 export SOURCES=`ls source/{,search/}*.d`
+export DC=dmd
+#export DC=C:\\Tools\\ldc2\\bin\\ldmd2
+#export DC='bash C:\\Tools\\gdc\\bin\\gdmd.sh'
 #echo $SOURCES
 #export ARCHITECTURE_OPTIONS="-m32"
 export ARCHITECTURE_OPTIONS="-m64"

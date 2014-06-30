@@ -92,10 +92,10 @@ struct Problem
 
 	this (this)
 	{
-		name = name.dup;
-		short_name = short_name.dup;
-		contents = contents.dup;
-		virtual = virtual.dup;
+		name = to !(typeof (name)) (name.dup);
+		short_name = to !(typeof (short_name)) (short_name.dup);
+		contents = to !(typeof (contents)) (contents.dup);
+		virtual = to !(typeof (virtual)) (virtual.dup);
 	}
 
 	string toString () const
