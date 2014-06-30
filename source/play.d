@@ -15,265 +15,268 @@ struct Play (DictClass)
 {
 //	enum MoveGenerator {Rack, Word};
 	
-	DictClass dict;
-	Scoring scoring;
+	DictClass stored_dict;
+	Scoring stored_scoring;
 
-	GameState * cur;
-	int delegate (ref GameState) * process;
+	GameState * stored_cur;
 
-	byte row = byte.max;
-	byte col = byte.max;
-	byte connections = 0;
-	byte active_tiles = 0;
-	int vert_score = 0;
-	int main_score = 0;
-	int score_mult = 1;
-	int vt = DictClass.ROOT;
+	GameMove stored_cur_move;
 
-	GameMove cur_move;
-
-	void consider ()
+	void move_start (ref GameState cur, DictClass dict, Scoring scoring,
+	    byte row, byte col, byte connections, byte active_tiles,
+	    int vert_score, int main_score, int score_mult, int vt,
+	    GameMove cur_move, int delegate (ref GameState) process)
 	{
-		version (debug_play)
+		void consider ()
 		{
-			writeln ("consider ", row, ' ', col);
-		}
-		int add_score = scoring.calculate
-		    (vert_score, main_score, score_mult, active_tiles);
-		cur.board.score += add_score;
-		cur.closest_move = new GameMove (cur_move);
-		cur.closest_move.score = add_score;
-		cur.closest_move.word = cur.closest_move.word.dup;
-		auto tiles_saved = cur.tiles;
-		cur.tiles.rack.normalize ();
-		cur.tiles.fill_rack ();
-		cur.xor_active ();
-		scope (exit)
-		{
+			version (debug_play)
+			{
+				writeln ("consider ", row, ' ', col);
+			}
+			int add_score = scoring.calculate (vert_score,
+			    main_score, score_mult, active_tiles);
+			cur.board.score += add_score;
+			cur.closest_move = new GameMove (cur_move);
+			cur.closest_move.score = add_score;
+			cur.closest_move.word = cur.closest_move.word.dup;
+			auto tiles_saved = cur.tiles;
+			cur.tiles.rack.normalize ();
+			cur.tiles.fill_rack ();
 			cur.xor_active ();
-			cur.tiles = tiles_saved;
-			cur.closest_move = cur_move.chained_move;
-			cur.board.score -= add_score;
-		}
-		(*process) (*cur);
-	}
-
-	int check_vertical ()
-	{
-		version (debug_play)
-		{
-			writeln ("check_vertical ", row, ' ', col);
-		}
-		if (!cur.board[row][col].active)
-		{
-			return 0;
+			scope (exit)
+			{
+				cur.xor_active ();
+				cur.tiles = tiles_saved;
+				cur.closest_move = cur_move.chained_move;
+				cur.board.score -= add_score;
+			}
+			process (cur);
 		}
 
-		int cur_row = row;
-		while (cur_row > 0 && !cur.board[cur_row - 1][col].empty)
+		int check_vertical ()
 		{
-			cur_row--;
-		}
+			version (debug_play)
+			{
+				writeln ("check_vertical ", row, ' ', col);
+			}
+			if (!cur.board[row][col].active)
+			{
+				return 0;
+			}
 
-		if (cur_row == row &&
-		    (cur_row == Board.SIZE - 1 ||
-		    cur.board[cur_row + 1][col].empty))
-		{
-			return 0;
-		}
+			int cur_row = row;
+			while (cur_row > 0 &&
+			    !cur.board[cur_row - 1][col].empty)
+			{
+				cur_row--;
+			}
 
-		int score = 0;
-		int mult = 1;
-		int v = DictClass.ROOT;
-		do
-		{
-			v = dict.contents[v].next
-			    (cur.board[cur_row][col].letter);
-			scoring.account (score, mult,
-			    cur.board[cur_row][col], cur_row, col);
-			if (v == NA)
+			if (cur_row == row &&
+			    (cur_row == Board.SIZE - 1 ||
+			    cur.board[cur_row + 1][col].empty))
+			{
+				return 0;
+			}
+
+			int score = 0;
+			int mult = 1;
+			int v = DictClass.ROOT;
+			do
+			{
+				v = dict.contents[v].next
+				    (cur.board[cur_row][col].letter);
+				scoring.account (score, mult,
+				    cur.board[cur_row][col], cur_row, col);
+				if (v == NA)
+				{
+					return NA;
+				}
+				cur_row++;
+			}
+			while (cur_row < Board.SIZE &&
+			    !cur.board[cur_row][col].empty);
+
+			if (!dict.contents[v].word)
 			{
 				return NA;
 			}
-			cur_row++;
+			return score * mult;
 		}
-		while (cur_row < Board.SIZE &&
-		    !cur.board[cur_row][col].empty);
 
-		if (!dict.contents[v].word)
-		{
-			return NA;
-		}
-		return score * mult;
-	}
+		void step_recur () ()
+		{ // templated to recurse into move_recur
+			version (debug_play)
+			{
+				writeln ("step_recur ", row, ' ', col);
+			}
+			assert (!cur.board[row][col].empty);
 
-	void step_recur ()
-	{
-		version (debug_play)
-		{
-			writeln ("step_recur ", row, ' ', col);
-		}
-		assert (!cur.board[row][col].empty);
 /*
-		if (check_board.is_flipped == cur.board.is_flipped)
-		{
-			if (!check_board[row][col].empty &&
-			    check_board[row][col].letter !=
-			    cur.board[row][col].letter)
+			if (check_board.is_flipped == cur.board.is_flipped)
 			{
-				return;
+				if (!check_board[row][col].empty &&
+				    check_board[row][col].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
 			}
-		}
-		else
-		{
-			if (!check_board[col][row].empty &&
-			    check_board[col][row].letter !=
-			    cur.board[row][col].letter)
+			else
 			{
-				return;
+				if (!check_board[col][row].empty &&
+				    check_board[col][row].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
 			}
-		}
 */
-		int vt_saved = vt;
-		scope (exit)
-		{
-			vt = vt_saved;
-		}
-		vt = dict.contents[vt].next (cur.board[row][col]);
-		if (vt == NA)
-		{
-			return;
-		}
 
-		int vert_add = check_vertical ();
-		if (vert_add == NA)
-		{
-			return;
-		}
-
-		int main_score_saved = main_score;
-		int score_mult_saved = score_mult;
-		connections += (vert_add > 0) ||
-		    (row == Board.CENTER && col == Board.CENTER);
-		vert_score += vert_add;
-		cur_move.word ~= cur.board[row][col];
-		scope (exit)
-		{
-			main_score = main_score_saved;
-			score_mult = score_mult_saved;
-			connections -= (vert_add > 0) ||
-			    (row == Board.CENTER && col == Board.CENTER);
-			vert_score -= vert_add;
-			cur_move.word.length--;
-			cur_move.word.assumeSafeAppend ();
-		}
-		scoring.account (main_score, score_mult,
-		    cur.board[row][col], row, col);
-
-		if (col + 1 == Board.SIZE || cur.board[row][col + 1].empty)
-		{
-			if (dict.contents[vt].word &&
-			    connections &&
-			    (active_tiles >=
-			    (1 + (cur.board.is_flipped && vert_score))))
-			{ // make 1-letter h+v move almost always not flipped
-				consider ();
-			}
-		}
-		if (col + 1 < Board.SIZE)
-		{
-			col++;
+			int vt_saved = vt;
 			scope (exit)
 			{
-				col--;
+				vt = vt_saved;
 			}
-			move_recur ();
-		}
-	}
+			vt = dict.contents[vt].next (cur.board[row][col]);
+			if (vt == NA)
+			{
+				return;
+			}
 
-	void move_recur ()
-	{
-		version (debug_play)
-		{
-			writeln ("move_recur ", row, ' ', col);
-		}
-		if (!cur.board[row][col].empty)
-		{
-			connections++;
+			int vert_add = check_vertical ();
+			if (vert_add == NA)
+			{
+				return;
+			}
+
+			int main_score_saved = main_score;
+			int score_mult_saved = score_mult;
+			connections += (vert_add > 0) ||
+			    (row == Board.CENTER &&
+			    col == Board.CENTER);
+			vert_score += vert_add;
+			cur_move.word ~= cur.board[row][col];
 			scope (exit)
 			{
-				connections--;
+				main_score = main_score_saved;
+				score_mult = score_mult_saved;
+				connections -= (vert_add > 0) ||
+				    (row == Board.CENTER &&
+				    col == Board.CENTER);
+				vert_score -= vert_add;
+				cur_move.word.length--;
+				cur_move.word.assumeSafeAppend ();
 			}
-			step_recur ();
-			return;
-		}
+			scoring.account (main_score, score_mult,
+			    cur.board[row][col], row, col);
 
-		cur.board.total++;
-		active_tiles++;
-		scope (exit)
-		{
-			cur.board.total--;
-			active_tiles--;
-			cur.board[row][col] = BoardCell.NONE;
-		}
-
-		foreach (ref c; cur.tiles.rack.contents)
-		{
-			if (c.empty)
+			if (col + 1 == Board.SIZE ||
+			    cur.board[row][col + 1].empty)
 			{
-				break;
+				if (dict.contents[vt].word &&
+				    connections &&
+				    (active_tiles >= (1 +
+				    (cur.board.is_flipped && vert_score))))
+				{ // 1-letter h+v move ~always not flipped
+					consider ();
+				}
 			}
-
-			if (c.num != 0)
+			if (col + 1 < Board.SIZE)
 			{
-				cur.tiles.dec (c);
+				col++;
 				scope (exit)
 				{
-					cur.tiles.inc (c);
+					col--;
 				}
-
-				if (!c.is_wildcard)
-				{
-					cur.board[row][col] = c.letter |
-					    (1 << BoardCell.ACTIVE_SHIFT);
-					step_recur ();
-					continue;
-				}
-
-				foreach (ubyte letter; 0..LET)
-				{
-					cur.board[row][col] = letter |
-					    (1 << BoardCell.WILDCARD_SHIFT) |
-					    (1 << BoardCell.ACTIVE_SHIFT);
-					step_recur ();
-				}
+				move_recur ();
 			}
 		}
-	}
 
-	void move_horizontal ()
-	{
-		version (debug_play)
+		void move_recur ()
 		{
-			writeln ("move_horizontal");
-		}
-		cur_move.initialize (*cur);
-		for (row = 0; row < Board.SIZE; row++)
-		{
-			for (col = 0; col < Board.SIZE; col++)
+			version (debug_play)
 			{
-				if (cur.board.suggest_start_move (row, col,
-				    cur.tiles.rack.usable_total))
+				writeln ("move_recur ", row, ' ', col);
+			}
+			if (!cur.board[row][col].empty)
+			{
+				connections++;
+				scope (exit)
 				{
-					cur_move.start_at (row, col);
-					move_recur ();
+					connections--;
+				}
+				step_recur ();
+				return;
+			}
+
+			cur.board.total++;
+			active_tiles++;
+			scope (exit)
+			{
+				cur.board.total--;
+				active_tiles--;
+				cur.board[row][col] = BoardCell.NONE;
+			}
+
+			foreach (ref c; cur.tiles.rack.contents)
+			{
+				if (c.empty)
+				{
+					break;
+				}
+
+				if (c.num != 0)
+				{
+					cur.tiles.dec (c);
+					scope (exit)
+					{
+						cur.tiles.inc (c);
+					}
+
+					if (!c.is_wildcard)
+					{
+						cur.board[row][col] =
+						    c.letter | (1 <<
+						    BoardCell.ACTIVE_SHIFT);
+						step_recur ();
+						continue;
+					}
+
+					foreach (ubyte letter; 0..LET)
+					{
+						cur.board[row][col] = letter |
+						    (1 <<
+						    BoardCell.WILDCARD_SHIFT) |
+						    (1 <<
+						    BoardCell.ACTIVE_SHIFT);
+						step_recur ();
+					}
 				}
 			}
 		}
-	}
 
-	void move_start ()
-	{
+		void move_horizontal ()
+		{
+			version (debug_play)
+			{
+				writeln ("move_horizontal");
+			}
+			cur_move.initialize (cur);
+			for (row = 0; row < Board.SIZE; row++)
+			{
+				for (col = 0; col < Board.SIZE; col++)
+				{
+					if (cur.board.suggest_start_move
+					    (row, col,
+					    cur.tiles.rack.usable_total))
+					{
+						cur_move.start_at (row, col);
+						move_recur ();
+					}
+				}
+			}
+		}
+
 		move_horizontal ();
 		cur.board.flip ();
 		move_horizontal ();
@@ -282,25 +285,25 @@ struct Play (DictClass)
 
 	ref typeof (this) opCall (ref GameState new_cur)
 	{
-		cur = &new_cur;
+		stored_cur = &new_cur;
 		return this;
 	}
 
 	int opApply (int delegate (ref GameState) new_process)
 	{
-		process = &new_process;
-
-		move_start ();
+		move_start (*stored_cur, stored_dict, stored_scoring,
+		    byte.max, byte.max, 0, 0, 0, 0, 1, DictClass.ROOT,
+		    stored_cur_move, new_process);
 
 		return 0;
 	}
 
 	this (DictClass new_dict, Scoring new_scoring)
 	{
-		dict = new_dict;
-		scoring = new_scoring;
+		stored_dict = new_dict;
+		stored_scoring = new_scoring;
 
-		cur_move = new GameMove ();
+		stored_cur_move = new GameMove ();
 	}
 }
 

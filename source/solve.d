@@ -674,18 +674,18 @@ void main (string [] args)
 		return;
 	}
 
-/*
+// /*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
 		[GameState (p)]
-		    .game_beam_search (new Game !(Trie) (t, s), 10, 1)
+		    .game_beam_search (new Game !(Trie) (t, s), 10, 0)
 		    .writeln;
 	}
 	return;
-*/
+// */
 
-// /*
+/*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
@@ -694,7 +694,7 @@ void main (string [] args)
 		writeln (game.best);
 	}
 	return;
-// */
+*/
 
 	foreach (i; 0..LET)
 	{
