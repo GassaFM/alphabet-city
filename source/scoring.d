@@ -7,6 +7,7 @@ import std.string;
 
 import board;
 import general;
+import tile_bag;
 
 class Scoring
 {
@@ -80,7 +81,7 @@ class Scoring
 	}
 
 	void account (ref int score, ref int mult, const BoardCell cur,
-	    const int row, const int col)
+	    const int row, const int col) const
 	{
 		int temp = cur.wildcard ? 0 : tile_value[cur.letter];
 		if (cur.active)
@@ -106,6 +107,13 @@ class Scoring
 			}
 		}
 		score += temp;
+	}
+
+	int calculate (const int vert_score, const int main_score,
+	    const int score_mult, const int active_tiles) const
+	{
+		return vert_score + main_score * score_mult +
+		    bingo * (active_tiles == Rack.MAX_SIZE);
 	}
 }
 

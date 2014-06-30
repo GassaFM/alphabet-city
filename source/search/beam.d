@@ -4,6 +4,7 @@ import std.algorithm;
 import std.array;
 import std.conv;
 import std.range;
+import std.stdio;
 import std.traits;
 
 T [] inverse_permutation (T) (T [] perm)
@@ -30,7 +31,8 @@ class BeamSearchStorage (alias get_hash,
 
 	void repack ()
 	{
-		alias HashType = ReturnType !(get_hash);
+//		alias HashType = ReturnType !(get_hash);
+		alias HashType = ulong;
 		int [HashType] marked;
 		foreach (ref cur_state; payload)
 		{
@@ -71,7 +73,7 @@ class BeamSearchStorage (alias get_hash,
 		}
 	}
 
-	void put (ref State cur_state)
+	ref State put (ref State cur_state)
 	{
 		if (payload.empty)
 		{
@@ -86,14 +88,16 @@ class BeamSearchStorage (alias get_hash,
 
 		payload ~= cur_state;
 
-		if (process_post_dup (payload))
+		if (process_post_dup (payload[$ - 1]))
 		{
 			ready = false;
+			return payload[$ - 1];
 		}
 		else
 		{
 			payload.length--;
 			payload.assumeSafeAppend ();
+			return cur_state;
 		}
 	}
 
@@ -109,6 +113,7 @@ class BeamSearchStorage (alias get_hash,
 			repack ();
 			assert (!empty);
 		}
+//		writeln (payload[0]);
 		return payload[0];
 	}
 
@@ -191,13 +196,12 @@ private class BeamSearch (int max_level,
 		{
 			return;
 		}
-		check_best (cur_state);
-		storage[cur_level].put (cur_state);
+		check_best (storage[cur_level].put (cur_state));
 	}
 
 	State go (StateRange) (StateRange init_states)
-	    if (isForwardRange !(StateRange) &&
-	        is (typeof ((ElementType !(StateRange).init == State.init))))
+//	    if (isForwardRange !(StateRange) &&
+//	        is (typeof ((ElementType !(StateRange).init == State.init))))
 	{
 		foreach (cur_state; init_states)
 		{
@@ -226,8 +230,8 @@ State beam_search (int max_level,
     alias compare_inner,
     State, StateRange)
     (StateRange init_states, int width, int depth)
-    if (isForwardRange !(StateRange) &&
-        is (typeof ((ElementType !(StateRange).init == State.init))))
+//    if (isForwardRange !(StateRange) &&
+//        is (typeof ((ElementType !(StateRange).init == State.init))))
 {
 	return new BeamSearch !(max_level, get_level, get_hash, gen_next,
 	    process_pre_dup, process_post_dup,

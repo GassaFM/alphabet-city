@@ -11,6 +11,8 @@ struct BoardCell
 {
 	immutable static int WILDCARD_SHIFT = LET_BITS;
 	immutable static int ACTIVE_SHIFT = LET_BITS + 1;
+	immutable static int IS_WILDCARD = 1 << WILDCARD_SHIFT;
+	immutable static int IS_ACTIVE = 1 << ACTIVE_SHIFT;
 	immutable static byte NONE = LET;
 
 	byte contents = NONE;

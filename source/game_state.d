@@ -17,6 +17,17 @@ struct GameState
 	TileBag tiles;
 	GameMove closest_move;
 
+	ulong get_board_hash () const
+	{
+		return board.contents_hash[0];
+	}
+
+	void xor_active ()
+	{
+		assert (closest_move !is null);
+		closest_move.xor_active (board);
+	}
+
 	static GameState read (ref File f)
 	{
 		GameState res;

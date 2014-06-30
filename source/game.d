@@ -1,12 +1,16 @@
 module game;
 
+import std.stdio;
+
 import board;
 import game_move;
 import game_state;
 import general;
 import play;
+import problem;
 import scoring;
 import search.beam;
+import tools;
 import trie;
 
 class Game (DictClass)
@@ -14,20 +18,10 @@ class Game (DictClass)
 	DictClass dict;
 	Scoring scoring;
 
-	Play play_regular;
-
 	int bias = 0;
 
 	bool process_pre_dup (ref GameState cur)
 	{
-		auto tiles_saved = cur.tiles;
-		cur.tiles.rack.normalize ();
-		cur.tiles.fill_rack ();
-		scope (exit)
-		{
-			cur.tiles = tiles_saved;
-		}
-
 		// TODO: check forbidden goal positions here
 
 		return true;
@@ -38,7 +32,7 @@ class Game (DictClass)
 		int res = cur.board.score;
 
 		// add bias value
-		cur.board.value += GameTools.bias_value (cur, bias);
+		res += GameTools.bias_value (cur, bias);
 
 		// TODO: add goal values here
 /*
@@ -46,7 +40,7 @@ class Game (DictClass)
 		foreach (goal; goals)
 		{
 			int cur_value = GameTools.calc_goal_value
-			    (next, goal, this, counter);
+			    (cur, goal, ???, counter);
 			if (cur_value == NA)
 			{
 				return NA;
@@ -72,34 +66,43 @@ class Game (DictClass)
 		return true;
 	}
 
-	private this ()
+	Play !(DictClass) play_regular ()
 	{
-		play_regular = new Play (dict, scoring);
+		return Play !(DictClass) (dict, scoring);
 	}
 
 	this (DictClass new_dict, Scoring new_scoring)
 	{
 		dict = new_dict;
 		scoring = new_scoring;
-
-		this ();
 	}
 }
 
-GameState beam_search (GameStateRange)
-    (GameStateRange init_states, Game game, int width, int depth)
+GameState game_beam_search (GameStateRange, DictClass)
+    (GameStateRange init_states, Game !(DictClass) game, int width, int depth)
 {
 	return beam_search !(TOTAL_TILES,
-	    a => a.num, // get_level
-	    a => a.board.contents_hash[0], // get_hash
-	    a => game.play_regular (a), // gen_next
-	    a => game.process_pre_dup (a), // process_pre_dup
-	    a => game.process_post_dup (a), // process_post_dup
-	    (a, b) => (a.score > b.score) - (a.score < b.score), // cmp_best
-	    (a, b) => (a.value > b.value) - (a.value < b.value)) // cmp_inner
+	    (ref a) => a.board.total, // get_level
+	    (ref a) => a.get_board_hash (), // get_hash
+	    (ref a) => game.play_regular () (a), // gen_next
+	    (ref a) => game.process_pre_dup (a), // process_pre_dup
+	    (ref a) => game.process_post_dup (a), // process_post_dup
+	    (ref a, ref b) => (a.board.score > b.board.score) -
+	        (a.board.score < b.board.score), // cmp_best
+	    (ref a, ref b) => (a.board.value > b.board.value) -
+	        (a.board.value < b.board.value), // cmp_inner
+	    GameState, GameStateRange)
 	    (init_states, width, depth);
 }
 
 unittest
 {
+	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
+	auto s = new Scoring ();
+	auto game = new Game !(Trie) (t, s);
+	auto cur = GameState (Problem ("?:", "ABCDEFG"));
+	auto next = game_beam_search ([cur], game, 10, 0);
+	assert (next.board.score > 0);
+	writeln (next);
+	stdout.flush ();
 }

@@ -33,6 +33,17 @@ class GameMove
 		return res;
 	}
 
+	void xor_active (ref Board board)
+	{
+		assert (is_flipped == board.is_flipped);
+		// easy to implement otherwise if needed
+		foreach (pos; 0..word.length)
+		{
+			board.contents[row][col + pos] ^= word[pos] &
+			    (1 << BoardCell.ACTIVE_SHIFT);
+		}
+	}
+
 	void start_at (byte new_row, byte new_col)
 	{
 		row = new_row;

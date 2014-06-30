@@ -38,15 +38,22 @@ struct Play (DictClass)
 		{
 			writeln ("consider ", row, ' ', col);
 		}
-		int add_score = vert_score + main_score * score_mult +
-		    scoring.bingo * (active_tiles == Rack.MAX_SIZE);
+		int add_score = scoring.calculate
+		    (vert_score, main_score, score_mult, active_tiles);
 		cur.board.score += add_score;
 		cur.closest_move = new GameMove (cur_move);
 		cur.closest_move.score = add_score;
+		cur.closest_move.word = cur.closest_move.word.dup;
+		auto tiles_saved = cur.tiles;
+		cur.tiles.rack.normalize ();
+		cur.tiles.fill_rack ();
+		cur.xor_active ();
 		scope (exit)
 		{
-			cur.board.score -= add_score;
+			cur.xor_active ();
+			cur.tiles = tiles_saved;
 			cur.closest_move = cur_move.chained_move;
+			cur.board.score -= add_score;
 		}
 		(*process) (*cur);
 	}
@@ -306,7 +313,17 @@ unittest
 	foreach (next; play (cur))
 	{
 		assert (next.board.score > 0);
-		writeln (next);
-		stdout.flush ();
+//		writeln (next);
+//		stdout.flush ();
 	}
+/*
+	writeln (play.connections);
+	writeln (play.active_tiles);
+	writeln (play.vert_score);
+	writeln (play.main_score);
+	writeln (play.score_mult);
+	writeln (play.vt);
+	writeln (play.cur_move);
+	stdout.flush ();
+*/
 }
