@@ -83,7 +83,7 @@ GameState game_beam_search (GameStateRange, DictClass)
 {
 	return beam_search !(TOTAL_TILES,
 	    (ref a) => a.board.total, // get_level
-	    (ref a) => a.get_board_hash (), // get_hash
+	    (ref GameState a) => a.get_board_hash (), // get_hash
 	    (ref a) => game.play_regular () (a), // gen_next
 	    (ref a) => game.process_pre_dup (a), // process_pre_dup
 	    (ref a) => game.process_post_dup (a), // process_post_dup
@@ -101,8 +101,8 @@ unittest
 	auto s = new Scoring ();
 	auto game = new Game !(Trie) (t, s);
 	auto cur = GameState (Problem ("?:", "ABCDEFG"));
-	auto next = game_beam_search ([cur], game, 10, 0);
-	assert (next.board.score > 0);
+	auto next = game_beam_search ([cur], game, 1, 0);
 	writeln (next);
 	stdout.flush ();
+	assert (next.board.score == 41 && next.board.value == 41);
 }

@@ -312,9 +312,9 @@ unittest
 	auto cur = GameState (Problem ("?:", "ABCDEFG"));
 	foreach (next; play (cur))
 	{
-		assert (next.board.score > 0);
 //		writeln (next);
 //		stdout.flush ();
+		assert (next.board.score > 0);
 	}
 /*
 	writeln (play.connections);

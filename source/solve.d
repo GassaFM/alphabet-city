@@ -22,7 +22,6 @@ import goal;
 import manager;
 import problem;
 import scoring;
-import search.beam;
 import tile_bag;
 import tools;
 import trie;
@@ -675,14 +674,24 @@ void main (string [] args)
 		return;
 	}
 
-/*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
 		[GameState (p)]
-		    .beam_search (p, t, s, 250, 0)
+		    .game_beam_search (new Game !(Trie) (t, s), 10, 0)
 		    .writeln;
 	}
+	return;
+
+/*
+	foreach (i; 0..1)
+	{
+		auto p = ps.problem[i];
+		auto game = new GameComplex (p, t, s);
+		game.play (10, 0, GameComplex.Keep.False);
+		writeln (game.best);
+	}
+	return;
 */
 
 	foreach (i; 0..LET)

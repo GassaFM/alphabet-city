@@ -31,8 +31,7 @@ class BeamSearchStorage (alias get_hash,
 
 	void repack ()
 	{
-//		alias HashType = ReturnType !(get_hash);
-		alias HashType = ulong;
+		alias HashType = ReturnType !(get_hash);
 		int [HashType] marked;
 		foreach (ref cur_state; payload)
 		{
@@ -54,6 +53,12 @@ class BeamSearchStorage (alias get_hash,
 			    payload[b]) > 0, SwapStrategy.unstable)
 			    (perm, new_length);
 			auto inv = inverse_permutation (perm);
+			static if (is (HashType == ulong))
+			{
+				writeln ("before: ", payload
+				    .map !(a => a.board.value) ()
+				    .array ());
+			}
 
 			foreach (i; 0..new_length)
 			{
@@ -70,6 +75,12 @@ class BeamSearchStorage (alias get_hash,
 			payload.assumeSafeAppend ();
 			assert (isSorted !((a, b) => compare_inner (a, b) > 0)
 			    (payload));
+			static if (is (HashType == ulong))
+			{
+				writeln ("after: ", payload
+				    .map !(a => a.board.value) ()
+				    .array ());
+			}
 		}
 	}
 
@@ -200,8 +211,8 @@ private class BeamSearch (int max_level,
 	}
 
 	State go (StateRange) (StateRange init_states)
-//	    if (isForwardRange !(StateRange) &&
-//	        is (typeof ((ElementType !(StateRange).init == State.init))))
+	    if (isForwardRange !(StateRange) &&
+	        (ElementType !(StateRange).init is State.init))
 	{
 		foreach (cur_state; init_states)
 		{
@@ -210,6 +221,12 @@ private class BeamSearch (int max_level,
 
 		foreach (level; 0..max_level + 1)
 		{
+			version (debug_beam)
+			{
+				writeln ("beam search: at level ", level,
+				    ", length ",
+				    storage[level].payload.length);
+			}
 			foreach (cur_state; storage[level])
 			{
 				visit (cur_state, depth);
@@ -230,8 +247,8 @@ State beam_search (int max_level,
     alias compare_inner,
     State, StateRange)
     (StateRange init_states, int width, int depth)
-//    if (isForwardRange !(StateRange) &&
-//        is (typeof ((ElementType !(StateRange).init == State.init))))
+    if (isForwardRange !(StateRange) &&
+        (ElementType !(StateRange).init is State.init))
 {
 	return new BeamSearch !(max_level, get_level, get_hash, gen_next,
 	    process_pre_dup, process_post_dup,
