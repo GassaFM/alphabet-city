@@ -58,6 +58,8 @@ class BeamSearchStorage (alias get_hash,
 				writeln ("before: ", payload
 				    .map !(a => a.board.value) ()
 				    .array ());
+				writeln (perm);
+				writeln (inv);
 			}
 
 			foreach (i; 0..new_length)
