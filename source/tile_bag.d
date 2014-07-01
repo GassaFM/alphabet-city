@@ -288,8 +288,7 @@ struct TileCounter
 
 	alias contents this;
 
-/*
-	this (const char [] data)
+	void account (const char [] data)
 	{
 		foreach (c; data)
 		{
@@ -311,7 +310,11 @@ struct TileCounter
 			}
 		}
 	}
-*/
+
+	this (const char [] data)
+	{
+		account (data);
+	}
 
 	bool opBinary (string op) (ref const TileCounter other) const
 	    if (op == "<<")

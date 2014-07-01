@@ -423,6 +423,61 @@ void put_two (int new_beam_width, int new_beam_depth,
 	    goal_pairs.take (15).drop (0).array (), prev_goals, prev_guide);
 }
 
+void generate_all_goals (Trie trie)
+{
+	auto goals_all = GoalBuilder.build_all_goals (trie);
+	foreach (cur_goal; goals_all)
+	{
+		enforce (cur_goal.score_rating >= 0); // to calculate
+		writeln (cur_goal, ' ',
+		    ((cur_goal.mask_forbidden >> Board.CENTER) & 1));
+	}
+}
+
+void generate_triples (Trie trie, Problem problem)
+{
+	TileCounter cp;
+	cp.account (problem.contents);
+
+	auto lw = read_all_lines ("data/goals/long-words.txt");
+	long num1 = 0;
+	long num2 = 0;
+	long num3 = 0;
+	foreach (w0; lw)
+	{
+		TileCounter c0;
+		c0.account (w0);
+		if (!(c0 << cp))
+		{
+			continue;
+		}
+		num1++;
+
+		foreach (w1; lw)
+		{
+			TileCounter c1 = c0;
+			c1.account (w1);
+			if (!(c1 << cp))
+			{
+				continue;
+			}
+			num2++;
+
+			foreach (w2; lw)
+			{
+				TileCounter c2 = c1;
+				c2.account (w2);
+				if (!(c2 << cp))
+				{
+					continue;
+				}
+				num3++;
+			}
+		}
+	}
+	writeln (num1, ' ', num2, ' ', num3);
+}
+
 void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -430,18 +485,6 @@ void main (string [] args)
 	auto s = new Scoring ();
 	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
-
-	{
-		auto goals_all = GoalBuilder.build_all_goals (t);
-		foreach (cur_goal; goals_all)
-		{
-			enforce (cur_goal.score_rating >= 0); // to calculate
-			FILE f = open ("data/goals/all.txt", "wt");
-			f.writeln (cur_goal, ' ',
-			    ((cur_goal.mask_forbidden >> Board.CENTER) & 1));
-		}
-		return;
-	}
 
 /*
 	{
@@ -459,6 +502,10 @@ void main (string [] args)
 		return;
 	}
 */
+
+	generate_triples (t, ps.problem[0]);
+	return;
+
 	auto goals_relaxed = GoalBuilder.build_fat_goals
 	    (read_all_lines ("data/goals.txt"), false);
 	foreach (ref goal; goals_relaxed)
