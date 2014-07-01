@@ -1,5 +1,6 @@
 module main;
 
+import core.bitop;
 import core.memory;
 import std.algorithm;
 import std.array;
@@ -429,6 +430,19 @@ void main (string [] args)
 	auto s = new Scoring ();
 	global_scoring = s;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
+
+	{
+		auto goals_all = GoalBuilder.build_all_goals (t);
+		foreach (cur_goal; goals_all)
+		{
+			enforce (cur_goal.score_rating >= 0); // to calculate
+			FILE f = open ("data/goals/all.txt", "wt");
+			f.writeln (cur_goal, ' ',
+			    ((cur_goal.mask_forbidden >> Board.CENTER) & 1));
+		}
+		return;
+	}
+
 /*
 	{
 		auto goals_center = GoalBuilder.build_center_goals (t);
@@ -674,7 +688,7 @@ void main (string [] args)
 		return;
 	}
 
-// /*
+/*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
@@ -683,7 +697,7 @@ void main (string [] args)
 		    .writeln;
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..1)

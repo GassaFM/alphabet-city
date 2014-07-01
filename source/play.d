@@ -115,8 +115,97 @@ struct Play (DictClass)
 			return score * mult;
 		}
 
-		void move_recur () ()
+		void step_recur () ()
 		{ // templated to recurse into step_recur
+			version (debug_play)
+			{
+				writeln ("step_recur ", row, ' ', col);
+			}
+			assert (!cur.board[row][col].empty);
+
+/*
+			if (check_board.is_flipped == cur.board.is_flipped)
+			{
+				if (!check_board[row][col].empty &&
+				    check_board[row][col].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
+			}
+			else
+			{
+				if (!check_board[col][row].empty &&
+				    check_board[col][row].letter !=
+				    cur.board[row][col].letter)
+				{
+					return;
+				}
+			}
+*/
+
+			int vt_saved = vt;
+			scope (exit)
+			{
+				vt = vt_saved;
+			}
+			vt = dict.contents[vt].next (cur.board[row][col]);
+			if (vt == NA)
+			{
+				return;
+			}
+
+			int vert_add = check_vertical ();
+			if (vert_add == NA)
+			{
+				return;
+			}
+
+			int main_score_saved = main_score;
+			int score_mult_saved = score_mult;
+			connections += (vert_add > 0) ||
+			    (row == Board.CENTER &&
+			    col == Board.CENTER);
+			vert_score += vert_add;
+			cur_move.word ~= cur.board[row][col];
+			scope (exit)
+			{
+				main_score = main_score_saved;
+				score_mult = score_mult_saved;
+				connections -= (vert_add > 0) ||
+				    (row == Board.CENTER &&
+				    col == Board.CENTER);
+				vert_score -= vert_add;
+				cur_move.word.length--;
+				cur_move.word.assumeSafeAppend ();
+			}
+			scoring.account (main_score, score_mult,
+			    cur.board[row][col], row, col);
+
+			if (col + 1 == Board.SIZE ||
+			    cur.board[row][col + 1].empty)
+			{
+				if (dict.contents[vt].word &&
+				    connections &&
+				    (active_tiles >= (1 +
+				    (cur.board.is_flipped && vert_score))))
+				{ // 1-letter h+v move ~always not flipped
+					consider ();
+				}
+			}
+			if (col + 1 < Board.SIZE)
+			{
+				col++;
+				scope (exit)
+				{
+					col--;
+				}
+				move_recur ();
+			}
+		}
+
+		void move_recur ()
+		{
 			version (debug_play)
 			{
 				writeln ("move_recur ", row, ' ', col);
@@ -176,110 +265,6 @@ struct Play (DictClass)
 					}
 				}
 			}
-		}
-
-		void step_recur ()
-		{
-			version (debug_play)
-			{
-				writeln ("step_recur ", row, ' ', col);
-			}
-			assert (!cur.board[row][col].empty);
-
-/*
-			if (check_board.is_flipped == cur.board.is_flipped)
-			{
-				if (!check_board[row][col].empty &&
-				    check_board[row][col].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
-			}
-			else
-			{
-				if (!check_board[col][row].empty &&
-				    check_board[col][row].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
-			}
-*/
-
-			int vt_saved = vt;
-			scope (exit)
-			{
-				vt = vt_saved;
-			}
-			vt = dict.contents[vt].next (cur.board[row][col]);
-			if (vt == NA)
-			{
-				return;
-			}
-
-			int vert_add = check_vertical ();
-			if (vert_add == NA)
-			{
-				return;
-			}
-
-			int main_score_saved = main_score;
-			int score_mult_saved = score_mult;
-			connections += (vert_add > 0) ||
-			    (row == Board.CENTER &&
-			    col == Board.CENTER);
-			vert_score += vert_add;
-			cur_move.word ~= cur.board[row][col];
-/*
-			scope (exit)
-			{
-				main_score = main_score_saved;
-				score_mult = score_mult_saved;
-				connections -= (vert_add > 0) ||
-				    (row == Board.CENTER &&
-				    col == Board.CENTER);
-				vert_score -= vert_add;
-				cur_move.word.length--;
-				cur_move.word.assumeSafeAppend ();
-			}
-*/
-			scoring.account (main_score, score_mult,
-			    cur.board[row][col], row, col);
-
-			if (col + 1 == Board.SIZE ||
-			    cur.board[row][col + 1].empty)
-			{
-				if (dict.contents[vt].word &&
-				    connections &&
-				    (active_tiles >= (1 +
-				    (cur.board.is_flipped && vert_score))))
-				{ // 1-letter h+v move ~always not flipped
-					consider ();
-				}
-			}
-			if (col + 1 < Board.SIZE)
-			{
-				col++;
-/*
-				scope (exit)
-				{
-					col--;
-				}
-*/
-				move_recur ();
-
-				col--;
-			}
-
-			main_score = main_score_saved;
-			score_mult = score_mult_saved;
-			connections -= (vert_add > 0) ||
-			    (row == Board.CENTER &&
-			    col == Board.CENTER);
-			vert_score -= vert_add;
-			cur_move.word.length--;
-			cur_move.word.assumeSafeAppend ();
 		}
 
 		void move_horizontal ()

@@ -454,7 +454,7 @@ struct GoalProgress
 
 static class GoalBuilder
 {
-	static Goal [] build_goals (Trie trie)
+	static Goal [] build_all_goals (Trie trie)
 	{
 		auto cur_word = new byte [Board.SIZE];
 		Goal [] res;
@@ -485,7 +485,7 @@ static class GoalBuilder
 					    nvm, lm + 1, 0, 0);
 				}
 
-				if (lm % 7 != 0 && nvm != NA && nvs != NA)
+				if (lm % 14 != 0 && nvm != NA && nvs != NA)
 				{ // use current letter
 					recur (mask,
 					    nvm, lm + 1, nvs, ls + 1);
@@ -494,9 +494,11 @@ static class GoalBuilder
 		}
 
 		recur (0, 0, 0, 0, 0);
-		sort !((a, b) => a.word < b.word) (res);
+		sort !((a, b) => a.toString ().toLower () <
+		    b.toString ().toLower ()) (res);
 
-		debug {writeln ("GoalBuilder: built ", res.length, " goals");}
+		debug {writeln ("GoalBuilder: built all ", res.length,
+		    " goals");}
 		return res;
 	}
 
@@ -549,7 +551,7 @@ static class GoalBuilder
 		sort !((a, b) => a.word < b.word) (res);
 		return res;
 	}
-	
+
 	static Goal [] build_center_goals (Trie trie)
 	{
 		auto cur_word = new byte [Board.SIZE];
