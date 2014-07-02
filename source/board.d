@@ -4,6 +4,7 @@ import std.algorithm;
 import std.conv;
 import std.exception;
 import std.random;
+import std.string;
 
 import general;
 
@@ -199,9 +200,8 @@ struct Board
 		}
 	}
 
-	void normalize ()
+	void normalize_active ()
 	{
-		normalize_flip ();
 		foreach (row; 0..SIZE)
 		{
 			foreach (col; 0..SIZE)
@@ -209,6 +209,10 @@ struct Board
 				contents[row][col].active = false;
 			}
 		}
+	}
+
+	void normalize_hash ()
+	{
 		contents_hash[0] = 0;
 		contents_hash[1] = 0;
 		foreach (row; 0..SIZE)
@@ -221,6 +225,13 @@ struct Board
 				    contents[col][row];
 			}
 		}
+	}
+
+	void normalize ()
+	{
+		normalize_flip ();
+		normalize_active ();
+		normalize_hash ();
 	}
 
 	string toString () const
@@ -237,6 +248,7 @@ struct Board
 		res ~= to !(string) (score) ~ ' ';
 		res ~= '(' ~ to !(string) (value) ~ ") ";
 		res ~= to !(string) (is_flipped) ~ '\n';
+		res ~= to !(string) (contents_hash[0]) ~ '\n';
 		return res;
 	}
 }

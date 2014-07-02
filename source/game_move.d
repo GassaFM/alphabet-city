@@ -44,6 +44,38 @@ class GameMove
 		}
 	}
 
+	void add_hash (ref Board board)
+	{
+		assert (is_flipped == board.is_flipped);
+		// easy to implement otherwise if needed
+		if (is_flipped)
+		{
+			foreach (pos; 0..word.length)
+			{
+				if (word[pos].active)
+				{
+					board.contents_hash[0] +=
+					    board.hash_mults[row][col + pos] *
+					    (word[pos] ^
+					    (1 << BoardCell.ACTIVE_SHIFT));
+				}
+			}
+		}
+		else
+		{
+			foreach (pos; 0..word.length)
+			{
+				if (word[pos].active)
+				{
+					board.contents_hash[0] +=
+					    board.hash_mults[col + pos][row] *
+					    (word[pos] ^
+					    (1 << BoardCell.ACTIVE_SHIFT));
+				}
+			}
+		}
+	}
+
 	void start_at (byte new_row, byte new_col)
 	{
 		row = new_row;

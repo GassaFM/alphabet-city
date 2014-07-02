@@ -85,7 +85,9 @@ class Goal
 			}
 			scoring.account (score, mult, temp, 0, i);
 		}
-		return score * mult;
+		return score * mult + scoring.bingo *
+		    (possible_masks.length <= 1 &&
+		    popcnt (mask_forbidden) >= Rack.MAX_SIZE);
 	}
 
 	int score_rating () @property
@@ -441,6 +443,7 @@ class Goal
 	}
 }
 
+/*
 struct GoalProgress
 {
 	Goal goal;
@@ -451,6 +454,7 @@ struct GoalProgress
 		goal = new_goal;
 	}
 }
+*/
 
 static class GoalBuilder
 {
@@ -502,7 +506,7 @@ static class GoalBuilder
 		return res;
 	}
 
-	static Goal [] build_goals (const char [] [] line_list)
+	static Goal [] read_goals (const char [] [] line_list)
 	{
 		Goal [] res;
 		res.reserve (line_list.length);
@@ -514,7 +518,7 @@ static class GoalBuilder
 		return res;
 	}
 
-	static Goal [] build_fat_goals (const char [] [] line_list,
+	static Goal [] read_fat_goals (const char [] [] line_list,
 	    bool require_all_bonuses = true)
 	{
 		Goal [string] temp;
@@ -632,7 +636,7 @@ static class GoalBuilder
 		return res;
 	}
 
-	static Goal [] build_fat_center_goals (const char [] [] line_list)
+	static Goal [] read_fat_center_goals (const char [] [] line_list)
 	{
 		Goal [string] temp;
 		int num_processed = 0;
@@ -667,6 +671,7 @@ static class GoalBuilder
 	}	
 }
 
+/*
 class CompoundGoal
 {
 	ByteString word;
@@ -698,3 +703,4 @@ struct CompoundGoalProgress
 		main_goal = new_main_goal;
 	}
 }
+*/

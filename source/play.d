@@ -54,10 +54,13 @@ struct Play (DictClass)
 			auto tiles_saved = cur.tiles;
 			cur.tiles.rack.normalize ();
 			cur.tiles.fill_rack ();
+			auto hash_saved = cur.board.contents_hash[0];
+			cur_move.add_hash (cur.board);
 			cur.xor_active ();
 			scope (exit)
 			{
 				cur.xor_active ();
+				cur.board.contents_hash[0] = hash_saved;
 				cur.tiles = tiles_saved;
 				cur.closest_move = cur_move.chained_move;
 				cur.board.score -= add_score;

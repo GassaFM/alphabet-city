@@ -56,7 +56,7 @@ class Game (DictClass)
 
 	bool process_post_dup (ref GameState cur)
 	{
-		cur.board.normalize ();
+//		cur.board.normalize ();
 		cur.board.value = calc_value (cur);
 		if (cur.board.value == NA)
 		{
@@ -101,7 +101,7 @@ unittest
 	auto s = new Scoring ();
 	auto game = new Game !(Trie) (t, s);
 	auto cur = GameState (Problem ("?:", "ABCDEFG"));
-	auto next = game_beam_search ([cur], game, 1, 0);
+	auto next = game_beam_search ([cur], game, 100, 1);
 	writeln (next);
 	stdout.flush ();
 //	assert (next.board.score == 50 && next.board.value == 50);

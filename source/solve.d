@@ -503,10 +503,12 @@ void main (string [] args)
 	}
 */
 
-	generate_triples (t, ps.problem[0]);
+/*
+	generate_all_goals (t);
 	return;
+*/
 
-	auto goals_relaxed = GoalBuilder.build_fat_goals
+	auto goals_relaxed = GoalBuilder.read_fat_goals
 	    (read_all_lines ("data/goals.txt"), false);
 	foreach (ref goal; goals_relaxed)
 	{
@@ -514,7 +516,7 @@ void main (string [] args)
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 
-	auto goals = GoalBuilder.build_fat_goals
+	auto goals = GoalBuilder.read_fat_goals
 	    (read_all_lines ("data/goals.txt"), true);
 	foreach (ref goal; goals)
 	{
@@ -522,7 +524,7 @@ void main (string [] args)
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 
-	auto goals_center = GoalBuilder.build_fat_center_goals
+	auto goals_center = GoalBuilder.read_fat_center_goals
 	    (read_all_lines ("data/goals-center-full.txt"));
 	foreach (ref goal; goals_center)
 	{
@@ -735,16 +737,17 @@ void main (string [] args)
 		return;
 	}
 
-/*
+// /*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
 		[GameState (p)]
 		    .game_beam_search (new Game !(Trie) (t, s), 10, 0)
 		    .writeln;
+		stdout.flush ();
 	}
 	return;
-*/
+// */
 
 /*
 	foreach (i; 0..1)

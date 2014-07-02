@@ -77,6 +77,7 @@ class Trie
 	this (const char [] [] word_list, // bool calc_grow,
 	    const int size_hint = 1)
 	{
+		stdout.flush ();
 		int nw = to !(int) (word_list.length);
 		enforce (isSorted (word_list));
 		contents = [TrieNode ()];

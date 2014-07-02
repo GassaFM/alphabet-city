@@ -33,49 +33,67 @@ class BeamSearchStorage (alias get_hash,
 	{
 		alias HashType = ReturnType !(get_hash);
 		int [HashType] marked;
-		foreach (ref cur_state; payload)
+		writeln ("len ", payload.length);
+		writeln ("before: ", payload.map !(a => a.board.score) ()
+		    .array ());
+		foreach (pos, ref cur_state; payload)
 		{
 			HashType cur_hash = get_hash (cur_state);
 			if (cur_hash in marked)
 			{
+				int stored_pos = marked[cur_hash];
+				writeln (pos, ": found ", stored_pos, ' ',
+				    cur_state.board.score, ' ', cur_hash);
 				int better = compare_inner (cur_state,
-				    payload[marked[cur_hash]]);
+				    payload[stored_pos]);
 				if (better > 0)
 				{
-					payload[marked[cur_hash]] = cur_state;
+					payload[stored_pos] = cur_state;
+					writeln (stored_pos, " <- ", pos);
 				}
+				writeln ("clear ", pos);
 				cur_state = State.init;
 			}
-
-			int new_length = min (payload.length, width);
-			auto perm = (cast (int) (payload.length))
-			    .iota ().array ();
-/*
-			partialSort !((a, b) => compare_inner (payload[a],
-			    payload[b]) > 0, SwapStrategy.unstable)
-			    (perm, new_length);
-*/
-			sort !((a, b) => compare_inner (payload[a],
-			    payload[b]) > 0, SwapStrategy.stable)
-			    (perm);
-			auto inv = inverse_permutation (perm);
-
-			foreach (i; 0..new_length)
+			else
 			{
-				int j = perm[i];
-				if (i != j)
-				{
-					swap (payload[i], payload[j]);
-					swap (perm[inv[i]], perm[inv[j]]);
-					swap (inv[i], inv[j]);
-				}
+				writeln (pos, ": add ",
+				    cur_state.board.score, ' ', cur_hash);
+				marked[cur_hash] = cast (int) pos;
 			}
 
-			payload.length = new_length;
-			payload.assumeSafeAppend ();
-			assert (isSorted !((a, b) => compare_inner (a, b) > 0)
-			    (payload));
 		}
+		int new_length = min (payload.length, width);
+		auto perm = (cast (int) (payload.length))
+		    .iota ().array ();
+/*
+		partialSort !((a, b) => compare_inner (payload[a],
+		    payload[b]) > 0, SwapStrategy.unstable)
+		    (perm, new_length);
+*/
+		sort !((a, b) => compare_inner (payload[a],
+		    payload[b]) > 0, SwapStrategy.stable)
+		    (perm);
+		auto inv = inverse_permutation (perm);
+
+		foreach (i; 0..new_length)
+		{
+			int j = perm[i];
+			if (i != j)
+			{
+				swap (payload[i], payload[j]);
+				swap (perm[inv[i]], perm[inv[j]]);
+				swap (inv[i], inv[j]);
+			}
+		}
+		writeln ("center: ", payload.map
+		    !(a => a.board.score) ().array ());
+
+		payload.length = new_length;
+		payload.assumeSafeAppend ();
+		assert (isSorted !((a, b) => compare_inner (a, b) > 0)
+		    (payload));
+		writeln ("after:  ", payload.map !(a => a.board.score) ()
+		    .array ());
 	}
 
 	ref State put (ref State cur_state)
@@ -221,12 +239,31 @@ private class BeamSearch (int max_level,
 				    ", length ",
 				    storage[level].payload.length);
 			}
+			version (verbose)
+			{
+				writeln ("filled ", level, " tiles");
+				stdout.flush ();
+			}
+			int counter = 0;
 			foreach (cur_state; storage[level])
 			{
+				version (verbose)
+				{
+					if (min (counter, min (width,
+					    storage[level].payload.length) -
+					    1 - counter) < 10)
+					{
+						writeln ("at:");
+						writeln (cur_state);
+						stdout.flush ();
+					}
+				}
 				visit (cur_state, depth);
+				counter++;
 			}
 		}
 
+		best.board.normalize ();
 		return best;
 	}
 }
