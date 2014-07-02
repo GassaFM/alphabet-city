@@ -171,7 +171,7 @@ class TrieCompact
 		debug {writeln ("TrieCompact: found ", masks.length,
 		    " different masks");}
 
-		immutable uint PRIME = 262139;
+		immutable uint PRIME = 262_139;
 		int [ulong] hashes;
 		auto hash = new ulong[prev_trie.contents.length];
 		foreach_reverse (i, w; prev_trie.contents)

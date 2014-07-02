@@ -33,31 +33,22 @@ class BeamSearchStorage (alias get_hash,
 	{
 		alias HashType = ReturnType !(get_hash);
 		int [HashType] marked;
-		writeln ("len ", payload.length);
-		writeln ("before: ", payload.map !(a => a.board.score) ()
-		    .array ());
 		foreach (pos, ref cur_state; payload)
 		{
 			HashType cur_hash = get_hash (cur_state);
 			if (cur_hash in marked)
 			{
 				int stored_pos = marked[cur_hash];
-				writeln (pos, ": found ", stored_pos, ' ',
-				    cur_state.board.score, ' ', cur_hash);
 				int better = compare_inner (cur_state,
 				    payload[stored_pos]);
 				if (better > 0)
 				{
 					payload[stored_pos] = cur_state;
-					writeln (stored_pos, " <- ", pos);
 				}
-				writeln ("clear ", pos);
 				cur_state = State.init;
 			}
 			else
 			{
-				writeln (pos, ": add ",
-				    cur_state.board.score, ' ', cur_hash);
 				marked[cur_hash] = cast (int) pos;
 			}
 
@@ -85,15 +76,11 @@ class BeamSearchStorage (alias get_hash,
 				swap (inv[i], inv[j]);
 			}
 		}
-		writeln ("center: ", payload.map
-		    !(a => a.board.score) ().array ());
 
 		payload.length = new_length;
 		payload.assumeSafeAppend ();
 		assert (isSorted !((a, b) => compare_inner (a, b) > 0)
 		    (payload));
-		writeln ("after:  ", payload.map !(a => a.board.score) ()
-		    .array ());
 	}
 
 	ref State put (ref State cur_state)

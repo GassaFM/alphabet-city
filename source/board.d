@@ -248,7 +248,7 @@ struct Board
 		res ~= to !(string) (score) ~ ' ';
 		res ~= '(' ~ to !(string) (value) ~ ") ";
 		res ~= to !(string) (is_flipped) ~ '\n';
-		res ~= to !(string) (contents_hash[0]) ~ '\n';
+//		res ~= to !(string) (contents_hash[0]) ~ '\n';
 		return res;
 	}
 }
