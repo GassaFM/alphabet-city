@@ -1,5 +1,8 @@
 module play;
 
+import std.algorithm;
+import std.array;
+import std.conv;
 import std.stdio;
 
 import board;
@@ -11,22 +14,29 @@ import scoring;
 import tile_bag;
 import trie;
 
-struct Play (DictClass)
-{
-//	enum MoveGenerator {Rack, Word};
+enum RackUsage: byte {Active, Passive, Ignore};
 
+struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
+{
 	DictClass stored_dict;
 	Scoring stored_scoring;
+	Board * stored_check_board;
 
 	GameState * stored_cur;
-
+	
 	GameMove stored_cur_move;
+
+	static if (rack_usage != RackUsage.Active)
+	{
+		GameMove pending_move;
+	}
 
 	void move_start (ref GameState cur,
 	    int delegate (ref GameState) process)
 	{
 		DictClass dict = stored_dict;
 		Scoring scoring = stored_scoring;
+		Board * check_board = stored_check_board;
 
 		byte row = byte.max;
 		byte col = byte.max;
@@ -38,6 +48,26 @@ struct Play (DictClass)
 		int vt = DictClass.ROOT;
 
 		GameMove cur_move = stored_cur_move;
+
+		bool check_tile ()
+		{
+			if (check_board is null)
+			{
+				return true;
+			}
+			if (check_board.is_flipped == cur.board.is_flipped)
+			{
+				return (*check_board)[row][col].empty ||
+				    ((*check_board)[row][col].letter ==
+				    cur.board[row][col].letter);
+			}
+			else
+			{
+				return (*check_board)[col][row].empty ||
+				    ((*check_board)[col][row].letter ==
+				    cur.board[row][col].letter);
+			}
+		}
 
 		void consider ()
 		{
@@ -119,33 +149,17 @@ struct Play (DictClass)
 		}
 
 		void step_recur () ()
-		{ // templated to recurse into step_recur
+		{ // templated to recurse into move_recur
 			version (debug_play)
 			{
 				writeln ("step_recur ", row, ' ', col);
 			}
 			assert (!cur.board[row][col].empty);
 
-/*
-			if (check_board.is_flipped == cur.board.is_flipped)
+			if (!check_tile ())
 			{
-				if (!check_board[row][col].empty &&
-				    check_board[row][col].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
+				return;
 			}
-			else
-			{
-				if (!check_board[col][row].empty &&
-				    check_board[col][row].letter !=
-				    cur.board[row][col].letter)
-				{
-					return;
-				}
-			}
-*/
 
 			int vt_saved = vt;
 			scope (exit)
@@ -207,75 +221,93 @@ struct Play (DictClass)
 			}
 		}
 
-		void move_recur ()
+		void move_recur () ()
 		{
 			version (debug_play)
 			{
 				writeln ("move_recur ", row, ' ', col);
 			}
-			if (!cur.board[row][col].empty)
+			static if (rack_usage == RackUsage.Active)
 			{
-				connections++;
-				scope (exit)
+				if (!cur.board[row][col].empty)
 				{
-					connections--;
-				}
-				step_recur ();
-				return;
-			}
-
-			cur.board.total++;
-			active_tiles++;
-			scope (exit)
-			{
-				cur.board.total--;
-				active_tiles--;
-				cur.board[row][col] = BoardCell.NONE;
-			}
-
-			foreach (ref c; cur.tiles.rack.contents)
-			{
-				if (c.empty)
-				{
-					break;
-				}
-
-				if (c.num != 0)
-				{
-					cur.tiles.dec (c);
+					connections++;
 					scope (exit)
 					{
-						cur.tiles.inc (c);
+						connections--;
 					}
+					step_recur ();
+					return;
+				}
 
-					if (!c.is_wildcard)
-					{
-						cur.board[row][col] =
-						    c.letter | (1 <<
-						    BoardCell.ACTIVE_SHIFT);
-						step_recur ();
-						continue;
-					}
+				cur.board.total++;
+				active_tiles++;
+				scope (exit)
+				{
+					cur.board.total--;
+					active_tiles--;
+					cur.board[row][col] = BoardCell.NONE;
+				}
 
-					foreach (ubyte letter; 0..LET)
+				foreach (ref c; cur.tiles.rack.contents)
+				{
+					if (c.empty)
 					{
-						cur.board[row][col] = letter |
-						    (1 <<
-						    BoardCell.WILDCARD_SHIFT) |
-						    (1 <<
-						    BoardCell.ACTIVE_SHIFT);
-						step_recur ();
+						break;
 					}
+	
+					if (c.num != 0)
+					{
+						cur.tiles.dec (c);
+						scope (exit)
+						{
+							cur.tiles.inc (c);
+						}
+
+						if (!c.is_wildcard)
+						{
+							cur.board[row][col] =
+							    c.letter |
+							    (1 << BoardCell
+							    .ACTIVE_SHIFT);
+							step_recur ();
+							continue;
+						}
+
+						foreach (ubyte letter; 0..LET)
+						{
+							cur.board[row][col] =
+							    letter |
+							    (1 << BoardCell
+							    .WILDCARD_SHIFT) |
+							    (1 << BoardCell
+							    .ACTIVE_SHIFT);
+							step_recur ();
+						}
+					}
+				}
+			}
+			else
+			{
+				if (!cur.board[row][col].empty)
+				{
+					step_recur ();
+					return;
 				}
 			}
 		}
 
-		void move_horizontal ()
+		void move_horizontal () ()
 		{
 			version (debug_play)
 			{
 				writeln ("move_horizontal");
 			}
+			static if (rack_usage != RackUsage.Active)
+			{
+				static assert (false);
+			}
+
 			cur_move.initialize (cur);
 			for (row = 0; row < Board.SIZE; row++)
 			{
@@ -292,16 +324,211 @@ struct Play (DictClass)
 			}
 		}
 
-		move_horizontal ();
-		cur.board.flip ();
-		move_horizontal ();
-		cur.board.flip ();
+		void perform_move () ()
+		{
+			version (debug_play)
+			{
+				writeln ("perform_move");
+			}
+			static if (rack_usage == RackUsage.Active)
+			{
+				static assert (false);
+			}
+			static if (rack_usage == RackUsage.Passive)
+			{
+/*
+				int tiles_cursor = cur.tiles.cursor;
+				int move_cursor = min (TOTAL_TILES,
+				    cur_move.tiles_before + Rack.MAX_SIZE);
+				if (move_cursor > tiles_cursor) // may be safer
+*/
+				if (cur_move.tiles_before > cur.board.total)
+				{
+					return;
+				}
+			}
+
+			if (col > 0 && !cur.board[row][col - 1].empty)
+			{
+				return;
+			}
+			if (col + 1 < Board.SIZE &&
+			    !cur.board[row][col + 1].empty)
+			{
+				return;
+			}
+
+			bool has_active_filled = false;
+			bool has_passive_empty = false;
+			bool has_filled = false;
+			bool has_empty = false;
+			foreach (pos, move_tile; pending_move.word)
+			{
+				auto board_tile = cur.board[row][col + pos];
+				if (board_tile.empty)
+				{
+					has_empty = true;
+					if (!move_tile.active)
+					{
+						has_passive_empty = true;
+					}
+				}
+				else if (board_tile.letter != move_tile.letter)
+				{
+					return;
+				}
+				else
+				{
+					has_filled = true;
+					if (move_tile.active)
+					{
+						has_active_filled = true;
+					}
+				}
+			}
+
+			static if (rack_usage == RackUsage.Passive)
+			{
+				if (has_passive_empty)
+				{
+					return;
+				}
+			}
+
+			if (has_active_filled)
+			{
+				if (!has_empty)
+				{
+					process (cur);
+				}
+				return;
+			}
+
+			static if (rack_usage == RackUsage.Ignore)
+			{
+				byte saved_total = Rack.IGNORED;
+				swap (cur.tiles.rack.total, saved_total);
+				connections++;
+				scope (exit)
+				{
+					swap (cur.tiles.rack.total,
+					    saved_total);
+					connections--;
+				}
+			}
+
+			if (has_filled)
+			{
+				connections++;
+			}
+			scope (exit)
+			{
+				if (has_filled)
+				{
+					connections--;
+				}
+			}
+
+			foreach (pos, move_tile; pending_move.word)
+			{
+				if (cur.board[row][col + pos].empty)
+				{
+					cur.board[row][col + pos] = move_tile |
+					    (1 << BoardCell.ACTIVE_SHIFT);
+					static if (rack_usage ==
+					    RackUsage.Passive)
+					{
+						cur.tiles.dec_restricted
+						    (move_tile);
+					}
+				}
+				if (move_tile.active)
+				{
+					active_tiles++;
+				}
+			}
+			bool no_active_tiles = (active_tiles == 0);
+			if (no_active_tiles)
+			{
+				active_tiles++;
+			}
+			scope (exit)
+			{
+				foreach (pos, move_tile; pending_move.word)
+				{
+					if (cur.board[row][col + pos].active)
+					{
+						cur.board[row][col + pos] =
+						    BoardCell.NONE;
+						static if (rack_usage ==
+						    RackUsage.Passive)
+						{
+							cur.tiles
+							    .inc_restricted
+							    (move_tile);
+						}
+					}
+					if (move_tile.active)
+					{
+						active_tiles--;
+					}
+				}
+				if (no_active_tiles)
+				{
+					active_tiles--;
+				}
+			}
+
+			move_recur ();
+		}
+
+		static if (rack_usage == RackUsage.Active)
+		{
+			move_horizontal ();
+			cur.board.flip ();
+			move_horizontal ();
+			cur.board.flip ();
+		}
+		else
+		{
+			bool to_flip = (cur.board.is_flipped ==
+			    pending_move.is_flipped);
+			if (to_flip)
+			{
+				cur.board.flip ();
+			}
+			scope (exit)
+			{
+				if (to_flip)
+				{
+					cur.board.flip ();
+				}
+			}
+			row = pending_move.row;
+			col = pending_move.col;
+			cur_move.initialize (cur);
+			cur_move.start_at (row, col);
+			perform_move ();
+		}
 	}
 
-	ref typeof (this) opCall (ref GameState new_cur)
+	static if (rack_usage == RackUsage.Active)
 	{
-		stored_cur = &new_cur;
-		return this;
+		ref typeof (this) opCall (ref GameState new_cur)
+		{
+			stored_cur = &new_cur;
+			return this;
+		}
+	}
+	else
+	{
+		ref typeof (this) opCall (ref GameState new_cur,
+		    GameMove new_pending_move)
+		{
+			stored_cur = &new_cur;
+			pending_move = new_pending_move;
+			return this;
+		}
 	}
 
 	int opApply (int delegate (ref GameState) new_process)
@@ -311,35 +538,133 @@ struct Play (DictClass)
 		return 0;
 	}
 
-	this (DictClass new_dict, Scoring new_scoring)
+	this (DictClass new_dict, Scoring new_scoring,
+	    Board * new_check_board = null)
 	{
 		stored_dict = new_dict;
 		stored_scoring = new_scoring;
-
+		stored_check_board = new_check_board;
+		
 		stored_cur_move = new GameMove ();
 	}
+}
+
+ref GameState play_move (DictClass, RackUsage rack_usage)
+    (DictClass dict, Scoring scoring, ref GameState cur, GameMove cur_move)
+{
+	static assert (rack_usage != RackUsage.Active);
+	auto play = Play !(DictClass, rack_usage) (dict, scoring);
+	GameState temp;
+	temp.board.value = NA;
+	foreach (ref next; play (cur, cur_move))
+	{
+		temp = next;
+	}
+	cur = temp;
+	return cur;
 }
 
 unittest
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
-	auto play = Play !(Trie) (t, s);
-	auto cur = GameState (Problem ("?:", "ABCDEFG"));
-	foreach (next; play (cur))
+
+	void test_1 ()
 	{
-//		writeln (next);
-//		stdout.flush ();
-		assert (next.board.score > 0);
+		auto play = Play !(Trie) (t, s);
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+
+		int num = 0;
+		foreach (ref next; play (cur))
+		{
+			assert (next.board.score > 0);
+			num++;
+		}
+		assert (num > 0);
 	}
-/*
-	writeln (play.connections);
-	writeln (play.active_tiles);
-	writeln (play.vert_score);
-	writeln (play.main_score);
-	writeln (play.score_mult);
-	writeln (play.vt);
-	writeln (play.cur_move);
-	stdout.flush ();
-*/
+
+	void test_2 ()
+	{
+		auto play = Play !(Trie, RackUsage.Passive) (t, s);
+		auto cur = GameState (Problem ("?:", "abcDEFG"));
+		auto cur_move = new GameMove ();
+
+		cur_move.initialize (cur);
+		cur_move.start_at (Board.CENTER, Board.CENTER);
+		cur_move.word = "cab"
+		    .map !(c => BoardCell (to !(byte) ((c - 'a') |
+		    (1 << BoardCell.ACTIVE_SHIFT)))) ()
+		    .array ();
+		int num = 0;
+		foreach (ref next; play (cur, cur_move))
+		{
+			assert (next.board.score > 0);
+			num++;
+		}
+		assert (num == 1);
+	}
+
+	void test_3 ()
+	{
+		auto play = Play !(Trie, RackUsage.Ignore) (t, s);
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		auto cur_move = new GameMove ();
+
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 0);
+		cur_move.is_flipped = true;
+		cur_move.word = "OXYPHENBUTAZONE"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		int num = 0;
+		GameState temp;
+		foreach (ref next; play (cur, cur_move))
+		{
+			temp = next;
+			assert (next.board.score > 1400);
+			num++;
+		}
+		assert (num == 1);
+
+		cur = temp;
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 0);
+		cur_move.is_flipped = false;
+		cur_move.word = "SESQUICENTENARY"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		foreach (ref next; play (cur, cur_move))
+		{
+			assert (false);
+		}
+	}
+
+	void test_4 ()
+	{
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		auto cur_move = new GameMove ();
+
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 0);
+		cur_move.is_flipped = true;
+		cur_move.word = "OXYPHENBUTAZONE"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
+		assert (cur.board.score > 1400);
+
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 0);
+		cur_move.is_flipped = false;
+		cur_move.word = "SESQUICENTENARY"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
+		assert (cur.board.value == NA);
+	}
+
+	test_1 ();
+	test_2 ();
+	test_3 ();
+	test_4 ();
 }

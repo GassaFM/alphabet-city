@@ -712,8 +712,8 @@ class GameComplex
 			else if (ok == 0)
 			{
 				int tiles_cursor = cur.tiles.cursor;
-				int move_cursor = cur_move.tiles_before +
-				    Rack.MAX_SIZE;
+				int move_cursor = min (TOTAL_TILES,
+				    cur_move.tiles_before + Rack.MAX_SIZE);
 				if (move_cursor > tiles_cursor)
 				{
 					return false;

@@ -102,7 +102,7 @@ unittest
 	auto game = new Game !(Trie) (t, s);
 	auto cur = GameState (Problem ("?:", "ABCDEFG"));
 	auto next = game_beam_search ([cur], game, 100, 1);
-	writeln (next);
-	stdout.flush ();
-//	assert (next.board.score == 50 && next.board.value == 50);
+//	writeln (next);
+//	stdout.flush ();
+	assert (next.board.score == 53 && next.board.value == 53);
 }

@@ -250,7 +250,7 @@ private class BeamSearch (int max_level,
 			}
 		}
 
-		best.board.normalize ();
+//		best.board.normalize ();
 		return best;
 	}
 }

@@ -15,6 +15,8 @@ struct RackEntry
 {
 	immutable static ubyte NONE = 0xFF;
 
+	static assert (LET + (Rack.MAX_SIZE << LET_BITS) < NONE);
+
 	ubyte contents = NONE;
 
 	alias contents this;
@@ -65,7 +67,11 @@ struct RackEntry
 
 struct Rack
 {
-	immutable static int MAX_SIZE = 7;
+	immutable static byte MAX_SIZE = 7;
+	immutable static byte IGNORED = -0x3F;
+
+	static assert (cast (typeof (total)) (IGNORED - MAX_SIZE) < 0);
+	static assert (cast (typeof (total)) (IGNORED + MAX_SIZE) < 0);
 
 	RackEntry [MAX_SIZE] contents;
 	byte total;
