@@ -9,7 +9,7 @@ import board;
 import general;
 import tile_bag;
 
-class Scoring
+final class Scoring
 {
 	enum Bonus: byte {NO, DW, TW, DL, TL, SIZE};
 	immutable static string [Bonus.SIZE] BONUS_NAME =

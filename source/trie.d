@@ -52,7 +52,7 @@ struct TrieNode
 	}
 }
 
-class Trie
+final class Trie
 {
 	immutable static int ROOT = 0;
 	immutable static char BASE = 'a';
@@ -133,7 +133,7 @@ struct TrieNodeCompact
 	ushort start;
 }
 
-class TrieCompact
+final class TrieCompact
 {
 	immutable static int IS_WORD = LET;
 	immutable static ushort NONE = 0xFFFFu;

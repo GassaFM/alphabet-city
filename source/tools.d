@@ -13,7 +13,7 @@ import general;
 import goal;
 import tile_bag;
 
-static class GameTools
+static final class GameTools
 {
 	static int calc_goal_value (ref GameState cur, Goal goal,
 	    GameComplex game, ref TileCounter counter)

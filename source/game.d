@@ -13,7 +13,7 @@ import search.beam;
 import tools;
 import trie;
 
-class Game (DictClass)
+final class Game (DictClass)
 {
 	DictClass dict;
 	Scoring scoring;

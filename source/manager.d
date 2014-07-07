@@ -14,7 +14,7 @@ import game_state;
 import general;
 import problem;
 
-class Manager
+final class Manager
 {
 	ProblemSet problem_set;
 	GameState [string] best;

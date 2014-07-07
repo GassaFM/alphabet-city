@@ -153,7 +153,7 @@ struct Rack
 	}
 }
 
-struct TargetBoard
+final class TargetBoard
 {
 	byte [Board.SIZE] [Board.SIZE] tile_number = NA.to !(byte) ()
 	    .repeat (Board.SIZE).array ()
@@ -162,6 +162,21 @@ struct TargetBoard
 	alias tile_number this;
 
 	static assert (TOTAL_TILES < tile_number[0][0].max);
+
+	override string toString () const
+	{
+		auto sink = appender !(string) ();
+		formattedWrite (sink, "Target board:\n");
+		foreach (line; tile_number)
+		{
+			foreach (cell; line)
+			{
+				formattedWrite (sink, "%3d", cell);
+			}
+			formattedWrite (sink, "\n");
+		}
+		return sink.data;
+	}
 }
 
 struct TileBag
@@ -172,7 +187,7 @@ struct TileBag
 	Rack rack;
 	ByteString contents;
 	TileCounter counter;
-	TargetBoard * target_board;
+	TargetBoard target_board;
 	int cursor;
 
 	alias contents this;

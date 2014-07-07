@@ -18,7 +18,7 @@ import tile_bag;
 import tools;
 import trie;
 
-class GameComplex
+final class GameComplex
 {
 	enum Keep: bool {False, True};
 

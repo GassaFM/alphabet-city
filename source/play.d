@@ -252,8 +252,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				if (cur.tiles.target_board !is null)
 				{
 					auto cur_tile_number =
-					    (*cur.tiles.target_board)
-					    [row][col];
+					    cur.tiles.target_board[row][col];
 					if (cur_tile_number != NA)
 					{
 						if (cur_tile_number < cur.tiles.cursor)

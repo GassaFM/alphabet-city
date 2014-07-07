@@ -161,7 +161,7 @@ main_loop:
 	}
 }
 
-class LongWordSet
+final class LongWordSet
 {
 	LongWord [] contents;
 

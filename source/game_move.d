@@ -12,7 +12,7 @@ import game_state;
 import general;
 import tile_bag;
 
-class GameMove
+final class GameMove
 {
 	BoardCell [] word;
 	byte row;

@@ -15,7 +15,7 @@ import scoring;
 import tile_bag;
 import trie;
 
-class Goal
+final class Goal
 {
 	enum Stage: byte {PREPARE, MAIN, DONE, COMBINED, GREEDY, CENTER};
 	static immutable int DEFAULT_LETTER_BONUS = 100;
@@ -58,6 +58,11 @@ class Goal
 			}
 		}
 		return false;
+	}
+
+	bool is_border_goal () const
+	{
+		return (mask_forbidden >> Board.CENTER) & 1;
 	}
 
 	int count_forbidden () const
@@ -456,7 +461,7 @@ struct GoalProgress
 }
 */
 
-static class GoalBuilder
+static final class GoalBuilder
 {
 	static Goal [] build_all_goals (Trie trie)
 	{
@@ -503,56 +508,6 @@ static class GoalBuilder
 
 		debug {writeln ("GoalBuilder: built all ", res.length,
 		    " goals");}
-		return res;
-	}
-
-	static Goal [] read_goals (const char [] [] line_list)
-	{
-		Goal [] res;
-		res.reserve (line_list.length);
-		foreach (line; line_list)
-		{
-			res ~= new Goal (line, 0, 0, 0);
-		}
-		debug {writeln ("GoalBuilder: loaded ", res.length, " goals");}
-		return res;
-	}
-
-	static Goal [] read_fat_goals (const char [] [] line_list,
-	    bool require_all_bonuses = true)
-	{
-		Goal [string] temp;
-		int num_processed = 0;
-		foreach (line; line_list)
-		{
-			if (require_all_bonuses)
-			{ // require double-letter bonuses to be forbidden
-				if (!isUpper (line[3]) || !isUpper (line[11]))
-				{
-					continue;
-				}
-			}
-			num_processed++;
-			string cur_line = to !(string) (line).toLower ();
-			if (cur_line !in temp)
-			{
-				temp[cur_line] = new Goal (line, 0, 0, 0);
-			}
-			else
-			{
-				temp[cur_line].add_masked_word (line);
-			}
-		}
-		debug {writeln ("GoalBuilder: loaded ", temp.length,
-		    " fat goals made of ", num_processed, " simple goals");}
-
-		Goal [] res;
-		res.reserve (temp.length);
-		foreach (cur_goal; temp)
-		{
-			res ~= cur_goal;
-		}
-		sort !((a, b) => a.word < b.word) (res);
 		return res;
 	}
 
@@ -636,26 +591,97 @@ static class GoalBuilder
 		return res;
 	}
 
-	static Goal [] read_fat_center_goals (const char [] [] line_list)
+	static Goal [] read_goals (const char [] [] line_list)
 	{
-		Goal [string] temp;
-		int num_processed = 0;
-		foreach (line; line_list)
+		Goal [] res;
+		res.reserve (line_list.length);
+		foreach (temp_line; line_list)
 		{
+			auto line = temp_line.split ()[0];
+			res ~= new Goal (line, 0, 0, 0);
+		}
+		debug {writeln ("GoalBuilder: loaded ", res.length, " goals");}
+		return res;
+	}
+
+	static Goal [] [2] read_all_goals (const char [] [] line_list)
+	{
+		Goal [] [2] res;
+		foreach (temp_line; line_list)
+		{
+			auto line = temp_line.split ()[0];
+			auto cur_goal = new Goal (line, 0, 0, 0);
+			res[cur_goal.is_border_goal ()] ~= cur_goal;
+		}
+		debug {writeln ("GoalBuilder: loaded ", res[0].length,
+		    " and ", res[1].length, " goals");}
+		foreach (ref res_part; res[])
+		{
+			res_part.reserve (0);
+		}
+		return res;
+	}
+
+	static Goal [] read_fat_goals (const char [] [] line_list,
+	    bool require_all_bonuses = true)
+	{
+		Goal [string] temp_res;
+		int num_processed = 0;
+		foreach (temp_line; line_list)
+		{
+			auto line = temp_line.split ()[0];
+			if (require_all_bonuses)
+			{ // require double-letter bonuses to be forbidden
+				if (!isUpper (line[3]) || !isUpper (line[11]))
+				{
+					continue;
+				}
+			}
 			num_processed++;
 			string cur_line = to !(string) (line).toLower ();
-			if (cur_line !in temp)
+			if (cur_line !in temp_res)
 			{
-				temp[cur_line] = new Goal (line, 0, 0, 0);
+				temp_res[cur_line] = new Goal (line, 0, 0, 0);
 			}
 			else
 			{
-				temp[cur_line].add_masked_word (line);
+				temp_res[cur_line].add_masked_word (line);
+			}
+		}
+		debug {writeln ("GoalBuilder: loaded ", temp_res.length,
+		    " fat goals made of ", num_processed, " simple goals");}
+
+		Goal [] res;
+		res.reserve (temp_res.length);
+		foreach (cur_goal; temp_res)
+		{
+			res ~= cur_goal;
+		}
+		sort !((a, b) => a.word < b.word) (res);
+		return res;
+	}
+
+	static Goal [] read_fat_center_goals (const char [] [] line_list)
+	{
+		Goal [string] temp_res;
+		int num_processed = 0;
+		foreach (temp_line; line_list)
+		{
+			auto line = temp_line.split ()[0];
+			num_processed++;
+			string cur_line = to !(string) (line).toLower ();
+			if (cur_line !in temp_res)
+			{
+				temp_res[cur_line] = new Goal (line, 0, 0, 0);
+			}
+			else
+			{
+				temp_res[cur_line].add_masked_word (line);
 			}
 		}
 
 		Goal [] res;
-		foreach (cur_goal; temp)
+		foreach (cur_goal; temp_res)
 		{
 			if (any !(x => popcnt (x) <= Rack.MAX_SIZE)
 			    (cur_goal.possible_masks))
@@ -672,7 +698,7 @@ static class GoalBuilder
 }
 
 /*
-class CompoundGoal
+final class CompoundGoal
 {
 	ByteString word;
 	CompoundGoal [] sub;

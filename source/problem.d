@@ -104,7 +104,7 @@ struct Problem
 	}
 }
 
-class ProblemSet
+final class ProblemSet
 {
 	Problem [] problem;
 

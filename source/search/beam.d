@@ -18,7 +18,7 @@ T [] inverse_permutation (T) (T [] perm)
 	return res;
 }
 
-class BeamSearchStorage (alias get_hash,
+private final class BeamSearchStorage (alias get_hash,
     alias process_post_dup,
     alias compare_inner,
     State)
@@ -145,7 +145,7 @@ class BeamSearchStorage (alias get_hash,
 	}
 }
 
-private class BeamSearch (int max_level,
+private final class BeamSearch (int max_level,
     alias get_level,
     alias get_hash,
     alias gen_next,
