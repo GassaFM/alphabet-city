@@ -249,6 +249,32 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					cur.board[row][col] = BoardCell.NONE;
 				}
 
+				if (cur.tiles.target_board !is null)
+				{
+					auto cur_tile_number =
+					    (*cur.tiles.target_board)
+					    [row][col];
+					if (cur_tile_number != NA)
+					{
+						if (cur_tile_number < cur.tiles.cursor)
+						{
+							cur.board[row][col] =
+							    (cur.tiles[cur_tile_number] &
+							    LET_MASK) |
+							    (1 << BoardCell.ACTIVE_SHIFT);
+							cur.tiles.dec_restricted
+							    (cur.board[row][col]);
+							scope (exit)
+							{
+								cur.tiles.inc_restricted
+								    (cur.board[row][col]);
+							}
+							step_recur ();
+						}
+						return;
+					}
+				}
+
 				foreach (ref c; cur.tiles.rack.contents)
 				{
 					if (c.empty)

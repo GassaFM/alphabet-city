@@ -1,3 +1,3 @@
 #!/usr/bin/gawk
 // {s += $3;}
-END {print s / FNR;}
+END {print s, s / FNR;}

@@ -4,6 +4,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.format;
+import std.range;
 import std.stdio;
 
 import board;
@@ -152,6 +153,17 @@ struct Rack
 	}
 }
 
+struct TargetBoard
+{
+	byte [Board.SIZE] [Board.SIZE] tile_number = NA.to !(byte) ()
+	    .repeat (Board.SIZE).array ()
+	    .repeat (Board.SIZE).array ();
+
+	alias tile_number this;
+
+	static assert (TOTAL_TILES < tile_number[0][0].max);
+}
+
 struct TileBag
 {
 	immutable static int RESTRICTED_BIT = LET_BITS;
@@ -160,6 +172,7 @@ struct TileBag
 	Rack rack;
 	ByteString contents;
 	TileCounter counter;
+	TargetBoard * target_board;
 	int cursor;
 
 	alias contents this;
