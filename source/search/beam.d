@@ -105,7 +105,8 @@ private final class BeamSearchStorage (alias get_hash,
 		}
 		else
 		{
-			payload.length--;
+//			payload.length--;
+			payload.length = payload.length - 1;
 			payload.assumeSafeAppend ();
 			return cur_state;
 		}
@@ -177,8 +178,20 @@ private final class BeamSearch (int max_level,
 
 	void visit (ref State cur_state, int cur_depth)
 	{
+		int cur_level = get_level (cur_state);
 		foreach (ref State next_state; gen_next (cur_state))
 		{
+			if (get_level (next_state) <= cur_level)
+			{
+/*
+				writeln (cur_state);
+				writeln ("??? ", cur_level, ' ',
+				    get_level (next_state));
+				writeln (next_state);
+*/
+				continue;
+//				assert (false);
+			}
 			put (next_state);
 			if (cur_depth > 0)
 			{
@@ -236,9 +249,8 @@ private final class BeamSearch (int max_level,
 			{
 				version (verbose)
 				{
-					if (min (counter, min (width,
-					    storage[level].payload.length) -
-					    1 - counter) < 10)
+					if (min (counter, storage[level]
+					    .payload.length) < 10)
 					{
 						writeln ("at:");
 						writeln (cur_state);
@@ -285,6 +297,7 @@ unittest
 	    (a, b) => (a > b) - (a < b),
 	    int) (a, 10, 1);
 	assert (b == 2 * 7 * 7);
+
 	auto c = beam_search !(100, a => a, (int a) => a,
 	    a => [a * 7, a * 11, a * 13],
 	    a => true, a => true,
@@ -292,6 +305,7 @@ unittest
 	    (a, b) => (a > b) - (a < b),
 	    int, int []) (a, 1, 0);
 	assert (c == 2 * 7 * 7);
+
 	auto d = beam_search !(100, a => a, (int a) => a,
 	    a => [a * 2, a * 3, a * 5],
 	    a => true, a => true,

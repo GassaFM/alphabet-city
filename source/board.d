@@ -3,6 +3,7 @@ module board;
 import std.algorithm;
 import std.conv;
 import std.exception;
+import std.math;
 import std.random;
 import std.string;
 
@@ -237,6 +238,35 @@ struct Board
 		normalize_flip ();
 		normalize_active ();
 		normalize_hash ();
+	}
+
+	int distance_to_covered (int cur_row, int cur_col,
+	    bool cur_is_flipped) const
+	{
+		if (cur_is_flipped != is_flipped)
+		{
+			swap (cur_row, cur_col);
+		}
+		if (!contents[cur_row][cur_col].empty)
+		{ // optimization
+			return 0;
+		}
+
+		static assert (Board.SIZE * 2 < int.sizeof * 8);
+		int res = Board.SIZE * 2;
+		foreach (row; 0..Board.SIZE)
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				if (!contents[row][col].empty)
+				{
+					res = min (res,
+					    abs (row - cur_row) +
+					    abs (col - cur_col));
+				}
+			}
+		}
+		return res;
 	}
 
 	string toString () const

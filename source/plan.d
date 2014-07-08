@@ -92,6 +92,7 @@ final class Plan
 		{
 			cur_check_board.flip ();
 		}
+		auto cur_target_board = new TargetBoard ();
 		auto tile_numbers = new int [goal.word.length];
 		int last_final_pos = NA;
 		foreach (pos; final_positions)
@@ -110,6 +111,20 @@ final class Plan
 					    cast (int) (num));
 					cur_check_board.contents
 					    [row][col + pos] = tile;
+					if (!goal.is_flipped)
+					{
+						cur_target_board
+						    [row][col + pos] =
+						    cast (byte)
+						    (num + byte.min);
+					}
+					else
+					{
+						cur_target_board
+						    [col + pos][row] =
+						    cast (byte)
+						    (num + byte.min);
+					}
 					break;
 				}
 			}
@@ -123,13 +138,13 @@ final class Plan
 			last_final_pos = cast (int) (new_contents.length);
 		}
 
-		auto cur_target_board = new TargetBoard ();
 		foreach (seg; segments)
 		{
 			foreach (pos; seg.x..seg.y)
 			{
 				bool found = false;
-				foreach_reverse (num, ref tile; new_contents)
+				foreach_reverse (num, ref tile;
+				    new_contents[0..last_final_pos])
 				{
 					if (tile == goal.word[pos] &&
 					    !(tile & TileBag.IS_RESTRICTED))
@@ -166,8 +181,8 @@ final class Plan
 		cur_problem.contents = map !(a => cast (char) (a + 'A'))
 		    (new_contents).array ().to !(string) ();
 		problem = cur_problem;
-		target_board = cur_target_board;
 		check_board = cur_check_board;
+		target_board = cur_target_board;
 
 		goal_moves = new GameMove [0];
 		if (true)
@@ -234,11 +249,6 @@ unittest
 	auto p = Problem ("?:", "OXYPHENBUTAZONE");
 	auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 	auto plan = new Plan (p, goal);
-	writeln (plan);
-//	auto game = new Game !(Trie) (t, s);
-//	auto cur = GameState (Problem ("?:", "ABCDEFG"));
-//	auto next = game_beam_search ([cur], game, 100, 1);
-//	writeln (next);
-//	stdout.flush ();
-//	assert (next.board.score == 53 && next.board.value == 53);
+//	writeln (plan);
+	assert (plan.check_points.length == 3);
 }

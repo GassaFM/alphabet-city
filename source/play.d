@@ -49,13 +49,13 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 
 		GameMove cur_move = stored_cur_move;
 
-		bool check_tile ()
+		bool check_tile () ()
 		{
 			if (check_board is null)
 			{
 				return true;
 			}
-			if (check_board.is_flipped == cur.board.is_flipped)
+			if ((*check_board).is_flipped == cur.board.is_flipped)
 			{
 				return (*check_board)[row][col].empty ||
 				    ((*check_board)[row][col].letter ==
@@ -69,7 +69,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			}
 		}
 
-		void consider ()
+		void consider () ()
 		{
 			version (debug_play)
 			{
@@ -98,7 +98,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			process (cur);
 		}
 
-		int check_vertical ()
+		int check_vertical () ()
 		{
 			version (debug_play)
 			{
@@ -145,6 +145,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			{
 				return NA;
 			}
+
+			// TODO: add check with check_board without score here
 			return score * mult;
 		}
 
@@ -251,10 +253,21 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 
 				if (cur.tiles.target_board !is null)
 				{
-					auto cur_tile_number =
-					    cur.tiles.target_board[row][col];
-					if (cur_tile_number != NA)
+					int cur_tile_number;
+					if (!cur.board.is_flipped)
 					{
+						cur_tile_number =
+						    cur.tiles.target_board
+						    [row][col];
+					}
+					else
+					{
+						cur_tile_number =
+						    cur.tiles.target_board
+						    [col][row];
+					}
+					if (cur_tile_number >= 0)
+					{ // NA = free, other_negative = guided
 						if (cur_tile_number < cur.tiles.cursor)
 						{
 							cur.board[row][col] =
@@ -367,7 +380,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				    cur_move.tiles_before + Rack.MAX_SIZE);
 				if (move_cursor > tiles_cursor) // may be safer
 */
-				if (cur_move.tiles_before > cur.board.total)
+				if (pending_move.tiles_before >
+				    cur.board.total)
 				{
 					return;
 				}
@@ -377,8 +391,9 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			{
 				return;
 			}
-			if (col + 1 < Board.SIZE &&
-			    !cur.board[row][col + 1].empty)
+			if (col + pending_move.word.length < Board.SIZE &&
+			    !cur.board[row][col +
+			    pending_move.word.length].empty)
 			{
 				return;
 			}
@@ -433,11 +448,13 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			{
 				byte saved_total = Rack.IGNORED;
 				swap (cur.tiles.rack.total, saved_total);
+				active_tiles += 2;
 				connections++;
 				scope (exit)
 				{
 					swap (cur.tiles.rack.total,
 					    saved_total);
+					active_tiles -= 2;
 					connections--;
 				}
 			}
@@ -458,6 +475,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			{
 				if (cur.board[row][col + pos].empty)
 				{
+					cur.board.total++;
 					cur.board[row][col + pos] = move_tile |
 					    (1 << BoardCell.ACTIVE_SHIFT);
 					static if (rack_usage ==
@@ -483,6 +501,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				{
 					if (cur.board[row][col + pos].active)
 					{
+						cur.board.total--;
 						cur.board[row][col + pos] =
 						    BoardCell.NONE;
 						static if (rack_usage ==
@@ -516,7 +535,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		}
 		else
 		{
-			bool to_flip = (cur.board.is_flipped ==
+			bool to_flip = (cur.board.is_flipped !=
 			    pending_move.is_flipped);
 			if (to_flip)
 			{
@@ -580,7 +599,7 @@ ref GameState play_move (DictClass, RackUsage rack_usage)
 	static assert (rack_usage != RackUsage.Active);
 	auto play = Play !(DictClass, rack_usage) (dict, scoring);
 	GameState temp;
-	temp.board.value = NA;
+	temp.board.score = NA;
 	foreach (ref next; play (cur, cur_move))
 	{
 		temp = next;
@@ -650,6 +669,7 @@ unittest
 			num++;
 		}
 		assert (num > 0);
+		assert (num == 320);
 	}
 
 	void test_play_passive ()
@@ -668,6 +688,7 @@ unittest
 		foreach (ref next; play (cur, cur_move))
 		{
 			assert (next.board.score > 0);
+			assert (next.board.score == 14);
 			num++;
 		}
 		assert (num == 1);
@@ -691,6 +712,7 @@ unittest
 		{
 			temp = next;
 			assert (next.board.score > 1400);
+			assert (next.board.score == 1458);
 			num++;
 		}
 		assert (num == 1);
@@ -721,6 +743,7 @@ unittest
 		    .array ();
 		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
 		assert (cur.board.score > 1400);
+		assert (cur.board.score == 1458);
 
 		cur_move.initialize (cur);
 		cur_move.start_at (0, 0);
@@ -729,7 +752,32 @@ unittest
 		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
 		    .array ();
 		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
-		assert (cur.board.value == NA);
+		assert (cur.board.score == NA);
+	}
+
+	void test_check_vertical_on_ignore ()
+	{
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		auto cur_move = new GameMove ();
+
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 0);
+		cur_move.is_flipped = true;
+		cur_move.word = "OXYPHENBUTAZONE"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
+		assert (cur.board.score > 1400);
+		assert (cur.board.score == 1458);
+
+		cur_move.initialize (cur);
+		cur_move.start_at (1, 0);
+		cur_move.is_flipped = false;
+		cur_move.word = "SESQUICENTENARY"
+		    .map !(c => BoardCell (to !(byte) (c - 'A'))) ()
+		    .array ();
+		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
+		assert (cur.board.score == NA);
 	}
 
 	void test_compound_play ()
@@ -768,5 +816,6 @@ unittest
 	test_play_passive ();
 	test_play_ignore ();
 	test_play_move ();
+	test_check_vertical_on_ignore ();
 	test_compound_play ();
 }

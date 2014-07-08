@@ -171,7 +171,15 @@ final class TargetBoard
 		{
 			foreach (cell; line)
 			{
-				formattedWrite (sink, "%3d", cell);
+				if (cell < NA)
+				{
+					formattedWrite (sink, " x%02d",
+					    cell - byte.min);
+				}
+				else
+				{
+					formattedWrite (sink, "  %02d", cell);
+				}
 			}
 			formattedWrite (sink, "\n");
 		}
@@ -194,11 +202,14 @@ struct TileBag
 
 	void fill_rack ()
 	{
-		while ((cursor < contents.length) &&
-		    (rack.total < Rack.MAX_SIZE))
+		if (rack.total >= 0)
 		{
-			rack.add (contents[cursor]);
-			cursor++;
+			while ((cursor < contents.length) &&
+			    (rack.total < Rack.MAX_SIZE))
+			{
+				rack.add (contents[cursor]);
+				cursor++;
+			}
 		}
 	}
 
