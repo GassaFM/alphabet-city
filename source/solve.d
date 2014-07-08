@@ -533,6 +533,20 @@ void main (string [] args)
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 
+	auto all_goals = GoalBuilder.read_all_goals
+	    (read_all_lines ("data/goals/all.txt"));
+	foreach (k; 0..2)
+	{
+		foreach (ref goal; all_goals[k])
+		{
+			goal.stage = Goal.Stage.GREEDY;
+			goal.stored_score_rating = goal.calc_score_rating (s);
+		}
+		sort !((a, b) => a.score_rating > b.score_rating)
+		    (all_goals[k]);
+//		writeln (all_goals[k][0]);
+	}
+
 	auto m = new Manager (ps);
 	GC.collect ();
 

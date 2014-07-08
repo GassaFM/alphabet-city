@@ -589,12 +589,56 @@ ref GameState play_move (DictClass, RackUsage rack_usage)
 	return cur;
 }
 
+struct CompoundPlay (DictClass)
+{
+	DictClass stored_dict;
+	Scoring stored_scoring;
+	Board * stored_check_board;
+
+	GameState * stored_cur;
+
+	GameMove [] pending_moves;
+
+	ref typeof (this) opCall (ref GameState new_cur,
+	    GameMove [] new_pending_moves)
+	{
+		stored_cur = &new_cur;
+		pending_moves = new_pending_moves;
+		return this;
+	}
+
+	int opApply (int delegate (ref GameState) new_process)
+	{
+		Play !(DictClass) (stored_dict, stored_scoring,
+		    stored_check_board).opCall (*stored_cur)
+		    .opApply (new_process);
+
+		foreach (pending_move; pending_moves)
+		{
+			Play !(DictClass, RackUsage.Passive)
+			    (stored_dict, stored_scoring, stored_check_board)
+			    .opCall (*stored_cur, pending_move)
+			    .opApply (new_process);
+		}
+
+		return 0;
+	}
+
+	this (DictClass new_dict, Scoring new_scoring,
+	    Board * new_check_board = null)
+	{
+		stored_dict = new_dict;
+		stored_scoring = new_scoring;
+		stored_check_board = new_check_board;
+	}
+}
+
 unittest
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
 
-	void test_1 ()
+	void test_play_active ()
 	{
 		auto play = Play !(Trie) (t, s);
 		auto cur = GameState (Problem ("?:", "ABCDEFG"));
@@ -608,7 +652,7 @@ unittest
 		assert (num > 0);
 	}
 
-	void test_2 ()
+	void test_play_passive ()
 	{
 		auto play = Play !(Trie, RackUsage.Passive) (t, s);
 		auto cur = GameState (Problem ("?:", "abcDEFG"));
@@ -629,7 +673,7 @@ unittest
 		assert (num == 1);
 	}
 
-	void test_3 ()
+	void test_play_ignore ()
 	{
 		auto play = Play !(Trie, RackUsage.Ignore) (t, s);
 		auto cur = GameState (Problem ("?:", "ABCDEFG"));
@@ -664,7 +708,7 @@ unittest
 		}
 	}
 
-	void test_4 ()
+	void test_play_move ()
 	{
 		auto cur = GameState (Problem ("?:", "ABCDEFG"));
 		auto cur_move = new GameMove ();
@@ -688,8 +732,41 @@ unittest
 		assert (cur.board.value == NA);
 	}
 
-	test_1 ();
-	test_2 ();
-	test_3 ();
-	test_4 ();
+	void test_compound_play ()
+	{
+		auto play1 = Play !(Trie) (t, s);
+		auto play2 = CompoundPlay !(Trie) (t, s);
+		auto cur = GameState (Problem ("?:", "abcDEFG"));
+		auto cur_move = new GameMove ();
+
+		cur_move.initialize (cur);
+		cur_move.start_at (Board.CENTER, Board.CENTER);
+		cur_move.word = "cab"
+		    .map !(c => BoardCell (to !(byte) ((c - 'a') |
+		    (1 << BoardCell.ACTIVE_SHIFT)))) ()
+		    .array ();
+
+		int num1 = 0;
+		foreach (ref next; play1 (cur))
+		{
+			assert (next.board.score > 0);
+			num1++;
+		}
+		assert (num1 > 0);
+		assert (num1 == 24);
+
+		int num2 = 0;
+		foreach (ref next; play2 (cur, [cur_move]))
+		{
+			assert (next.board.score > 0);
+			num2++;
+		}
+		assert (num2 == num1 + 1);
+	}
+
+	test_play_active ();
+	test_play_passive ();
+	test_play_ignore ();
+	test_play_move ();
+	test_compound_play ();
 }

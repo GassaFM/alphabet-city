@@ -3,6 +3,7 @@ module plan;
 import std.algorithm;
 import std.conv;
 import std.format;
+import std.range;
 import std.stdio;
 
 import board;
@@ -39,17 +40,17 @@ final class Plan
 	this (Problem new_problem, Goal new_goal)
 	{
 		auto cur_problem = new_problem;
-		char [] new_contents;
+		byte [] new_contents;
 		new_contents.reserve (cur_problem.contents.length);
 		foreach (tile; cur_problem.contents)
 		{
 			if (tile == '?')
 			{
-				new_contents ~= cast (char) ('A' + LET);
+				new_contents ~= cast (byte) (LET);
 			}
 			else
 			{
-				new_contents ~= tile;
+				new_contents ~= cast (byte) (tile - 'A');
 			}
 		}
 		assert (new_contents.length < byte.max);
@@ -92,29 +93,23 @@ final class Plan
 			cur_check_board.flip ();
 		}
 		auto tile_numbers = new int [goal.word.length];
-		writeln (final_positions);
-		stdout.flush ();
+		int last_final_pos = NA;
 		foreach (pos; final_positions)
 		{
-			writeln (pos);
-			stdout.flush ();
 			bool found = false;
 			foreach_reverse (num, ref tile; new_contents)
 			{
-				writeln (num, ' ', tile, ' ', tile - 'A',
-				    ' ', goal.word[pos],
-				    ' ', tile & TileBag.IS_RESTRICTED);
-				stdout.flush ();
-				if (tile - 'A' == goal.word[pos] &&
+				if (tile == goal.word[pos] &&
 				    (tile & TileBag.IS_RESTRICTED) == 0)
 				{
 					found = true;
 					tile |= TileBag.IS_RESTRICTED;
 					tile_numbers[pos] =
 					    cast (int) (num);
+					last_final_pos = max (last_final_pos,
+					    cast (int) (num));
 					cur_check_board.contents
-					    [row][col + pos] =
-					    to !(byte) (tile - 'A');
+					    [row][col + pos] = tile;
 					break;
 				}
 			}
@@ -123,32 +118,28 @@ final class Plan
 				return;
 			}
 		}
+		if (last_final_pos == NA)
+		{
+			last_final_pos = cast (int) (new_contents.length);
+		}
 
 		auto cur_target_board = new TargetBoard ();
-		writeln (segments);
-		stdout.flush ();
 		foreach (seg; segments)
 		{
-			writeln (seg);
-			stdout.flush ();
 			foreach (pos; seg.x..seg.y)
 			{
-				writeln (pos);
-				stdout.flush ();
 				bool found = false;
 				foreach_reverse (num, ref tile; new_contents)
 				{
-					if (tile - 'A' == goal.word[pos] &&
-					    (tile &
-					    TileBag.IS_RESTRICTED) == 0)
+					if (tile == goal.word[pos] &&
+					    !(tile & TileBag.IS_RESTRICTED))
 					{
 						found = true;
 						tile |= TileBag.IS_RESTRICTED;
 						tile_numbers[pos] =
 						    cast (int) (num);
 						cur_check_board
-						    [row][col + pos] =
-						    to !(byte) (tile - 'A');
+						    [row][col + pos] = tile;
 						if (!goal.is_flipped)
 						{
 							cur_target_board
@@ -172,10 +163,33 @@ final class Plan
 		}
 
 		// good plan
-		cur_problem.contents = to !(string) (new_contents);
+		cur_problem.contents = map !(a => cast (char) (a + 'A'))
+		    (new_contents).array ().to !(string) ();
 		problem = cur_problem;
 		target_board = cur_target_board;
 		check_board = cur_check_board;
+
+		goal_moves = new GameMove [0];
+		if (true)
+		{
+			auto cur_move = new GameMove ();
+			foreach (pos, tile; goal.word)
+			{
+				BoardCell cell = tile;
+				if (goal.mask_forbidden & (1 << pos))
+				{
+					cell.active = true;
+				}
+				cur_move.word ~= cell;
+			}
+			cur_move.row = 0;
+			cur_move.col = 0;
+			cur_move.tiles_before =
+			    cast (byte) (last_final_pos - Rack.MAX_SIZE + 1);
+			cur_move.is_flipped = false;
+			cur_move.score = NA;
+			goal_moves ~= cur_move;
+		}
 
 		check_points = new CheckPoint [0];
 		foreach (seg; segments)
@@ -218,9 +232,7 @@ unittest
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
 	auto p = Problem ("?:", "OXYPHENBUTAZONE");
-	writeln (p);
 	auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
-	writeln (goal);
 	auto plan = new Plan (p, goal);
 	writeln (plan);
 //	auto game = new Game !(Trie) (t, s);

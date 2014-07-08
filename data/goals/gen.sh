@@ -9,5 +9,5 @@ for (( d = 0 ; d < 2 ; d ++ )) ; do
 	gawk "{print tolower (\$1);}" t-$d.txt | sort | uniq >long-words-$d.txt
 done
 for f in t*.txt ; do
-	sort -k 2 -n -r $f >s${f#t*}
+	cat $f | sort -k 3n -s | sort -k 2nr -s >s${f#t*}
 done

@@ -77,6 +77,11 @@ struct BoardCell
 	{
 		return letter == NONE;
 	}
+
+	this (byte new_contents)
+	{
+		contents = new_contents;
+	}
 }
 
 struct Board
