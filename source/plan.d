@@ -36,7 +36,8 @@ struct TileLock
 
 	string toString () const
 	{
-		return "(gn=" ~ goal_num ~ ", p=" ~ pos ~ ")";
+		return "(gn=" ~ to !(string) (goal_num) ~ ", p=" ~
+		    to !(string) (pos) ~ ")";
 	}
 }
 
@@ -318,6 +319,13 @@ struct Sketch
 				return;
 			}
 
+			int saved_ceiling = last_final_pos[goal_num];
+			swap (saved_ceiling, cur_ceiling);
+			scope (exit)
+			{
+				swap (saved_ceiling, cur_ceiling);
+			}
+
 			put_final_tiles (goal_num + 1);
 		}
 
@@ -415,7 +423,8 @@ struct CheckPoint
 
 	string toString () const
 	{
-		return "(t=" ~ tile ~ ", r=" ~ row ~ ", c=" ~ col ~ ")";
+		return "(t=" ~ to !(string) (tile) ~ ", r=" ~
+		    to !(string) (row) ~ ", c=" ~ to !(string) (col) ~ ")";
 	}
 }
 

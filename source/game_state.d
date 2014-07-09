@@ -79,9 +79,8 @@ struct GameState
 		return board == other.board;
 	}
 
-	string toString ()
+	string moves_string ()
 	{
-		string res = board.toString () ~ tiles.toString () ~ '\n';
 		string [] moves;
 		for (GameMove cur_move = closest_move; cur_move !is null;
 		    cur_move = cur_move.chained_move)
@@ -89,7 +88,13 @@ struct GameState
 			moves ~= to !(string) (cur_move);
 		}
 		reverse (moves);
-		res ~= join (moves, ",\n");
+		return join (moves, ",\n");
+	}
+
+	string toString ()
+	{
+		string res = board.toString () ~ tiles.toString () ~ '\n';
+		res ~= moves_string ();
 		return res;
 	}
 }

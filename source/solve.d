@@ -71,7 +71,7 @@ void log_progress (Problem problem, GameState cur)
 	}
 	started_output = true;
 	writeln (problem.name);
-	writeln (cur);
+	writeln (cur.moves_string ());
 	stdout.flush ();
 }
 
@@ -780,7 +780,6 @@ void main (string [] args)
 		return;
 	}
 
-/*
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
@@ -796,9 +795,8 @@ void main (string [] args)
 		log_progress (p, next);
 	}
 	return;
-*/
 
-// /*
+/*
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
@@ -814,7 +812,7 @@ void main (string [] args)
 		log_progress (p, next);
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..1)
