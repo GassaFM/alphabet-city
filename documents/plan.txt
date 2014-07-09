@@ -77,3 +77,20 @@ Beam Search improvements:
 1. Add associative array by sectors:
   areas close to where we have to put letters.
 2. Search with bias=0 and three goals.
+
+20140709:
+Notes:
+1. Give value for each goal letter successfully put.
+2. Give value for having an adjacent letter to each pending goal letter?
+
+140709 version OXYPHENBUTAZONE fail reasons:
+1. ~6x A free letter Q,V,L,I has no free place. Too crowded.
+  Solution: ask for a second word, maybe it won't be crowded then ;) ?
+  Solution: ensure that Q is in one of the goals. Add value for that?
+2. ~1x Bridged segments 1 and 3, closing opportunities for segment 2.
+  Solution: give value for consecutive order of the checkpoints.
+3. ~1x Too close but not growable. Alternative route too far and thus no bonus.
+  Solution: add value for not one but also the number of closest tiles?
+4. ~1x HEN has N, pending H. UTA has U, pending A. Result: out of rack space.
+  Solution: give value for consecutive order inside segments? Or split them?
+  Solution: give value for each goal letter successfully put.

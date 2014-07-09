@@ -68,12 +68,39 @@ final class Game (DictClass)
 				{
 					return NA;
 				}
+
+				// add value for each present goal letter
+				static immutable int LETTER_BONUS = 100;
+				foreach (pos; 0..goal_move.word.length)
+				{
+					if (cur.board.is_flipped ==
+					    goal_move.is_flipped)
+					{
+						if (!cur.board
+						    [goal_move.row]
+						    [goal_move.col + pos]
+						    .empty)
+						{
+							res += LETTER_BONUS;
+						}
+					}
+					else
+					{
+						if (!cur.board
+						    [goal_move.col + pos]
+						    [goal_move.row]
+						    .empty)
+						{
+							res += LETTER_BONUS;
+						}
+					}
+				}
 			}
 			res += temp.board.score - prev_score;
 
 			// add checkpoint values
-			immutable int WHOLE_VALUE = 400;
-			immutable int TO_SUB = 50;
+			static immutable int WHOLE_VALUE = 400;
+			static immutable int TO_SUB = 50;
 			int sub = 0;
 			foreach (check_point; plan.check_points)
 			{
@@ -190,10 +217,10 @@ unittest
 	void test_planned ()
 	{
 		auto p = Problem ("?:",
-		    "AELSUNIERTOAIE" ~ "AELSUNRIETOAIE" ~
+		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
 		    "OXYPHENBUTAZONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
-		auto plan = new Plan (p, goal);
+		auto plan = new Plan (p, [goal]);
 		auto game = new Game !(Trie) (t, s, plan);
 		auto cur = GameState (plan.problem);
 		cur.tiles.target_board = plan.target_board;

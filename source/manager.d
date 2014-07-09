@@ -98,8 +98,7 @@ final class Manager
 		stderr.flush ();
 		while (true)
 		{
-			string s;
-			s = f.readln ().strip (); // X: score (other info)...
+			auto s = f.readln ();
 			if (f.eof ())
 			{
 				break;
@@ -107,6 +106,12 @@ final class Manager
 			if (!(s.length >= 2 &&
 			    'A' <= s[0] && s[0] <= 'Z' && s[1] == ':'))
 			{
+				continue;
+			}
+			auto t = s.split ().array ();
+			if (!(t.length >= 2 &&
+			    '0' <= t[1][0] && t[1][0] <= '9'))
+			{// X: score (other info)...
 				continue;
 			}
 			string short_name = toLower (s[0..1]);

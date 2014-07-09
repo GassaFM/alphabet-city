@@ -578,6 +578,10 @@ void main (string [] args)
 	version (manager)
 	{
 		m.read_log ("log.txt");
+		foreach (c; 0..9)
+		{
+			m.read_log ("log0" ~ to !(string) (c) ~ ".txt");
+		}
 		foreach (c; 1..100)
 		{
 			m.read_log ("log" ~ to !(string) (c) ~ ".txt");
@@ -776,12 +780,33 @@ void main (string [] args)
 		return;
 	}
 
+/*
+	foreach (i; 0..LET)
+	{
+		auto p = ps.problem[i];
+		auto goal1 = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto goal2 = new Goal ("SesQuIcEnTeNarY",
+		    Board.SIZE - 1, 0, false);
+		auto plan = new Plan (p, [goal1, goal2]);
+		writeln (plan);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 100, 0);
+		log_progress (p, next);
+	}
+	return;
+*/
+
 // /*
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
-		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
-		auto plan = new Plan (p, goal);
+//		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto goal = new Goal ("SesQuIcEnTeNarY",
+		    Board.SIZE - 1, 0, false);
+		auto plan = new Plan (p, [goal]);
+		writeln (plan);
 		auto game = new Game !(Trie) (t, s, plan);
 		auto cur = GameState (plan.problem);
 		cur.tiles.target_board = plan.target_board;
@@ -814,14 +839,13 @@ void main (string [] args)
 	return;
 */
 
+/*
 	foreach (i; 0..LET)
 	{
-// /*
 		if (i != 'S' - 'A')
 		{
 			continue;
 		}
-// */
 		auto p = ps.problem[i];
 
 //		put_two (250, 0, 4, 8, p, t, s,
@@ -831,7 +855,7 @@ void main (string [] args)
 		put_two (25000, 0, 1, 2, p, t, s,
 		    goals_relaxed ~ goals, goals, [], null);
  
-/*
+*/ /*
 		auto goals_middle = goals_center.dup;
 		foreach (ref cur_goal; goals_middle)
 		{
@@ -930,6 +954,7 @@ void main (string [] args)
 	                	}
 			}
 		}
-*/
+*/ /*
 	}
+*/
 }
