@@ -21,6 +21,7 @@ import fifteen;
 import general;
 import goal;
 import manager;
+import plan;
 import problem;
 import scoring;
 import tile_bag;
@@ -47,6 +48,30 @@ void log_progress (GameComplex game)
 	started_output = true;
 	writeln (game.problem.name);
 	writeln (game);
+	stdout.flush ();
+}
+
+void log_progress (Problem problem, GameState cur)
+{
+	static bool started_output = false;
+
+	cur.board.normalize ();
+	stderr.writeln (problem.name, ' ',
+	    cur.board.score, " (",
+	    cur.board.value, ')');
+	stderr.flush ();
+	if (cur.board.score < 1500 ||
+	    cur.tiles.contents.length < TOTAL_TILES)
+	{
+		return;
+	}
+	if (started_output)
+	{
+		writeln (';');
+	}
+	started_output = true;
+	writeln (problem.name);
+	writeln (cur);
 	stdout.flush ();
 }
 
@@ -752,6 +777,21 @@ void main (string [] args)
 	}
 
 // /*
+	foreach (i; 0..LET)
+	{
+		auto p = ps.problem[i];
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, goal);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 100, 0);
+		log_progress (p, next);
+	}
+	return;
+// */
+
+/*
 	foreach (i; 0..1)
 	{
 		auto p = ps.problem[i];
@@ -761,7 +801,7 @@ void main (string [] args)
 		stdout.flush ();
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..1)

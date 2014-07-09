@@ -105,8 +105,7 @@ private final class BeamSearchStorage (alias get_hash,
 		}
 		else
 		{
-//			payload.length--;
-			payload.length = payload.length - 1;
+			payload.length--;
 			payload.assumeSafeAppend ();
 			return cur_state;
 		}

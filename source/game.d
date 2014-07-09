@@ -57,7 +57,7 @@ final class Game (DictClass)
 
 		if (plan !is null)
 		{
-			// add goal move values
+			// check goal moves
 			GameState temp = cur;
 			int prev_score = temp.board.score;
 			foreach (goal_move; plan.goal_moves)
@@ -190,14 +190,13 @@ unittest
 		    "OXYPHENBUTAZONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, goal);
-//		writeln (plan);
 		auto game = new Game !(Trie) (t, s, plan);
 		auto cur = GameState (plan.problem);
 		cur.tiles.target_board = plan.target_board;
-		auto next = game_beam_search ([cur], game, 3, 0);
+		auto next = game_beam_search ([cur], game, 10, 0);
 //		writeln (next);
 		assert (next.board.score >= 1400);
-		assert (next.board.score == 1658);
+		assert (next.board.score == 1697);
 	}
 
 	test_regular ();
