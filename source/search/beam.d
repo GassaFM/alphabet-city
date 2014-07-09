@@ -31,7 +31,11 @@ private final class BeamSearchStorage (alias get_hash,
 
 	void repack ()
 	{
+//		writeln ("< ", payload.map !(a => a.board.value).array ());
 		alias HashType = ReturnType !(get_hash);
+		// TODO: transfer both next lines to compile time
+		static State state_init;
+		HashType hash_init = get_hash (state_init);
 		int [HashType] marked;
 		foreach (pos, ref cur_state; payload)
 		{
@@ -78,9 +82,16 @@ private final class BeamSearchStorage (alias get_hash,
 		}
 
 		payload.length = new_length;
+		// remove init values by comparing hash, assume they are at end
+		while (payload.length > 0 &&
+		    get_hash (payload[$ - 1]) == hash_init)
+		{
+			payload.length--;
+		}
 		payload.assumeSafeAppend ();
 		assert (isSorted !((a, b) => compare_inner (a, b) > 0)
 		    (payload));
+//		writeln ("> ", payload.map !(a => a.board.value).array ());
 	}
 
 	ref State put (ref State cur_state)

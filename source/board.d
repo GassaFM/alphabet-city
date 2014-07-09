@@ -272,13 +272,27 @@ struct Board
 	string toString () const
 	{
 		string res;
-		foreach (line; contents)
+		if (!is_flipped)
 		{
-			foreach (cell; line)
+			foreach (row; 0..Board.SIZE)
 			{
-				res ~= cell.toString ();
+				foreach (col; 0..Board.SIZE)
+				{
+					res ~= contents[row][col].toString ();
+				}
+				res ~= '\n';
 			}
-			res ~= '\n';
+		}
+		else
+		{
+			foreach (row; 0..Board.SIZE)
+			{
+				foreach (col; 0..Board.SIZE)
+				{
+					res ~= contents[col][row].toString ();
+				}
+				res ~= '\n';
+			}
 		}
 		res ~= to !(string) (score) ~ ' ';
 		res ~= '(' ~ to !(string) (value) ~ ") ";
