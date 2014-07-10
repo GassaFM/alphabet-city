@@ -36,7 +36,7 @@ struct TileLock
 
 	string toString () const
 	{
-		return "(gn=" ~ to !(string) (goal_num) ~ ", p=" ~
+		return "TL(" ~ to !(string) (goal_num) ~ "," ~
 		    to !(string) (pos) ~ ")";
 	}
 }
@@ -113,7 +113,9 @@ struct Sketch
 				{
 					tiles_by_letter[tile & LET_MASK] ~=
 					    cast (int) (num);
-					letters_by_tile[num] =
+					letters_by_tile[num] = cast (int)
+					    (tiles_by_letter[tile & LET_MASK]
+					    .length - 1);
 					total_counter[tile & LET_MASK]++;
 				}
 			}
@@ -159,7 +161,7 @@ struct Sketch
 			bool found = true;
 			foreach (pos, let; goal.word)
 			{
-				if (((goal.mask_forbidden >> pos) & 1))
+				if (goal.is_final_pos (pos))
 				{
 					continue;
 				}
@@ -190,7 +192,7 @@ struct Sketch
 			{
 				foreach (pos, ref num; goal_locks[goal_num])
 				{
-					if (((goal.mask_forbidden >> pos) & 1))
+					if (goal.is_final_pos (pos))
 					{
 						continue;
 					}
@@ -212,6 +214,28 @@ struct Sketch
 			put_start_tiles (goal_num + 1);
 		}
 
+		void calc_last_final_pos (int goal_num)
+		{
+			auto goal = goals[goal_num];
+
+			last_final_pos[goal_num] = NA;
+			foreach (pos, let; goal.word)
+			{
+				if (!goal.is_final_pos (pos))
+				{
+					continue;
+				}
+				last_final_pos[goal_num] =
+				    max (last_final_pos[goal_num],
+				    goal_locks[goal_num][pos]);
+			}
+			if (last_final_pos[goal_num] == NA)
+			{
+				last_final_pos[goal_num] =
+				    cast (int) (tiles.length);
+			}
+		}
+
 		void put_final_tiles (int goal_num)
 		{
 			version (debug_sketch)
@@ -228,7 +252,7 @@ struct Sketch
 			bool found = true;
 			foreach (pos, let; goal.word)
 			{
-				if (!((goal.mask_forbidden >> pos) & 1))
+				if (!goal.is_final_pos (pos))
 				{
 					continue;
 				}
@@ -245,9 +269,6 @@ struct Sketch
 					tile_locks[num] =
 					    TileLock (goal_num, pos);
 					goal_locks[goal_num][pos] = num;
-					last_final_pos[goal_num] =
-					    max (last_final_pos[goal_num],
-					    num);
 					found = true;
 					break;
 				}
@@ -261,8 +282,7 @@ struct Sketch
 			{
 				foreach (pos, ref num; goal_locks[goal_num])
 				{
-					if (!((goal.mask_forbidden >>
-					    pos) & 1))
+					if (!goal.is_final_pos (pos))
 					{
 						continue;
 					}
@@ -280,53 +300,85 @@ struct Sketch
 			{
 				return;
 			}
-			if (last_final_pos[goal_num] == NA)
-			{
-				last_final_pos[goal_num] =
-				    cast (int) (tiles.length);
-			}
+			calc_last_final_pos (goal_num);
 			scope (exit)
 			{
 				last_final_pos[goal_num] = NA;
 			}
 
-			foreach (pos, let; goal.word)
-			{
-				if (!((goal.mask_forbidden >> pos) & 1))
-				{
-					continue;
-				}
-				locks_add (goal_locks[goal_num][pos],
-				    last_final_pos[goal_num]);
-			}
-
-			scope (exit)
+			while (true)
 			{
 				foreach (pos, let; goal.word)
 				{
-					if (!((goal.mask_forbidden >>
-					    pos) & 1))
+					if (!goal.is_final_pos (pos))
+					{
+						continue;
+					}
+					locks_add (goal_locks[goal_num][pos],
+					    last_final_pos[goal_num]);
+				}
+
+				if (!lock_errors)
+				{
+					int saved_ceiling =
+					    last_final_pos[goal_num];
+					swap (saved_ceiling, cur_ceiling);
+					scope (exit)
+					{
+						swap (saved_ceiling,
+						    cur_ceiling);
+					}
+
+					put_final_tiles (goal_num + 1);
+				}
+
+				foreach (pos, let; goal.word)
+				{
+					if (!goal.is_final_pos (pos))
 					{
 						continue;
 					}
 					locks_sub (goal_locks[goal_num][pos],
 					    last_final_pos[goal_num]);
 				}
-			}
 
-			if (lock_errors)
-			{
-				return;
-			}
+				int tile_num = last_final_pos[goal_num];
+				if (tile_num == tiles.length)
+				{
+					break;
+				}
+				auto tile_lock =
+				    tile_locks[tile_num];
+				assert (tile_lock.goal_num == goal_num);
+				int pos = tile_lock.pos;
+				assert (goal.is_final_pos (pos));
 
-			int saved_ceiling = last_final_pos[goal_num];
-			swap (saved_ceiling, cur_ceiling);
-			scope (exit)
-			{
-				swap (saved_ceiling, cur_ceiling);
+				auto let = tiles[tile_num] & LET_MASK;
+				found = false;
+				foreach (num; tiles_by_letter[let]
+				    [letters_by_tile[tile_num]..$])
+				{
+					assert (num < cur_ceiling);
+					if ((tiles[num] &
+					    TileBag.IS_RESTRICTED))
+					{
+						continue;
+					}
+					tiles[tile_num] &=
+					    ~TileBag.IS_RESTRICTED;
+					tiles[num] |= TileBag.IS_RESTRICTED;
+					tile_locks[num] =
+					    TileLock (goal_num, pos);
+					goal_locks[goal_num][pos] = num;
+					found = true;
+					break;
+				}
+				if (!found)
+				{
+					break;
+				}
+				calc_last_final_pos (goal_num);
 			}
-
-			put_final_tiles (goal_num + 1);
 		}
 
 		prepare ();
@@ -369,14 +421,13 @@ struct Sketch
 			{
 				found = true;
 				this = next;
-//				writeln (this);
+				writeln (this);
 			}
 		}
 		if (!found)
 		{
 			goals = new Goal [0];
 		}
-		writeln (this);
 	}
 
 	string toString () const
@@ -423,8 +474,8 @@ struct CheckPoint
 
 	string toString () const
 	{
-		return "(t=" ~ to !(string) (tile) ~ ", r=" ~
-		    to !(string) (row) ~ ", c=" ~ to !(string) (col) ~ ")";
+		return "" ~ to !(string) (tile) ~ "(" ~
+		    to !(string) (row) ~ "," ~ to !(string) (col) ~ ")";
 	}
 }
 
@@ -461,7 +512,7 @@ final class Plan
 			int segment_start = NA;
 			foreach (pos, let; goal.word)
 			{
-				if ((goal.mask_forbidden >> pos) & 1)
+				if (goal.is_final_pos (pos))
 				{
 					if (segment_start != NA)
 					{
@@ -499,8 +550,7 @@ final class Plan
 				int num = tile_numbers[pos];
 				assert (num != NA);
 				byte val = cast (byte) (num +
-				    ((goal.mask_forbidden >> pos) & 1) *
-				    byte.min);
+				    goal.is_final_pos (pos) * byte.min);
 				if (!goal.is_flipped)
 				{
 					target_board[row][col + pos] = val;
@@ -515,7 +565,7 @@ final class Plan
 			foreach (pos, tile; goal.word)
 			{
 				BoardCell cell = tile;
-				if (goal.mask_forbidden & (1 << pos))
+				if (goal.is_final_pos (pos))
 				{
 					cell.active = true;
 				}

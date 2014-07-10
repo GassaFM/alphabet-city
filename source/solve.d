@@ -558,8 +558,11 @@ void main (string [] args)
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
 
-	auto all_goals = GoalBuilder.read_all_goals
-	    (read_all_lines ("data/goals/all.txt"));
+	auto all_goals_0 = GoalBuilder.read_all_goals
+	    (read_all_lines ("data/goals/s-0.txt"));
+	auto all_goals_1 = GoalBuilder.read_all_goals
+	    (read_all_lines ("data/goals/s-1.txt"));
+	Goal [] [2] all_goals = [all_goals_0[0], all_goals_1[1]];
 	foreach (k; 0..2)
 	{
 		foreach (ref goal; all_goals[k])
@@ -567,8 +570,8 @@ void main (string [] args)
 			goal.stage = Goal.Stage.GREEDY;
 			goal.stored_score_rating = goal.calc_score_rating (s);
 		}
-		sort !((a, b) => a.score_rating > b.score_rating)
-		    (all_goals[k]);
+//		sort !((a, b) => a.score_rating > b.score_rating)
+//		    (all_goals[k]);
 //		writeln (all_goals[k][0]);
 	}
 
@@ -776,10 +779,42 @@ void main (string [] args)
 			log_progress (game);
 		}
 		while (false);
-
+		
 		return;
 	}
 
+	foreach (i; 0..LET)
+	{
+		auto p = ps.problem[i];
+		foreach (pre_goal1; all_goals[1].take (400))
+		{
+			auto goal1 = new Goal (pre_goal1);
+			goal1.row = 0;
+
+			foreach (pre_goal2; all_goals[1].take (400))
+			{
+				auto goal2 = new Goal (pre_goal2);
+				goal2.row = Board.SIZE - 1;
+
+				auto plan = new Plan (p, [goal1, goal2]);
+				if (plan.goal_moves.length > 0)
+				{
+					stderr.writeln (plan);
+					auto game = new Game !(Trie)
+					    (t, s, plan);
+					auto cur = GameState (plan.problem);
+					cur.tiles.target_board =
+					    plan.target_board;
+					auto next = game_beam_search
+					    ([cur], game, 100, 0);
+					log_progress (p, next);
+				}
+			}
+		}
+	}
+	return;
+
+/*
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
@@ -795,6 +830,7 @@ void main (string [] args)
 		log_progress (p, next);
 	}
 	return;
+*/
 
 /*
 	foreach (i; 0..LET)

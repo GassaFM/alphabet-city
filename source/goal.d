@@ -65,6 +65,11 @@ final class Goal
 		return (mask_forbidden >> Board.CENTER) & 1;
 	}
 
+	bool is_final_pos (T1) (T1 pos) const
+	{
+		return (mask_forbidden >> pos) & 1;
+	}
+
 	int count_forbidden () const
 	{
 		int res = int.max;
