@@ -7,6 +7,7 @@ import std.array;
 import std.conv;
 import std.exception;
 import std.math;
+import std.random;
 import std.range;
 import std.stdio;
 import std.string;
@@ -581,7 +582,7 @@ void main (string [] args)
 	version (manager)
 	{
 		m.read_log ("log.txt");
-		foreach (c; 0..9)
+		foreach (c; 0..10)
 		{
 			m.read_log ("log0" ~ to !(string) (c) ~ ".txt");
 		}
@@ -783,33 +784,116 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	auto random = new Random (123456);
+	foreach_reverse (i; 0..LET)
 	{
+// /*
+		if (i != 'S' - 'A')
+		{
+			continue;
+		}
+// */
+
 		auto p = ps.problem[i];
-		foreach (pre_goal1; all_goals[1].take (700))
+		Plan [] plans;
+
+		bool try_plan (Plan plan)
+		{
+			if (plan.score_rating != NA)
+			{
+				plans ~= plan;
+				return (plans.length >= 10_000);
+			}
+			return false;
+		}
+
+		first_loop:
+		foreach (num1, pre_goal1; all_goals[1].take (1250))
 		{
 			auto goal1 = new Goal (pre_goal1);
 			goal1.row = 0;
 
-			foreach (pre_goal2; all_goals[1].take (700))
+			foreach (num2, pre_goal2; all_goals[1].take (num1))
 			{
 				auto goal2 = new Goal (pre_goal2);
 				goal2.row = Board.SIZE - 1;
 
-				auto plan = new Plan (p, [goal1, goal2]);
-				if (plan.goal_moves.length > 0)
+				if (try_plan (new Plan (p, [goal1, goal2])))
 				{
-					stderr.writeln (plan);
-					auto game = new Game !(Trie)
-					    (t, s, plan);
-					auto cur = GameState (plan.problem);
-					cur.tiles.target_board =
-					    plan.target_board;
-					auto next = game_beam_search
-					    ([cur], game, 300, 0);
-					log_progress (p, next);
+					break first_loop;
+				}
+
+				if (try_plan (new Plan (p, [goal2, goal1])))
+				{
+					break first_loop;
+				}
+
+				swap (goal1.row, goal2.row);
+
+				if (try_plan (new Plan (p, [goal1, goal2])))
+				{
+					break first_loop;
+				}
+
+				if (try_plan (new Plan (p, [goal2, goal1])))
+				{
+					break first_loop;
+				}
+
+				swap (goal1.row, goal2.row);
+			}
+		}
+
+		sort !((a, b) => a.score_rating > b.score_rating,
+		    SwapStrategy.stable) (plans);
+		stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
+		    plans.length > 0 ? plans[0].score_rating : -1, ' ',
+		    plans.length > 0 ? plans[$ - 1].score_rating : -1);
+		stderr.flush ();
+
+		int counter = 0;
+		int [ulong] visited;
+		static immutable int PRIME = 262_139;
+		foreach (plan; plans)
+		{
+			ulong cur_hash = 0;
+			foreach (goal_move; plan.goal_moves)
+			{
+				foreach (tile; goal_move.word)
+				{
+					cur_hash = cur_hash * PRIME +
+					    (tile & LET_MASK);
+				}
+				cur_hash = cur_hash * PRIME + goal_move.row;
+				cur_hash = cur_hash * PRIME + goal_move.col;
+			}
+			visited[cur_hash]++;
+/*
+//			writeln (visited);
+			if (visited[cur_hash] > 3)
+			{
+				if (uniform (0, visited[cur_hash], random))
+				{
+					continue;
 				}
 			}
+*/
+
+			stderr.writeln (plan);
+			stderr.flush ();
+			auto game = new Game !(Trie) (t, s, plan);
+			auto cur = GameState (plan.problem);
+			cur.tiles.target_board = plan.target_board;
+			auto next = game_beam_search ([cur], game, 2500, 0);
+			log_progress (p, next);
+
+			counter++;
+/*
+			if (counter >= 50)
+			{
+				break;
+			}
+*/
 		}
 	}
 	return;

@@ -109,8 +109,9 @@ final class Manager
 				continue;
 			}
 			auto t = s.split ().array ();
-			if (!(t.length >= 2 &&
-			    '0' <= t[1][0] && t[1][0] <= '9'))
+			if (t.length != 1)
+//			if (!(t.length == 1 ||
+//			    ('0' <= t[1][0] && t[1][0] <= '9')))
 			{// X: score (other info)...
 				continue;
 			}

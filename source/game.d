@@ -102,6 +102,9 @@ final class Game (DictClass)
 			static immutable int WHOLE_VALUE = 10000;
 			static immutable int MAX_SUB = 12;
 			static immutable int TO_SUB = 4;
+//			static immutable int WHOLE_VALUE = 400;
+//			static immutable int MAX_SUB = WHOLE_VALUE;
+//			static immutable int TO_SUB = WHOLE_VALUE / 8;
 			int sub = 0;
 			foreach (check_point; plan.check_points)
 			{
@@ -116,9 +119,10 @@ final class Game (DictClass)
 					d--;
 				}
 				res += (WHOLE_VALUE >> sub) >> d;
+//				res += (WHOLE_VALUE - sub) >> d;
 				if (sub > 0 || d > 1)
 				{
-					sub = min (WHOLE_VALUE, sub + TO_SUB);
+					sub = min (MAX_SUB, sub + TO_SUB);
 				}
 			}
 		}

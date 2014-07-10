@@ -163,12 +163,12 @@ final class TargetBoard
 
 	static assert (TOTAL_TILES < tile_number[0][0].max);
 
-	override string toString () const
+	string [] to_strings () const
 	{
-		auto sink = appender !(string) ();
-		formattedWrite (sink, "Target board:\n");
+		string [] res;
 		foreach (line; tile_number)
 		{
+			auto sink = appender !(string) ();
 			foreach (cell; line)
 			{
 				if (cell < NA)
@@ -181,7 +181,18 @@ final class TargetBoard
 					formattedWrite (sink, "  %02d", cell);
 				}
 			}
-			formattedWrite (sink, "\n");
+			res ~= sink.data;
+		}
+		return res;
+	}
+
+	override string toString () const
+	{
+		auto sink = appender !(string) ();
+		formattedWrite (sink, "Target board:\n");
+		foreach (line; to_strings ())
+		{
+			formattedWrite (sink, "%s\n", line);
 		}
 		return sink.data;
 	}

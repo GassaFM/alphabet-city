@@ -80,6 +80,8 @@ struct Sketch
 		int cur_ceiling;
 		int [] lock_count;
 		int lock_errors;
+		TileCounter total_counter;
+		TileCounter goals_counter;
 
 		void prepare ()
 		{
@@ -106,7 +108,6 @@ struct Sketch
 			last_final_pos = new int [goals.length];
 			last_final_pos[] = NA;
 
-			TileCounter total_counter;
 			foreach_reverse (num, tile; tiles)
 			{
 				if (!(tile & TileBag.IS_RESTRICTED))
@@ -117,6 +118,14 @@ struct Sketch
 					    (tiles_by_letter[tile & LET_MASK]
 					    .length - 1);
 					total_counter[tile & LET_MASK]++;
+				}
+			}
+
+			foreach (goal; goals)
+			{
+				foreach (tile; goal.word)
+				{
+					goals_counter[tile & LET_MASK]++;
 				}
 			}
 		}
@@ -382,6 +391,10 @@ struct Sketch
 		}
 
 		prepare ();
+		if (!(goals_counter << total_counter))
+		{
+			return 0;
+		}
 		put_final_tiles (0);
 
 		return 0;
@@ -421,7 +434,7 @@ struct Sketch
 			{
 				found = true;
 				this = next;
-				writeln (this);
+//				writeln (this);
 			}
 		}
 		if (!found)
@@ -486,6 +499,7 @@ final class Plan
 	Problem problem;
 	Board check_board;
 	TargetBoard target_board;
+	int score_rating = NA;
 
 	this (ref Problem new_problem, Goal [] new_goals)
 	{
@@ -504,6 +518,8 @@ final class Plan
 		target_board = new TargetBoard ();
 		goal_moves = new GameMove [0];
 		check_points = new CheckPoint [0];
+		score_rating = reduce !((a, b) => a + b.score_rating)
+		    (0, sketch.goals);
 
 		foreach (goal_num, goal; sketch.goals)
 		{
@@ -606,16 +622,26 @@ final class Plan
 	override string toString () const
 	{
 		string res;
+		res ~= "Plan: " ~ to !(string) (goal_moves.length) ~ ' ' ~
+		    to !(string) (score_rating) ~ '\n';
 		res ~= to !(string) (goal_moves) ~ '\n';
 		res ~= to !(string) (check_points) ~ '\n';
-		res ~= to !(string) (problem) ~ '\n';
-		res ~= to !(string) (check_board);
 		if (target_board !is null)
 		{
-			res ~= target_board.toString ();
+			res ~= target_board.to_strings ()
+			    .stride (Board.CENTER).join ("\n");
+			res ~= '\n';
 		}
+		res ~= to !(string) (problem); // ~ '\n';
+//		res ~= to !(string) (check_board);
+//		if (target_board !is null)
+//		{
+//			res ~= target_board.toString ();
+//		}
 		return res;
 	}
+
+	// TODO: add invert row order ability to plan
 }
 
 unittest
