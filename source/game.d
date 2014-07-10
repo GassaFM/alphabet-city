@@ -99,8 +99,9 @@ final class Game (DictClass)
 			res += temp.board.score - prev_score;
 
 			// add checkpoint values
-			static immutable int WHOLE_VALUE = 400;
-			static immutable int TO_SUB = 50;
+			static immutable int WHOLE_VALUE = 10000;
+			static immutable int MAX_SUB = 12;
+			static immutable int TO_SUB = 4;
 			int sub = 0;
 			foreach (check_point; plan.check_points)
 			{
@@ -114,7 +115,7 @@ final class Game (DictClass)
 				{ // tweak: actual put should happen anyway
 					d--;
 				}
-				res += (WHOLE_VALUE - sub) >> d;
+				res += (WHOLE_VALUE >> sub) >> d;
 				if (sub > 0 || d > 1)
 				{
 					sub = min (WHOLE_VALUE, sub + TO_SUB);

@@ -786,12 +786,12 @@ void main (string [] args)
 	foreach (i; 0..LET)
 	{
 		auto p = ps.problem[i];
-		foreach (pre_goal1; all_goals[1].take (400))
+		foreach (pre_goal1; all_goals[1].take (700))
 		{
 			auto goal1 = new Goal (pre_goal1);
 			goal1.row = 0;
 
-			foreach (pre_goal2; all_goals[1].take (400))
+			foreach (pre_goal2; all_goals[1].take (700))
 			{
 				auto goal2 = new Goal (pre_goal2);
 				goal2.row = Board.SIZE - 1;
@@ -806,7 +806,7 @@ void main (string [] args)
 					cur.tiles.target_board =
 					    plan.target_board;
 					auto next = game_beam_search
-					    ([cur], game, 100, 0);
+					    ([cur], game, 300, 0);
 					log_progress (p, next);
 				}
 			}

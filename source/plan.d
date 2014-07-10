@@ -599,6 +599,8 @@ final class Plan
 				}
 			}
 		}
+		sort !((a, b) => a.tile < b.tile, SwapStrategy.stable)
+		    (check_points);
 	}
 
 	override string toString () const
