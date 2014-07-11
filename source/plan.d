@@ -168,8 +168,8 @@ struct Sketch
 
 			auto goal = goals[goal_num];
 			bool found = true;
-			foreach (pos, let; goal.word)
-			{
+			foreach_reverse (pos, let; goal.word)
+			{ // just trying the other direction
 				if (goal.is_final_pos (pos))
 				{
 					continue;

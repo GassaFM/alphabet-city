@@ -61,7 +61,7 @@ void log_progress (Problem problem, GameState cur)
 	    cur.board.score, " (",
 	    cur.board.value, ')');
 	stderr.flush ();
-	if (cur.board.score < 1500 ||
+	if (cur.board.score < 2600 ||
 	    cur.tiles.contents.length < TOTAL_TILES)
 	{
 		return;
@@ -504,6 +504,126 @@ void generate_triples (Trie trie, Problem problem)
 	writeln (num1, ' ', num2, ' ', num3);
 }
 
+void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
+    Goal [] [2] all_goals)
+{
+	auto random = new Random (123456);
+	Plan [] plans;
+
+	bool try_plan (Plan plan)
+	{
+		if (plan.score_rating != NA)
+		{
+			plans ~= plan;
+			return (plans.length >= 10_000);
+		}
+		return false;
+	}
+
+	first_loop:
+	foreach (num1, pre_goal1; all_goals[1].take (1250))
+	{
+		auto goal1 = new Goal (pre_goal1);
+		goal1.row = 0;
+
+		foreach (num2, pre_goal2; all_goals[1].take (num1))
+		{
+			auto goal2 = new Goal (pre_goal2);
+			goal2.row = Board.SIZE - 1;
+
+			if (try_plan (new Plan (p, [goal1, goal2])))
+			{
+				break first_loop;
+			}
+
+			if (try_plan (new Plan (p, [goal2, goal1])))
+			{
+				break first_loop;
+			}
+
+			swap (goal1.row, goal2.row);
+
+			if (try_plan (new Plan (p, [goal1, goal2])))
+			{
+				break first_loop;
+			}
+
+			if (try_plan (new Plan (p, [goal2, goal1])))
+			{
+				break first_loop;
+			}
+
+			swap (goal1.row, goal2.row);
+		}
+	}
+
+	sort !((a, b) => a.score_rating > b.score_rating,
+	    SwapStrategy.stable) (plans);
+	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
+	    plans.length > 0 ? plans[0].score_rating : -1, ' ',
+	    plans.length > 0 ? plans[$ - 1].score_rating : -1);
+	stderr.flush ();
+
+	int counter = 0;
+	int [ulong] visited;
+	static immutable int PRIME = 262_139;
+	foreach (plan; plans)
+	{
+		ulong cur_hash = 0;
+		foreach (goal_move; plan.goal_moves)
+		{
+			foreach (tile; goal_move.word)
+			{
+				cur_hash = cur_hash * PRIME +
+				    (tile & LET_MASK);
+			}
+			cur_hash = cur_hash * PRIME + goal_move.row;
+			cur_hash = cur_hash * PRIME + goal_move.col;
+		}
+
+		visited[cur_hash]++;
+//		writeln (visited);
+		if (visited[cur_hash] > 2)
+		{
+/*		
+			if (uniform (0, visited[cur_hash], random))
+			{
+				continue;
+			}
+*/
+			continue;
+		}
+
+		stderr.writeln (plan);
+		stderr.flush ();
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		int prev_score = m.best[p.short_name].board.score - 150;
+		for (int width = 600; width <= 600 * 16; width <<= 1)
+		{
+			stderr.writeln ("width = ", width);
+			stderr.flush ();
+			auto next = game_beam_search ([cur], game, width, 0);
+			log_progress (p, next);
+			if (prev_score < next.board.score)
+			{
+				prev_score = next.board.score;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		counter++;
+		if (counter >= 60)
+		{
+			break;
+		}
+	}
+}
+
 void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -597,6 +717,10 @@ void main (string [] args)
 	version (extract)
 	{
 		m.extract_log ("log.txt");
+		foreach (c; 0..10)
+		{
+			m.extract_log ("log0" ~ to !(string) (c) ~ ".txt");
+		}
 		foreach (c; 1..100)
 		{
 			m.extract_log ("log" ~ to !(string) (c) ~ ".txt");
@@ -784,8 +908,7 @@ void main (string [] args)
 		return;
 	}
 
-	auto random = new Random (123456);
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
 // /*
 		if (i != 'S' - 'A')
@@ -795,106 +918,7 @@ void main (string [] args)
 // */
 
 		auto p = ps.problem[i];
-		Plan [] plans;
-
-		bool try_plan (Plan plan)
-		{
-			if (plan.score_rating != NA)
-			{
-				plans ~= plan;
-				return (plans.length >= 10_000);
-			}
-			return false;
-		}
-
-		first_loop:
-		foreach (num1, pre_goal1; all_goals[1].take (1250))
-		{
-			auto goal1 = new Goal (pre_goal1);
-			goal1.row = 0;
-
-			foreach (num2, pre_goal2; all_goals[1].take (num1))
-			{
-				auto goal2 = new Goal (pre_goal2);
-				goal2.row = Board.SIZE - 1;
-
-				if (try_plan (new Plan (p, [goal1, goal2])))
-				{
-					break first_loop;
-				}
-
-				if (try_plan (new Plan (p, [goal2, goal1])))
-				{
-					break first_loop;
-				}
-
-				swap (goal1.row, goal2.row);
-
-				if (try_plan (new Plan (p, [goal1, goal2])))
-				{
-					break first_loop;
-				}
-
-				if (try_plan (new Plan (p, [goal2, goal1])))
-				{
-					break first_loop;
-				}
-
-				swap (goal1.row, goal2.row);
-			}
-		}
-
-		sort !((a, b) => a.score_rating > b.score_rating,
-		    SwapStrategy.stable) (plans);
-		stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
-		    plans.length > 0 ? plans[0].score_rating : -1, ' ',
-		    plans.length > 0 ? plans[$ - 1].score_rating : -1);
-		stderr.flush ();
-
-		int counter = 0;
-		int [ulong] visited;
-		static immutable int PRIME = 262_139;
-		foreach (plan; plans)
-		{
-			ulong cur_hash = 0;
-			foreach (goal_move; plan.goal_moves)
-			{
-				foreach (tile; goal_move.word)
-				{
-					cur_hash = cur_hash * PRIME +
-					    (tile & LET_MASK);
-				}
-				cur_hash = cur_hash * PRIME + goal_move.row;
-				cur_hash = cur_hash * PRIME + goal_move.col;
-			}
-			visited[cur_hash]++;
-/*
-//			writeln (visited);
-			if (visited[cur_hash] > 3)
-			{
-				if (uniform (0, visited[cur_hash], random))
-				{
-					continue;
-				}
-			}
-*/
-
-			stderr.writeln (plan);
-			stderr.flush ();
-			auto game = new Game !(Trie) (t, s, plan);
-			auto cur = GameState (plan.problem);
-			cur.tiles.target_board = plan.target_board;
-			auto next = game_beam_search ([cur], game, 2500, 0);
-			log_progress (p, next);
-
-			counter++;
-/*
-			if (counter >= 50)
-			{
-				break;
-			}
-*/
-		}
+		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
 

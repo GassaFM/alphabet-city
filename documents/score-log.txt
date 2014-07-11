@@ -79,3 +79,15 @@ K
 140711 Q 3109 -> 3127 best 0.00-0.01
 140711 R 3063 -> 3144 up 0.02
 140711 T 2842 -> 2999 up 0.05 + best 0.00-0.01
+140711 P 3153 -> 3192 best 0.01-0.02 RZ MC N/A others down
+140711 R 3144 -> 3174 best 0.00-0.01 RZ MC N/A others down
+140711 U 3188 -> 3193 best 0.00-0.01
+140711 Z 2995 -> 3099 up 0.02 + best 0.01-0.02 MC ID N/A others down
+140711 U 3193 -> 3197 best 0.00-0.01
+140711 L 3100 -> 3110 best 0.00-0.01
+140712 K 3062 -> 3069 up 0.00
+140712 U 3197 -> 3200 best 0.00-0.01 !
+
+Expected best:  A..........L...PQR.TU....Z
+Expected up:    .B..E.G..JK.M..........X..
+Unknown:        ..CD.F.HI....NO...S..VW.Y.
