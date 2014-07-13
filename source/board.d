@@ -269,6 +269,84 @@ struct Board
 		return res;
 	}
 
+	int distance_to_covered_no_horiz (int cur_row, int cur_col,
+	    bool cur_is_flipped) const
+	{
+		if (cur_is_flipped != is_flipped)
+		{
+			swap (cur_row, cur_col);
+		}
+		if (!contents[cur_row][cur_col].empty)
+		{ // optimization
+			return 0;
+		}
+
+		int res = Board.SIZE * 2;
+		foreach (row; 0..Board.SIZE)
+		{
+			if (!is_flipped && row == cur_row)
+			{
+				continue;
+			}
+			foreach (col; 0..Board.SIZE)
+			{
+				if (is_flipped && col == cur_col)
+				{
+					continue;
+				}
+				if (!contents[row][col].empty)
+				{
+					res = min (res,
+					    abs (row - cur_row) +
+					    abs (col - cur_col));
+				}
+			}
+		}
+
+		if (res == 2)
+		{ // tweak: prevent being stuck
+			res++;
+		}
+		if (res > 0)
+		{ // tweak: actual put should happen anyway
+			res--;
+		}
+		return res;
+	}
+
+	int distance_to_covered_adjacent (int cur_row, int cur_col,
+	    bool cur_is_flipped) const
+	{
+		if (cur_is_flipped != is_flipped)
+		{
+			swap (cur_row, cur_col);
+		}
+		if (!contents[cur_row][cur_col].empty)
+		{ // optimization
+			return 0;
+		}
+
+		int res = Board.SIZE * 2;
+		foreach (row; 0..Board.SIZE)
+		{
+			foreach (col; 0..Board.SIZE)
+			{
+				if (!contents[row][col].empty)
+				{
+					res = min (res,
+					    abs (row - cur_row) +
+					    abs (col - cur_col));
+				}
+			}
+		}
+
+		if (res == 1)
+		{ // tweak: prevent being stuck
+			res++;
+		}
+		return res;
+	}
+
 	string toString () const
 	{
 		string res;

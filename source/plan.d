@@ -168,8 +168,8 @@ struct Sketch
 
 			auto goal = goals[goal_num];
 			bool found = true;
-			foreach_reverse (pos, let; goal.word)
-			{ // just trying the other direction
+			foreach (pos, let; goal.word)
+			{ // tried the other direction here
 				if (goal.is_final_pos (pos))
 				{
 					continue;
@@ -245,6 +245,26 @@ struct Sketch
 			}
 		}
 
+		int first_final_pos (int goal_num)
+		{
+			auto goal = goals[goal_num];
+
+			int res = NA;
+			foreach (pos, let; goal.word)
+			{
+				if (!goal.is_final_pos (pos))
+				{
+					continue;
+				}
+				res = max (res, goal_locks[goal_num][pos]);
+			}
+			if (res == NA)
+			{
+				res = cast (int) (tiles.length);
+			}
+			return res;
+		}
+
 		void put_final_tiles (int goal_num)
 		{
 			version (debug_sketch)
@@ -313,6 +333,16 @@ struct Sketch
 			scope (exit)
 			{
 				last_final_pos[goal_num] = NA;
+			}
+
+			static immutable int FIRST_POS_MULT = 4;
+			int first_pos = first_final_pos (goal_num);
+			value_good += FIRST_POS_MULT * first_pos;
+			value_bad += last_final_pos[goal_num];
+			scope (exit)
+			{
+				value_good -= FIRST_POS_MULT * first_pos;
+				value_bad -= last_final_pos[goal_num];
 			}
 
 			while (true)
@@ -601,22 +631,79 @@ final class Plan
 				int min_pos = seg.y - cast (int) (minPos
 				   (tile_numbers[seg.x..seg.y]).length);
 				assert (seg.x <= min_pos && min_pos < seg.y);
+				int cur_row = row;
+				if (cur_row == 0)
+				{
+					cur_row++;
+				}
+				if (cur_row + 1 == Board.SIZE)
+				{
+					cur_row--;
+				}
 				if (!goal.is_flipped)
 				{
 					check_points ~=
 					    CheckPoint (tile_numbers[min_pos],
-					    row, col + min_pos);
+					    cur_row, col + min_pos);
 				}
 				else
 				{
 					check_points ~=
 					    CheckPoint (tile_numbers[min_pos],
-					    col + min_pos, row);
+					    col + min_pos, cur_row);
 				}
 			}
 		}
+
 		sort !((a, b) => a.tile < b.tile, SwapStrategy.stable)
 		    (check_points);
+/*
+		while (true)
+		{
+			bool found = false;
+			first_loop:
+			foreach (i; 0..check_points.length)
+			{
+				foreach (j; i + 1..check_points.length)
+				{
+					if (check_points[i].row !=
+					    check_points[j].row)
+					{
+						continue;
+					}
+					foreach (k; j + 1..check_points.length)
+					{
+						if (check_points[i].row !=
+						    check_points[k].row)
+						{
+							continue;
+						}
+						if ((check_points[i].col <
+						    check_points[k].col) !=
+						    (check_points[k].col <
+						    check_points[j].col))
+						{
+							continue;
+						}
+
+						foreach_reverse (p; j..k)
+						{
+							swap (check_points[p],
+							    check_points
+							    [p + 1]);
+						}
+						found = true;
+						break first_loop;
+					}
+				}
+			}
+
+			if (!found)
+			{
+				break;
+			}
+		}
+*/
 	}
 
 	override string toString () const

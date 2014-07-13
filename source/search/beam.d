@@ -270,6 +270,8 @@ private final class BeamSearch (int max_level,
 				visit (cur_state, depth);
 				counter++;
 			}
+			// free memory immediately
+			storage[level].payload = null;
 		}
 
 //		best.board.normalize ();

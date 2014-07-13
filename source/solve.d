@@ -510,18 +510,27 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	auto random = new Random (123456);
 	Plan [] plans;
 
+	static immutable int MAX_PLANS_LENGTH = 10_000;
+	static immutable int MAX_GOALS = 1250;
+	static immutable int MAX_SCORE_GAP = 150;
+	static immutable int START_WIDTH = 250;
+	static immutable int MAX_WIDTH = 10_000;
+	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int MAX_COUNTER = 300;
+	static immutable int PLANS_TO_DROP = 3;
+
 	bool try_plan (Plan plan)
 	{
 		if (plan.score_rating != NA)
 		{
 			plans ~= plan;
-			return (plans.length >= 10_000);
+			return (plans.length >= MAX_PLANS_LENGTH);
 		}
 		return false;
 	}
 
 	first_loop:
-	foreach (num1, pre_goal1; all_goals[1].take (1250))
+	foreach (num1, pre_goal1; all_goals[1].take (MAX_GOALS))
 	{
 		auto goal1 = new Goal (pre_goal1);
 		goal1.row = 0;
@@ -567,7 +576,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	int counter = 0;
 	int [ulong] visited;
 	static immutable int PRIME = 262_139;
-	foreach (plan; plans)
+	foreach (plan; plans.drop (PLANS_TO_DROP))
 	{
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -583,7 +592,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 
 		visited[cur_hash]++;
 //		writeln (visited);
-		if (visited[cur_hash] > 2)
+		if (visited[cur_hash] > MAX_SIMILAR_PLANS)
 		{
 /*		
 			if (uniform (0, visited[cur_hash], random))
@@ -599,8 +608,9 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		auto game = new Game !(Trie) (t, s, plan);
 		auto cur = GameState (plan.problem);
 		cur.tiles.target_board = plan.target_board;
-		int prev_score = m.best[p.short_name].board.score - 150;
-		for (int width = 600; width <= 600 * 16; width <<= 1)
+		int prev_score =
+		    m.best[p.short_name].board.score - MAX_SCORE_GAP;
+		for (int width = START_WIDTH; width <= MAX_WIDTH; width <<= 1)
 		{
 			stderr.writeln ("width = ", width);
 			stderr.flush ();
@@ -617,7 +627,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 
 		counter++;
-		if (counter >= 60)
+		if (counter >= MAX_COUNTER)
 		{
 			break;
 		}
@@ -654,6 +664,7 @@ void main (string [] args)
 	return;
 */
 
+/*
 	auto goals_relaxed = GoalBuilder.read_fat_goals
 	    (read_all_lines ("data/goals.txt"), false);
 	foreach (ref goal; goals_relaxed)
@@ -678,6 +689,7 @@ void main (string [] args)
 		goal.stage = Goal.Stage.CENTER;
 		goal.stored_score_rating = goal.calc_score_rating (s);
 	}
+*/
 
 	auto all_goals_0 = GoalBuilder.read_all_goals
 	    (read_all_lines ("data/goals/s-0.txt"));
@@ -910,12 +922,12 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-// /*
-		if (i != 'S' - 'A')
+/*
+		if (i != 'M' - 'A')
 		{
 			continue;
 		}
-// */
+*/
 
 		auto p = ps.problem[i];
 		put_two_plan (t, s, p, m, all_goals);

@@ -99,7 +99,8 @@ final class Game (DictClass)
 			res += temp.board.score - prev_score;
 
 			// add checkpoint values
-			static immutable int WHOLE_VALUE = 10000;
+/*
+			static immutable int WHOLE_VALUE = 10_000;
 			static immutable int MAX_SUB = 12;
 			static immutable int TO_SUB = 4;
 //			static immutable int WHOLE_VALUE = 400;
@@ -124,6 +125,18 @@ final class Game (DictClass)
 				{
 					sub = min (MAX_SUB, sub + TO_SUB);
 				}
+			}
+*/
+			foreach (check_point; plan.check_points)
+			{
+				int d = cur.board.distance_to_covered_adjacent
+				    (check_point.row, check_point.col, false);
+				int time_left = check_point.tile -
+				    cur.tiles.cursor;
+				time_left = min (time_left, 0);
+				time_left = max (time_left, 32);
+				int value = 512 * (32 + 32) / (32 + time_left);
+				res += value >> d;
 			}
 		}
 
