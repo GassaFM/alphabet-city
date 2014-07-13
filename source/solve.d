@@ -603,6 +603,10 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 			continue;
 		}
 
+		stdout.writeln ("Entry: ", counter + 1);
+		stdout.flush ();
+		stderr.writeln ("Entry: ", counter + 1);
+		stderr.flush ();
 		stderr.writeln (plan);
 		stderr.flush ();
 		auto game = new Game !(Trie) (t, s, plan);

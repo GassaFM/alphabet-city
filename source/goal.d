@@ -427,14 +427,21 @@ final class Goal
 		possible_masks ~= mask;
 	}
 
-	override string toString () const
+	string to_masked_string () const
 	{
 		string res;
 		foreach (i, c; word)
 		{
-			res ~= c +
-			    (((mask_forbidden & (1 << i)) > 0) ? 'A' : 'a');
+			res ~= c + (((mask_forbidden &
+			    (1 << i)) > 0) ? 'A' : 'a');
 		}
+		return res;
+	}
+
+	override string toString () const
+	{
+		string res;
+		res ~= to_masked_string ();
 //		res ~= ' ' ~ to !(string) (row);
 //		res ~= ' ' ~ to !(string) (col);
 //		res ~= ' ' ~ to !(string) (is_flipped);

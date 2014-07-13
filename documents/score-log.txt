@@ -92,6 +92,7 @@ K
 140712 T 2999 -> 3009 best 0.00-0.01 WS down others N/A
 140713 J 3066 -> 3141 best 0.02-0.03 SMK RZ N/A ID down MC ?
 140713 C 3155 -> 3169 best 0.00-0.01 RZ SMK down MC ID N/A
+140713 M 3141 -> 3224 up 0.02 + best 0.00-0.01 RZ ID down MC [SMK] N/A
 
 Expected best:  A.C......J.L...PQR.TU....Z
 Expected up:    .B..E.G...K.M..........X..
