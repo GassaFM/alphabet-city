@@ -4,6 +4,7 @@ import std.algorithm;
 import std.conv;
 import std.stdio;
 
+import board;
 import general;
 import goal;
 import problem;
@@ -47,6 +48,8 @@ struct Sketch
 	byte [] tiles;
 	int value_good = -VALUE_MUCH;
 	int value_bad = +VALUE_MUCH;
+	int first_move_lo = NA;
+	int first_move_hi = NA;
 
 	this (this)
 	{
@@ -124,6 +127,67 @@ struct Sketch
 			}
 		}
 
+		bool put_first_move ()
+		{
+			if (first_move_lo == NA || first_move_hi == NA)
+			{
+				return true;
+			}
+
+			foreach (goal_num, goal; goals)
+			{
+				if (!goal.is_center_goal ())
+				{
+					continue;
+				}
+
+				assert (goal.word.length == Board.SIZE);
+				assert (goal.row == Board.CENTER);
+				assert (goal.col == 0);
+				foreach (pos; first_move_lo..first_move_hi)
+				{
+					if (goal.is_final_pos (pos))
+					{
+						assert (false);
+					}
+					auto let = goal.word[pos];
+
+					bool found = false;
+					foreach_reverse (num;
+					    tiles_by_letter[let])
+					{
+						if ((num >= Rack.MAX_SIZE) ||
+						    (tiles[num] &
+						    TileBag.IS_RESTRICTED))
+						{
+							continue;
+						}
+						tiles[num] |=
+						    TileBag.IS_RESTRICTED;
+						tile_locks[num] =
+						    TileLock (goal_num, pos);
+						goal_locks[goal_num][pos] =
+						    num;
+						found = true;
+						break;
+					}
+					if (!found)
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
+		bool is_first_move_tile (Goal goal, int pos)
+		{
+			return goal.is_center_goal () &&
+			    first_move_lo <= pos &&
+			    pos < first_move_hi;
+		}
+
 		void locks_add (int x, int y)
 		{
 			foreach (pos; x..y)
@@ -168,6 +232,10 @@ struct Sketch
 				{
 					continue;
 				}
+				if (is_first_move_pos (goal, pos))
+				{
+					continue;
+				}
 				found = false;
 				foreach (num; tiles_by_letter[let])
 				{
@@ -200,6 +268,10 @@ struct Sketch
 						continue;
 					}
 					if (num == NA)
+					{
+						continue;
+					}
+					if (is_first_move_pos (goal, pos))
 					{
 						continue;
 					}
@@ -440,15 +512,22 @@ struct Sketch
 		{
 			return 0;
 		}
+		if (!put_first_move ())
+		{
+			return 0;
+		}
 		put_final_tiles (0);
 
 		return 0;
 	}
 
-	this (ref Problem new_problem, Goal [] new_goals)
+	this (ref Problem new_problem, Goal [] new_goals,
+	    int new_lo = NA, int new_hi = NA)
 	{
 		problem = new_problem;
 		goals = new_goals.dup;
+		first_move_lo = new_lo;
+		first_move_hi = new_hi;
 		foreach (goal; goals)
 		{
 			assert (goal.word.length < byte.max);
@@ -494,7 +573,9 @@ struct Sketch
 		res ~= "Sketch: " ~ goals.length.to !(string) () ~ ' ' ~
 		    value.to !(string) () ~ ' ' ~
 		    value_good.to !(string) () ~ ' ' ~
-		    value_bad.to !(string) () ~ '\n';
+		    value_bad.to !(string) () ~ ' ' ~
+		    first_move_lo.to !(string) () ~ ' ' ~
+		    first_move_hi.to !(string) () ~ '\n';
 
 		foreach (num_goal, goal; goals)
 		{

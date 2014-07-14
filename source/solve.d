@@ -638,6 +638,357 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	}
 }
 
+void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
+    Goal [] [2] all_goals)
+{
+	auto random = new Random (1234567);
+	alias FatPlan = Tuple !(Plan, "plan", Goal, "goal1", Goal, "goal2");
+	FatPlan [] plans;
+
+	static immutable int MAX_PLANS_LENGTH = 10_000;
+	static immutable int MAX_GOALS = 1000;
+	static immutable int MAX_SCORE_GAP = 150;
+	static immutable int START_WIDTH = 250;
+	static immutable int MAX_WIDTH = 10_000;
+	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int MAX_COUNTER = 300;
+	static immutable int PLANS_TO_DROP = 8;
+
+	static immutable int MAX_CENTER_GOALS = 1_000_000;
+	static immutable int MAX_INNER_COUNTER = 9999;
+	static immutable int MAX_CENTER_FORBIDDEN = 3;
+
+	bool try_plan (Plan plan, Goal goal1, Goal goal2)
+	{
+		if (plan.score_rating != NA)
+		{
+			plans ~= FatPlan (plan, goal1, goal2);
+			return (plans.length >= MAX_PLANS_LENGTH);
+		}
+		return false;
+	}
+
+	TileCounter total_counter = GameState (p).tiles.counter;
+	TileCounter start_counter =
+	    GameState (Problem (p.name, p.contents[0..Rack.MAX_SIZE]))
+	    .tiles.counter;
+
+	first_loop:
+	foreach (num1, pre_goal1; all_goals[1].take (MAX_GOALS))
+	{
+		auto goal1 = new Goal (pre_goal1);
+		goal1.row = 0;
+
+		TileCounter counter1;
+		foreach (let; goal1.word)
+		{
+			counter1[let & LET_MASK]++;
+		}
+		if (!(counter1 << total_counter))
+		{
+			continue;
+		}
+
+		foreach (num2, pre_goal2; all_goals[1].take (num1))
+		{
+			auto goal2 = new Goal (pre_goal2);
+			goal2.row = Board.SIZE - 1;
+
+			TileCounter counter2 = counter1;
+			foreach (let; goal2.word)
+			{
+				counter2[let & LET_MASK]++;
+			}
+			if (!(counter2 << total_counter))
+			{
+				continue;
+			}
+
+			if (try_plan (new Plan (p, [goal1, goal2]),
+			    goal1, goal2))
+			{
+				break first_loop;
+			}
+
+			if (try_plan (new Plan (p, [goal2, goal1]),
+			    goal2, goal1))
+			{
+				break first_loop;
+			}
+
+			swap (goal1.row, goal2.row);
+
+			if (try_plan (new Plan (p, [goal1, goal2]),
+			    goal1, goal2))
+			{
+				break first_loop;
+			}
+
+			if (try_plan (new Plan (p, [goal2, goal1]),
+			    goal2, goal1))
+			{
+				break first_loop;
+			}
+
+			swap (goal1.row, goal2.row);
+		}
+	}
+
+	sort !((a, b) => a.plan.score_rating > b.plan.score_rating,
+	    SwapStrategy.stable) (plans);
+	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
+	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
+	    plans.length > 0 ? plans[$ - 1].plan.score_rating : -1);
+	stderr.flush ();
+
+	int counter = 0;
+	int [ulong] visited;
+	static immutable int PRIME = 262_139;
+	foreach (fat_plan; plans.drop (PLANS_TO_DROP))
+	{
+		if (counter >= MAX_COUNTER)
+		{
+			break;
+		}
+		auto plan = fat_plan.plan;
+
+		ulong cur_hash = 0;
+		foreach (goal_move; plan.goal_moves)
+		{
+			foreach (tile; goal_move.word)
+			{
+				cur_hash = cur_hash * PRIME +
+				    (tile & LET_MASK);
+			}
+			cur_hash = cur_hash * PRIME + goal_move.row;
+			cur_hash = cur_hash * PRIME + goal_move.col;
+		}
+
+		visited[cur_hash]++;
+//		writeln (visited);
+		if (visited[cur_hash] > MAX_SIMILAR_PLANS)
+		{
+/*		
+			if (uniform (0, visited[cur_hash], random))
+			{
+				continue;
+			}
+*/
+			continue;
+		}
+
+		stdout.writeln ("Entry: ", counter + 1);
+		stdout.flush ();
+		stderr.writeln ("Entry: ", counter + 1);
+		stderr.flush ();
+		stderr.writeln (plan);
+		stderr.flush ();
+
+		scope (exit)
+		{
+			counter++;
+		}
+		
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		int prev_score =
+		    m.best[p.short_name].board.score - MAX_SCORE_GAP;
+		int temp_width = START_WIDTH;
+		auto temp = game_beam_search ([cur], game, temp_width, 0);
+		log_progress (p, temp);
+		temp.board.normalize ();
+		if (temp.board[0][0].empty ||
+		    temp.board[Board.SIZE - 1][Board.SIZE - 1].empty)
+		{
+			continue;
+		}
+
+		TileCounter prev_counter;
+		foreach (goal_move; plan.goal_moves)
+		{
+			foreach (let; goal_move.word)
+			{
+				prev_counter[let & LET_MASK]++;
+			}
+		}
+
+		int count0;
+		int count1;
+		int count2;
+		int count3;
+		int inner_counter = 0;
+		outer_loop:
+		foreach (num3, pre_goal3; all_goals[0].take (MAX_CENTER_GOALS))
+		{
+			auto goal3 = new Goal (pre_goal3);
+			goal3.row = Board.CENTER;
+			count0++;
+
+			if (goal3.count_forbidden > MAX_CENTER_FORBIDDEN)
+			{
+				continue;
+			}
+			count1++;
+			
+			if (start_counter[goal3.word[Board.CENTER] &
+			    LET_MASK] == 0)
+			{
+				continue;
+			}
+			count2++;
+
+			TileCounter counter3 = prev_counter;
+			foreach (let; goal3.word)
+			{
+				counter3[let & LET_MASK]++;
+			}
+			if (!(counter3 << total_counter))
+			{
+				continue;
+			}
+			count3++;
+
+			writeln (goal3.score_rating);
+			TileCounter counter_lo;
+			foreach_reverse (lo; 1..Board.CENTER + 1)
+			{
+				if (goal3.is_final_pos (lo))
+				{
+					break;
+				}
+
+				counter_lo[goal3.word[lo]]++;
+				if (!(counter_lo << start_counter))
+				{
+					break;
+				}
+				int vt = Trie.ROOT;
+				foreach (pos; lo..Board.CENTER + 1)
+				{
+					vt = t.contents[vt]
+					    .next (goal3.word[pos]);
+					if (vt == NA)
+					{
+						break;
+					}
+				}
+				if (vt == NA)
+				{
+					break;
+				}
+
+				TileCounter counter_hi = counter_lo;
+				int vr = vt;
+				foreach (hi; Board.CENTER + 1..Board.SIZE)
+				{
+					if (goal3.is_final_pos (hi - 1))
+					{
+						break;
+					}
+
+					if (!(counter_hi << start_counter))
+					{
+						break;
+					}
+					scope (exit)
+					{
+						counter_hi[goal3.word[hi]]++;
+					}
+
+					if (vr == NA)
+					{
+						break;
+					}
+					scope (exit)
+					{
+						vr = t.contents[vr]
+						    .next (goal3.word[hi]);
+					}
+
+					if (t.contents[vr].word ||
+					    hi == lo + 1)
+					{
+						if (inner_counter >=
+						    MAX_INNER_COUNTER)
+						{
+							break outer_loop;
+						}
+
+						auto inner_plan = new Plan
+						    (p, [fat_plan.goal1,
+						    fat_plan.goal2, goal3],
+						    lo, hi);
+						if (inner_plan
+						    .score_rating == NA)
+						{
+							continue;
+						}
+
+						stdout.writeln ("Entry: ",
+						    counter + 1, '.',
+						    inner_counter + 1);
+						stdout.flush ();
+						stderr.writeln ("Entry: ",
+						    counter + 1, '.',
+						    inner_counter + 1);
+						stderr.flush ();
+						stderr.writeln (inner_plan);
+						stderr.flush ();
+
+						scope (exit)
+						{
+							inner_counter++;
+						}
+
+						auto inner_game = new Game
+						    !(Trie) (t, s, inner_plan);
+						auto start = GameState
+						    (inner_plan.problem);
+						start.tiles.target_board =
+						    inner_plan.target_board;
+						int inner_prev_score =
+						    m.best[p.short_name]
+						    .board.score -
+						    MAX_SCORE_GAP;
+
+						for (int width = START_WIDTH;
+						    width <= MAX_WIDTH;
+						    width <<= 1)
+						{
+							stderr.writeln
+							    ("width = ",
+							    width);
+							stderr.flush ();
+							auto inner_next =
+							    game_beam_search
+							    ([start],
+							    inner_game,
+							    width, 0);
+							log_progress (p,
+							    inner_next);
+							if (prev_score <
+							    inner_next
+							    .board.score)
+							{
+								prev_score =
+								    inner_next
+								    .board
+								    .score;
+							}
+							else
+							{
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		writeln (count0, ' ', count1, ' ', count2, ' ', count3);
+	}
+}
+
 void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -926,15 +1277,16 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
-		if (i != 'M' - 'A')
+// /*
+		if (i != 'A' - 'A')
 		{
 			continue;
 		}
-*/
+// */
 
 		auto p = ps.problem[i];
-		put_two_plan (t, s, p, m, all_goals);
+//		put_two_plan (t, s, p, m, all_goals);
+		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 

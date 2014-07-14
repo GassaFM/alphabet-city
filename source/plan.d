@@ -53,9 +53,10 @@ final class Plan
 	TargetBoard target_board;
 	int score_rating = NA;
 
-	this (ref Problem new_problem, Goal [] new_goals)
+	this (ref Problem new_problem, Goal [] new_goals,
+	    int lo = NA, int hi = NA)
 	{
-		auto sketch = Sketch (new_problem, new_goals);
+		auto sketch = Sketch (new_problem, new_goals, lo, hi);
 		if (sketch.value < -Sketch.VALUE_MUCH / 2)
 		{ // bad plan
 			return;
