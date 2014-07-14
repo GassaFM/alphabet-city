@@ -214,6 +214,21 @@ struct Sketch
 				return;
 			}
 
+			// heuristic
+			foreach (pos, let; goal.word)
+			{
+				value_bad += max (0, TOTAL_TILES / 2 -
+				    goal_locks[goal_num][pos]);
+			}
+			scope (exit)
+			{
+				foreach (pos, let; goal.word)
+				{
+					value_bad -= max (0, TOTAL_TILES / 2 -
+					    goal_locks[goal_num][pos]);
+				}
+			}
+
 			put_start_tiles (goal_num + 1);
 		}
 
@@ -242,7 +257,7 @@ struct Sketch
 		int first_final_pos (int goal_num)
 		{
 			auto goal = goals[goal_num];
-
+ 
 			int res = NA;
 			foreach (pos, let; goal.word)
 			{
@@ -250,7 +265,7 @@ struct Sketch
 				{
 					continue;
 				}
-				res = max (res, goal_locks[goal_num][pos]);
+				res = min (res, goal_locks[goal_num][pos]);
 			}
 			if (res == NA)
 			{
@@ -329,16 +344,6 @@ struct Sketch
 				last_final_pos[goal_num] = NA;
 			}
 
-			static immutable int FIRST_POS_MULT = 4;
-			int first_pos = first_final_pos (goal_num);
-			value_good += FIRST_POS_MULT * first_pos;
-			value_bad += last_final_pos[goal_num];
-			scope (exit)
-			{
-				value_good -= FIRST_POS_MULT * first_pos;
-				value_bad -= last_final_pos[goal_num];
-			}
-
 			while (true)
 			{
 				foreach (pos, let; goal.word)
@@ -360,6 +365,22 @@ struct Sketch
 					{
 						swap (saved_ceiling,
 						    cur_ceiling);
+					}
+
+					static immutable int FIRST_POS_MULT =
+					    4;
+					int first_pos =
+					    first_final_pos (goal_num);
+					value_good +=
+					    FIRST_POS_MULT * first_pos;
+					value_bad +=
+					    last_final_pos[goal_num];
+					scope (exit)
+					{
+						value_good -=
+						    FIRST_POS_MULT * first_pos;
+						value_bad -=
+						    last_final_pos[goal_num];
 					}
 
 					put_final_tiles (goal_num + 1);

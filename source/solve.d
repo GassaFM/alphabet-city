@@ -513,11 +513,11 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000;
 	static immutable int MAX_GOALS = 1250;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 250;
+	static immutable int START_WIDTH = 350;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 300;
-	static immutable int PLANS_TO_DROP = 3;
+	static immutable int MAX_COUNTER = 30;
+	static immutable int PLANS_TO_DROP = 0;
 
 	bool try_plan (Plan plan)
 	{
@@ -926,12 +926,12 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
+// /*
 		if (i != 'M' - 'A')
 		{
 			continue;
 		}
-*/
+// */
 
 		auto p = ps.problem[i];
 		put_two_plan (t, s, p, m, all_goals);
