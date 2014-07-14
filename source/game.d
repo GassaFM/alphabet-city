@@ -31,6 +31,99 @@ final class Game (DictClass)
 		return true;
 	}
 
+	bool can_fill_tile (ref GameState cur, int row, int col)
+	{
+		if (cur.board.is_flipped)
+		{
+			swap (row, col);
+		}
+
+		int s_row = row;
+		while (s_row > 0 &&
+		    !cur.board[s_row - 1][col].empty)
+		{
+			s_row--;
+		}
+
+		int t_row = row;
+		while (t_row + 1 < Board.SIZE &&
+		    !cur.board[t_row + 1][col].empty)
+		{
+			t_row++;
+		}
+
+		int s_col = col;
+		while (s_col > 0 &&
+		    !cur.board[row][s_col - 1].empty)
+		{
+			s_col--;
+		}
+
+		int t_col = col;
+		while (t_col + 1 < Board.SIZE &&
+		    !cur.board[row][t_col + 1].empty)
+		{
+			t_col++;
+		}
+
+		if (t_row - s_row < 2 && t_col - s_col < 2)
+		{
+			return true;
+		}
+
+//		writeln (s_row, ' ', s_col, ' ', t_row, ' ', t_col);
+		foreach (ch; "EAIONRTLSUDG")
+//		foreach (ch; 'A'..'Z' + 1)
+		{
+			BoardCell let = cast (byte) (ch - 'A');
+			swap (let, cur.board[row][col]);
+			scope (exit)
+			{
+				swap (let, cur.board[row][col]);
+			}
+
+			int vh = DictClass.ROOT;
+			foreach (cur_col; s_col..t_col + 1)
+			{
+				vh = dict.contents[vh].next
+				    (cur.board[row][cur_col]);
+				if (vh == NA)
+				{
+					break;
+				}
+			}
+			if (s_col != t_col)
+			{
+				if (vh == NA || !dict.contents[vh].word)
+				{
+					continue;
+				}
+			}
+
+			int vv = DictClass.ROOT;
+			foreach (cur_row; s_row..t_row + 1)
+			{
+				vv = dict.contents[vv].next
+				    (cur.board[cur_row][col]);
+				if (vv == NA)
+				{
+					break;
+				}
+			}
+			if (s_row != t_row)
+			{
+				if (vv == NA || !dict.contents[vv].word)
+				{
+					continue;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	int calc_value (ref GameState cur)
 	{
 		int res = cur.board.score;
@@ -98,6 +191,39 @@ final class Game (DictClass)
 			}
 			res += temp.board.score - prev_score;
 
+			// check checkpoint possibility
+			foreach (check_point; plan.check_points)
+			{
+				if (check_point.row != 1 &&
+				    check_point.row != Board.SIZE - 2)
+				{
+					continue;
+				}
+
+				if (!cur.board.is_flipped)
+				{
+					if (!cur.board[check_point.row]
+					    [check_point.col].empty)
+					{
+						continue;
+					}
+				}
+				else
+				{
+					if (!cur.board[check_point.col]
+					    [check_point.row].empty)
+					{
+						continue;
+					}
+				}
+
+				if (!can_fill_tile (temp, check_point.row,
+				    check_point.col))
+				{
+					return NA;
+				}
+			}
+
 			// add checkpoint values
 /*
 			static immutable int WHOLE_VALUE = 10_000;
@@ -141,7 +267,7 @@ final class Game (DictClass)
 				res += (value >> sub) >> d;
 				if (d > 0)
 				{
-					sub++;
+					sub = max (2, sub + 1);
 				}
 			}
 		}

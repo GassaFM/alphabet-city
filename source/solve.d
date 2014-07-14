@@ -651,12 +651,13 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 300;
-	static immutable int PLANS_TO_DROP = 8;
+	static immutable int MAX_COUNTER = 60;
+	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 9999;
+	static immutable int MAX_INNER_COUNTER = 60;
 	static immutable int MAX_CENTER_FORBIDDEN = 3;
+	static immutable int MIN_FIRST_MOVE = 1;
 
 	bool try_plan (Plan plan, Goal goal1, Goal goal2)
 	{
@@ -736,6 +737,10 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	sort !((a, b) => a.plan.score_rating > b.plan.score_rating,
 	    SwapStrategy.stable) (plans);
+	stdout.writeln ("Problem ", p.name, ' ', plans.length, ' ',
+	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
+	    plans.length > 0 ? plans[$ - 1].plan.score_rating : -1);
+	stdout.flush ();
 	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
 	    plans.length > 0 ? plans[$ - 1].plan.score_rating : -1);
@@ -906,8 +911,27 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 						    .next (goal3.word[hi]);
 					}
 
-					if (t.contents[vr].word ||
-					    hi == lo + 1)
+					if (hi - lo < MIN_FIRST_MOVE)
+					{
+						continue;
+					}
+
+					if (hi - lo > 1 &&
+					    !t.contents[vr].word)
+					{
+						continue;
+					}
+
+					auto inner_plans =
+					    [new Plan (p, [fat_plan.goal1,
+					    fat_plan.goal2, goal3], lo, hi),
+					    new Plan (p, [fat_plan.goal1,
+					    goal3, fat_plan.goal2], lo, hi),
+					    new Plan (p, [goal3,
+					    fat_plan.goal1, fat_plan.goal2],
+					    lo, hi)];
+
+					foreach (inner_plan; inner_plans)
 					{
 						if (inner_counter >=
 						    MAX_INNER_COUNTER)
@@ -915,10 +939,6 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 							break outer_loop;
 						}
 
-						auto inner_plan = new Plan
-						    (p, [fat_plan.goal1,
-						    fat_plan.goal2, goal3],
-						    lo, hi);
 						if (inner_plan
 						    .score_rating == NA)
 						{
@@ -1277,12 +1297,12 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-// /*
+/*
 		if (i != 'A' - 'A')
 		{
 			continue;
 		}
-// */
+*/
 
 		auto p = ps.problem[i];
 //		put_two_plan (t, s, p, m, all_goals);

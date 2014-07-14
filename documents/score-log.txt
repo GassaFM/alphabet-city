@@ -102,7 +102,12 @@ K
 140714 WS +0.03/-0.01, WS 25.55 IK 25.55, IK second place
 140714 T 3009 -> 3053 best 0.01-0.02 RZ MC ID SMK N/A, IK first place
 140714 B 3068 -> 3090 best 0.00-0.01 RZ MC ID SMK down
+140715 W 3076 -> 3092 up 0.00
+140715 R 3174 -> 3184 up 0.00 x
+140715 Z 3099 -> 3141 best 0.01-0.02 all N/A
+140715 X 2845 -> 2928 up 0.03
+140715 X 2928 -> 2930 up 0.00
 
-Expected best:  ABC.E....J.L...PQR.TU....Z
-Expected up:    ......GH..K.M..........X..
-Unknown:        ...D.F..I....NO...S..VW.Y.
+Expected best:  ABC.E....J.L...PQ..TU....Z
+Expected up:    ......GH..K.M....R....WX..
+Unknown:        ...D.F..I....NO...S..V..Y.

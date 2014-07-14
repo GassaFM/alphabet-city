@@ -2,6 +2,7 @@ module sketch;
 
 import std.algorithm;
 import std.conv;
+import std.range;
 import std.stdio;
 
 import board;
@@ -181,7 +182,7 @@ struct Sketch
 			return true;
 		}
 
-		bool is_first_move_tile (Goal goal, int pos)
+		bool is_first_move_pos (T1) (Goal goal, T1 pos)
 		{
 			return goal.is_center_goal () &&
 			    first_move_lo <= pos &&
@@ -212,6 +213,43 @@ struct Sketch
 			}
 		}
 
+		bool decrease_lock () (int tile_num, int cur_floor)
+		{
+			assert (tile_num != NA);
+			if (tile_num == tiles.length)
+			{
+				return false;
+			}
+
+			auto tile_lock = tile_locks[tile_num];
+			int goal_num = tile_lock.goal_num;
+			int pos = tile_lock.pos;
+
+			auto let = tiles[tile_num] & LET_MASK;
+			bool found = false;
+			foreach (num; tiles_by_letter[let]
+			    [letters_by_tile[tile_num]..$])
+			{
+				assert (num < cur_ceiling);
+				if (num < cur_floor)
+				{
+					break;
+				}
+				if ((tiles[num] & TileBag.IS_RESTRICTED))
+				{
+					continue;
+				}
+				tiles[tile_num] &= ~TileBag.IS_RESTRICTED;
+				tiles[num] |= TileBag.IS_RESTRICTED;
+				tile_locks[num] = TileLock (goal_num, pos);
+				goal_locks[goal_num][pos] = num;
+				found = true;
+				break;
+			}
+
+			return found;
+		}
+
 		void put_start_tiles (int goal_num)
 		{
 			version (debug_sketch)
@@ -226,8 +264,11 @@ struct Sketch
 
 			auto goal = goals[goal_num];
 			bool found = true;
-			foreach (pos, let; goal.word)
-			{ // tried the other direction here
+			immutable static int [] ORDER =
+			    [0, 14, 1, 13, 2, 12, 3, 11, 4, 10, 5, 9, 6, 8, 7];
+			foreach (pos; ORDER)
+			{
+				auto let = goal.word[pos];
 				if (goal.is_final_pos (pos))
 				{
 					continue;
@@ -285,6 +326,67 @@ struct Sketch
 			{
 				return;
 			}
+
+			// heuristic: monotonicity
+//			writeln ("before: ", goal_locks[goal_num]);
+			foreach (lo; 0..cast (int) (goal.word.length))
+			{
+				if (goal.is_final_pos (lo))
+				{
+					continue;
+				}
+				if (!(lo == 0 || goal.is_final_pos (lo - 1)))
+				{
+					continue;
+				}
+
+				int hi = lo + 1;
+				while (hi < goal.word.length &&
+				    !goal.is_final_pos (hi))
+				{
+					hi++;
+				}
+
+				int me = lo;
+				foreach (pos; lo + 1..hi)
+				{
+					if (goal_locks[goal_num][me] >
+					    goal_locks[goal_num][pos])
+					{
+						me = pos;
+					}
+				}
+//				writeln (goal_locks[goal_num][lo..hi]);
+				foreach (pos; lo + 1..me)
+				{
+					while (goal_locks[goal_num][pos - 1] <
+					    goal_locks[goal_num][pos])
+					{
+						if (!decrease_lock (goal_locks
+						    [goal_num][pos],
+						    goal_locks[goal_num]
+						    [pos + 1]))
+						{
+							break;
+						}
+					}
+				}
+				foreach_reverse (pos; me + 1..hi)
+				{
+					while (goal_locks[goal_num][pos + 1] <
+					    goal_locks[goal_num][pos])
+					{
+						if (!decrease_lock (goal_locks
+						    [goal_num][pos],
+						    goal_locks[goal_num]
+						    [pos - 1]))
+						{
+							break;
+						}
+					}
+				}
+			}
+//			writeln ("after:  ", goal_locks[goal_num]);
 
 			// heuristic
 			foreach (pos, let; goal.word)
@@ -468,38 +570,8 @@ struct Sketch
 					    last_final_pos[goal_num]);
 				}
 
-				int tile_num = last_final_pos[goal_num];
-				if (tile_num == tiles.length)
-				{
-					break;
-				}
-				auto tile_lock =
-				    tile_locks[tile_num];
-				assert (tile_lock.goal_num == goal_num);
-				int pos = tile_lock.pos;
-				assert (goal.is_final_pos (pos));
-
-				auto let = tiles[tile_num] & LET_MASK;
-				found = false;
-				foreach (num; tiles_by_letter[let]
-				    [letters_by_tile[tile_num]..$])
-				{
-					assert (num < cur_ceiling);
-					if ((tiles[num] &
-					    TileBag.IS_RESTRICTED))
-					{
-						continue;
-					}
-					tiles[tile_num] &=
-					    ~TileBag.IS_RESTRICTED;
-					tiles[num] |= TileBag.IS_RESTRICTED;
-					tile_locks[num] =
-					    TileLock (goal_num, pos);
-					goal_locks[goal_num][pos] = num;
-					found = true;
-					break;
-				}
-				if (!found)
+				if (!decrease_lock (last_final_pos[goal_num],
+				    NA))
 				{
 					break;
 				}
