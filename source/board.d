@@ -325,6 +325,15 @@ struct Board
 		{ // optimization
 			return 0;
 		}
+		assert (0 < cur_row && cur_row < Board.SIZE - 1 &&
+		    0 < cur_col && cur_col < Board.SIZE - 1);
+		if (!contents[cur_row - 1][cur_col - 1].empty ||
+		    !contents[cur_row - 1][cur_col + 1].empty ||
+		    !contents[cur_row + 1][cur_col - 1].empty ||
+		    !contents[cur_row + 1][cur_col + 1].empty)
+		{ // tweak: allow more options
+			return 1;
+		}
 
 		int res = Board.SIZE * 2;
 		foreach (row; 0..Board.SIZE)

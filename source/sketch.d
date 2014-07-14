@@ -474,7 +474,7 @@ struct Sketch
 		bool found = false;
 		foreach (ref next; cur)
 		{
-			writeln (next);
+//			writeln (next);
 //			writeln ("!!! ", value, ' ', next.value);
 			if (value < next.value)
 			{

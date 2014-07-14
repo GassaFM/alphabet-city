@@ -97,9 +97,11 @@ K
 -------
 140714 H 2905 -> 3007 up 0.04
 140714 A 3123 -> 3139 best 0.00-0.01 RZ down
-140714 E 3037 -> 3138 best 0.02-0.03 RZ SMK MC down ID N/A
+140714 E 3037 -> 3138 best 0.02-0.03 RZ SMK MC down ID N/A, first place
 140714 L 3110 -> 3176 best 0.01-0.02 RZ MC ID down SMK N/A
-140714 WS +0.03/-0.01, WS 25.55 IK 25.55
+140714 WS +0.03/-0.01, WS 25.55 IK 25.55, second place
+140714 T 3009 -> 3053 best 0.01-0.02 RZ MC ID SMK N/A, first place
+140714 B 3068 -> 3090 best 0.00-0.01 RZ MC ID SMK down
 
 Expected best:  A.C.E....J.L...PQR.TU....Z
 Expected up:    .B....GH..K.M..........X..

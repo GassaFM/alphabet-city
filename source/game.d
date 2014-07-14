@@ -127,16 +127,22 @@ final class Game (DictClass)
 				}
 			}
 */
+			int sub = 0;
 			foreach (check_point; plan.check_points)
 			{
-				int d = cur.board.distance_to_covered_adjacent
+//				int d = cur.board.distance_to_covered_adjacent
+				int d = cur.board.distance_to_covered
 				    (check_point.row, check_point.col, false);
 				int time_left = check_point.tile -
 				    cur.tiles.cursor;
 				time_left = min (time_left, 0);
 				time_left = max (time_left, 32);
-				int value = 512 * (32 + 32) / (32 + time_left);
-				res += value >> d;
+				int value = 1024 * (8 + 32) / (8 + time_left);
+				res += (value >> sub) >> d;
+				if (d > 0)
+				{
+					sub++;
+				}
 			}
 		}
 
