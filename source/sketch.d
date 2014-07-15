@@ -250,6 +250,24 @@ struct Sketch
 			return found;
 		}
 
+		void consider ()
+		{
+			// heuristic
+			foreach (v; lock_count)
+			{
+				value_bad += 1 << (max (0, v - 3));
+			}
+			scope (exit)
+			{
+				foreach (v; lock_count)
+				{
+					value_bad -= 1 << (max (0, v - 3));
+				}
+			}
+
+			process (this);
+		}
+
 		void put_start_tiles (int goal_num)
 		{
 			version (debug_sketch)
@@ -258,7 +276,7 @@ struct Sketch
 			}
 			if (goal_num >= goals.length)
 			{
-				process (this);
+				consider ();
 				return;
 			}
 
@@ -391,6 +409,19 @@ struct Sketch
 			// heuristic
 			foreach (pos, let; goal.word)
 			{
+				value_good += goal_locks[goal_num][pos];
+			}
+			scope (exit)
+			{
+				foreach (pos, let; goal.word)
+				{
+					value_good -=
+					    goal_locks[goal_num][pos];
+				}
+			}
+/*
+			foreach (pos, let; goal.word)
+			{
 				value_bad += max (0, TOTAL_TILES / 2 -
 				    goal_locks[goal_num][pos]);
 			}
@@ -402,6 +433,7 @@ struct Sketch
 					    goal_locks[goal_num][pos]);
 				}
 			}
+*/
 
 			put_start_tiles (goal_num + 1);
 		}
@@ -541,6 +573,20 @@ struct Sketch
 						    cur_ceiling);
 					}
 
+					// heuristic
+					static immutable int LEN_MULT = 10;
+					int first_pos =
+					    first_final_pos (goal_num);
+					value_bad +=
+					    last_final_pos[goal_num] -
+					    first_pos;
+					scope (exit)
+					{
+						value_bad -=
+						    last_final_pos[goal_num] -
+						    first_pos;
+					}
+/*
 					static immutable int FIRST_POS_MULT =
 					    4;
 					int first_pos =
@@ -556,6 +602,7 @@ struct Sketch
 						value_bad -=
 						    last_final_pos[goal_num];
 					}
+*/
 
 					put_final_tiles (goal_num + 1);
 				}

@@ -260,15 +260,23 @@ final class Game (DictClass)
 				int d = cur.board.distance_to_covered
 				    (check_point.row, check_point.col, false);
 				int time_left = check_point.tile -
-				    cur.tiles.cursor;
+				    cur.board.total;
 				time_left = min (time_left, 0);
-				time_left = max (time_left, 32);
+				time_left = max (time_left, 16);
+				int value = 128 * (4 + 16 - time_left);
+				res += (value >> sub) * (30 - d);
+				if (d > 0)
+				{
+					sub = min (2, sub + 1);
+				}
+/*
 				int value = 1024 * (8 + 32) / (8 + time_left);
 				res += (value >> sub) >> d;
 				if (d > 0)
 				{
 					sub = max (2, sub + 1);
 				}
+*/
 			}
 		}
 

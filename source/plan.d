@@ -21,8 +21,12 @@ struct CheckPoint
 	byte row;
 	byte col;
 
-	this (T1, T2, T3) (T1 new_tile, T2 new_row, T3 new_col)
+	this (T1, T2) (T1 new_tile, T2 new_row, T2 new_col, bool is_flipped)
 	{
+		if (is_flipped)
+		{
+			swap (new_row, new_col);
+		}
 		version (DEBUG)
 		{ // safe but slow
 			tile = to !(typeof (tile)) (new_tile);
@@ -71,6 +75,7 @@ final class Plan
 		target_board = new TargetBoard ();
 		goal_moves = new GameMove [0];
 		check_points = new CheckPoint [0];
+//		auto check_points_add = new CheckPoint [0];
 		score_rating = reduce !((a, b) => a + b.score_rating)
 		    (0, sketch.goals);
 
@@ -163,23 +168,29 @@ final class Plan
 				{
 					cur_row--;
 				}
-				if (!goal.is_flipped)
+				check_points ~=
+				    CheckPoint (tile_numbers[min_pos],
+				    cur_row, col + min_pos, goal.is_flipped);
+
+/*
+				foreach (pos; seg.x..seg.y)
 				{
-					check_points ~=
-					    CheckPoint (tile_numbers[min_pos],
-					    cur_row, col + min_pos);
+					check_points_add ~=
+					    CheckPoint (tile_numbers[pos],
+					    row, col + pos, goal.is_flipped);
 				}
-				else
-				{
-					check_points ~=
-					    CheckPoint (tile_numbers[min_pos],
-					    col + min_pos, cur_row);
-				}
+*/
 			}
 		}
 
 		sort !((a, b) => a.tile < b.tile, SwapStrategy.stable)
 		    (check_points);
+/*
+		sort !((a, b) => a.tile < b.tile, SwapStrategy.stable)
+		    (check_points_add);
+		check_points ~= check_points_add;
+*/
+
 /*
 		while (true)
 		{
