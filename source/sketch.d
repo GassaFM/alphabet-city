@@ -230,7 +230,6 @@ struct Sketch
 			foreach (num; tiles_by_letter[let]
 			    [letters_by_tile[tile_num]..$])
 			{
-				assert (num < cur_ceiling);
 				if (num < cur_floor)
 				{
 					break;

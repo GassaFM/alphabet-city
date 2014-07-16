@@ -407,6 +407,6 @@ unittest
 //		assert (next.board.score == 1693);
 	}
 
-//	test_regular ();
+	test_regular ();
 	test_planned ();
 }
