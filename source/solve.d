@@ -511,14 +511,15 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	Plan [] plans;
 
 	static immutable int MAX_PLANS_LENGTH = 10_000;
-	static immutable int MAX_GOALS = 1250;
+	static immutable int MAX_GOALS = 1500;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 1000;
+	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 30;
+	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
 
+	TileCounter total_counter = GameState (p).tiles.counter;
 	bool try_plan (Plan plan)
 	{
 		if (plan.score_rating != NA)
@@ -535,10 +536,30 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		auto goal1 = new Goal (pre_goal1);
 		goal1.row = 0;
 
+		TileCounter counter1;
+		foreach (let; goal1.word)
+		{
+			counter1[let & LET_MASK]++;
+		}
+		if (!(counter1 << total_counter))
+		{
+			continue;
+		}
+
 		foreach (num2, pre_goal2; all_goals[1].take (num1))
 		{
 			auto goal2 = new Goal (pre_goal2);
 			goal2.row = Board.SIZE - 1;
+
+			TileCounter counter2 = counter1;
+			foreach (let; goal2.word)
+			{
+				counter2[let & LET_MASK]++;
+			}
+			if (!(counter2 << total_counter))
+			{
+				continue;
+			}
 
 			if (try_plan (new Plan (p, [goal1, goal2])))
 			{
@@ -566,7 +587,9 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 	}
 
-	sort !((a, b) => a.score_rating > b.score_rating,
+	sort !((a, b) => a.score_rating > b.score_rating ||
+	    (a.score_rating == b.score_rating &&
+	    a.check_points.length < b.check_points.length),
 	    SwapStrategy.stable) (plans);
 	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].score_rating : -1, ' ',
@@ -650,13 +673,14 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
-	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_COUNTER = 60;
 	static immutable int PLANS_TO_DROP = 0;
 
+	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
 	static immutable int MAX_INNER_COUNTER = 60;
-	static immutable int MAX_CENTER_FORBIDDEN = 3;
+	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
 
 	bool try_plan (Plan plan, Goal goal1, Goal goal2)
@@ -735,7 +759,9 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 	}
 
-	sort !((a, b) => a.plan.score_rating > b.plan.score_rating,
+	sort !((a, b) => a.plan.score_rating > b.plan.score_rating ||
+	    (a.plan.score_rating == b.plan.score_rating &&
+	    a.plan.check_points.length < b.plan.check_points.length),
 	    SwapStrategy.stable) (plans);
 	stdout.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
@@ -756,6 +782,10 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			break;
 		}
 		auto plan = fat_plan.plan;
+		if (plan.check_points.length > MAX_CHECK_POINTS)
+		{
+			continue;
+		}
 
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -1295,18 +1325,18 @@ void main (string [] args)
 		return;
 	}
 
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
 // /*
-		if (i != 'Y' - 'A')
+		if (i != 'Z' - 'A')
 		{
 			continue;
 		}
 // */
 
 		auto p = ps.problem[i];
-		put_two_plan (t, s, p, m, all_goals);
-//		put_three_plan (t, s, p, m, all_goals);
+//		put_two_plan (t, s, p, m, all_goals);
+		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 

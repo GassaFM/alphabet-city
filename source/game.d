@@ -254,6 +254,7 @@ final class Game (DictClass)
 			}
 */
 			int sub = 0;
+			int rows_visited_mask = 0;
 			foreach (check_point; plan.check_points)
 			{
 //				int d = cur.board.distance_to_covered_adjacent
@@ -262,9 +263,18 @@ final class Game (DictClass)
 				int time_left = check_point.tile -
 				    cur.board.total;
 				time_left = min (time_left, 0);
-				time_left = max (time_left, 16);
-				int value = 128 * (4 + 16 - time_left);
-				res += (value >> sub) * (30 - d);
+				time_left = max (time_left, 32);
+				int value = 1 * (4 + 32 - time_left);
+				if (rows_visited_mask & (1 << check_point.row))
+				{
+					value *= 2;
+				}
+				rows_visited_mask |= 1 << check_point.row;
+				if (check_point.row == Board.CENTER)
+				{
+					value /= 4;
+				}
+				res += (value >> sub) * ((20 - d) * (20 - d));
 				if (d > 0)
 				{
 					sub = min (2, sub + 1);

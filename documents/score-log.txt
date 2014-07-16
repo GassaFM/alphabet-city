@@ -113,7 +113,14 @@ K
 140715 R 3184 -> 3224 up 0.01 + best 0.00-0.01 ID down
 140715 O 3069 -> 3075 best 0.00-0.01 all N/A
 140716 F 3130 -> 3150 best 0.00-0.01 all N/A
+-------
+140716 B 3090 -> 3105 best 0.00-0.01 ID N/A
+140716 X 2939 -> 2951 up 0.01
+140716 W 3092 -> 3096 up 0.00
+140716 T 3056 -> 3069 best 0.00-0.01 all N/A
+140716 I 2831 -> 2868 up 0.00
+140716 I 2868 -> 2891 up 0.01
 
-Expected best:  ABC.EF...J.L..OPQR.TU....Z
-Expected up:    ......GH..K.M.........WX..
-Unknown:        ...D....I....N....S..V..Y.
+Expected best:  ABC.EF...J.LM.OPQR.TU....Z
+Expected up:    ......GHI.K...........WX..
+Unknown:        ...D.........N....S..V..Y.

@@ -94,3 +94,11 @@ Notes:
 4. ~1x HEN has N, pending H. UTA has U, pending A. Result: out of rack space.
   Solution: give value for consecutive order inside segments? Or split them?
   Solution: give value for each goal letter successfully put.
+
+20140716:
+Notes:
+1. Try building only three lower or upper lines. Allow dropping a tile.
+  Encourage the least possible number of tiles to reach checkpoints.
+2. Discourage every position except first and last three rows,
+  and also three center columns.
+  Discourage having much tiles, too, without getting closer to the goals.

@@ -252,8 +252,8 @@ struct Board
 			return 0;
 		}
 
-		static assert (Board.SIZE * 2 < int.sizeof * 8);
-		int res = Board.SIZE * 2;
+		static assert (Board.SIZE < int.sizeof * 8);
+		int res = Board.SIZE;
 		foreach (row; 0..Board.SIZE)
 		{
 			foreach (col; 0..Board.SIZE)
