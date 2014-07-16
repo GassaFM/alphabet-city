@@ -151,7 +151,7 @@ final class GameComplex
 		next.board.score += add_score;
 //		next.board.value += add_score;
 		next.tiles.rack.normalize ();
-		next.tiles.fill_rack ();
+		next.fill_rack ();
 
 		next.board.value = next.board.score;
 		TileCounter counter;

@@ -83,7 +83,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			cur.closest_move.word = cur.closest_move.word.dup;
 			auto tiles_saved = cur.tiles;
 			cur.tiles.rack.normalize ();
-			cur.tiles.fill_rack ();
+			cur.fill_rack ();
 			auto hash_saved = cur.board.contents_hash[0];
 			cur_move.add_hash (cur.board);
 			cur.xor_active ();
@@ -251,6 +251,11 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					cur.board[row][col] = BoardCell.NONE;
 				}
 
+				version (debug_play)
+				{
+					writeln ("move_recur mid ",
+					    row, ' ', col);
+				}
 				if (cur.tiles.target_board !is null)
 				{
 					int cur_tile_number;
@@ -287,6 +292,11 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					}
 				}
 
+				version (debug_play)
+				{
+					writeln ("move_recur some ",
+					    row, ' ', col);
+				}
 				foreach (ref c; cur.tiles.rack.contents)
 				{
 					if (c.empty)
@@ -448,12 +458,16 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			{
 				byte saved_total = Rack.IGNORED;
 				swap (cur.tiles.rack.total, saved_total);
+				byte saved_active = Rack.IGNORED;
+				swap (cur.tiles.rack.active, saved_active);
 				active_tiles += 2;
 				connections++;
 				scope (exit)
 				{
 					swap (cur.tiles.rack.total,
 					    saved_total);
+					swap (cur.tiles.rack.active,
+					    saved_active);
 					active_tiles -= 2;
 					connections--;
 				}

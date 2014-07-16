@@ -120,3 +120,8 @@ final class Scoring
 }
 
 Scoring global_scoring;
+
+static this ()
+{
+	global_scoring = new Scoring ();
+}

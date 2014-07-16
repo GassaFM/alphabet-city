@@ -28,6 +28,11 @@ struct GameState
 		closest_move.xor_active (board);
 	}
 
+	void fill_rack ()
+	{
+		tiles.fill_rack (this);
+	}
+
 	static GameState read (ref File f)
 	{
 		GameState res;

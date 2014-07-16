@@ -1043,8 +1043,7 @@ void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 //	auto t = new Trie (read_all_lines ("data/words8.txt"), 233_691);
-	auto s = new Scoring ();
-	global_scoring = s;
+	auto s = global_scoring;
 	auto ps = new ProblemSet (read_all_lines ("data/problems.txt"));
 
 /*

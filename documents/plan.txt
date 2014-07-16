@@ -102,3 +102,7 @@ Notes:
 2. Discourage every position except first and last three rows,
   and also three center columns.
   Discourage having much tiles, too, without getting closer to the goals.
+
+Work:
+1. [r1174] Add value for active tiles in the rack.
+2. Add an option to put target tiles earlier than planned.

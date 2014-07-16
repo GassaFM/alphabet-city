@@ -8,6 +8,7 @@ import std.range;
 import std.stdio;
 
 import board;
+import game_state;
 import general;
 import problem;
 import scoring;
@@ -76,11 +77,12 @@ struct Rack
 
 	RackEntry [MAX_SIZE] contents;
 	byte total;
+	byte active;
 	alias usable_total = total;
 
-	void add (const byte letter)
+	void add (const byte letter, bool is_active)
 	{
-		if (!(letter & TileBag.IS_RESTRICTED))
+		if (is_active)
 		{
 			int i = 0;
 			while (!contents[i].empty &&
@@ -101,6 +103,7 @@ struct Rack
 				contents[i] = cast (ubyte) (letter +
 				    (1 << LET_BITS));
 			}
+			active++;
 		}
 		total++;
 	}
@@ -153,11 +156,18 @@ struct Rack
 	}
 }
 
+struct TargetCell
+{
+	byte row = NA;
+	byte col = NA;
+}
+
 final class TargetBoard
 {
 	byte [Board.SIZE] [Board.SIZE] tile_number = NA.to !(byte) ()
 	    .repeat (Board.SIZE).array ()
 	    .repeat (Board.SIZE).array ();
+	TargetCell [] coord;
 
 	alias tile_number this;
 
@@ -211,14 +221,35 @@ struct TileBag
 
 	alias contents this;
 
-	void fill_rack ()
+	void fill_rack (const ref GameState cur)
 	{
 		if (rack.total >= 0)
 		{
 			while ((cursor < contents.length) &&
 			    (rack.total < Rack.MAX_SIZE))
 			{
-				rack.add (contents[cursor]);
+				auto letter = contents[cursor];
+				bool is_active = !(letter & IS_RESTRICTED) ||
+				    (target_board !is null &&
+				    !cur.board
+				    [target_board.coord[cursor].row]
+				    [target_board.coord[cursor].col].empty);
+				rack.add (letter, is_active);
+				cursor++;
+			}
+		}
+	}
+
+	void fill_rack ()
+	{ // no board to check for target tiles
+		if (rack.total >= 0)
+		{
+			while ((cursor < contents.length) &&
+			    (rack.total < Rack.MAX_SIZE))
+			{
+				auto letter = contents[cursor];
+				bool is_active = !(letter & IS_RESTRICTED);
+				rack.add (letter, is_active);
 				cursor++;
 			}
 		}
@@ -228,6 +259,7 @@ struct TileBag
 	{
 		c.dec ();
 		rack.total--;
+		rack.active--;
 		counter[c.letter]--;
 	}
 
@@ -235,6 +267,7 @@ struct TileBag
 	{
 		c.inc ();
 		rack.total++;
+		rack.active++;
 		counter[c.letter]++;
 	}
 

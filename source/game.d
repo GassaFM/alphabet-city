@@ -128,6 +128,13 @@ final class Game (DictClass)
 	{
 		int res = cur.board.score;
 
+		// add active tiles value
+		immutable int ACTIVE_TILE_VALUE = 50;
+		if (cur.tiles.rack.active >= 0)
+		{ // if not ignored
+			res += cur.tiles.rack.active * ACTIVE_TILE_VALUE;
+		}
+
 		// add bias value
 		res += GameTools.bias_value (cur, bias);
 
