@@ -72,7 +72,7 @@ final class Plan
 		    (sketch.tiles).array ().to !(string) ();
 
 		check_board = Board.init;
-		target_board = new TargetBoard ();
+		target_board = new TargetBoard (problem.contents.length);
 		goal_moves = new GameMove [0];
 		check_points = new CheckPoint [0];
 //		auto check_points_add = new CheckPoint [0];
@@ -125,14 +125,8 @@ final class Plan
 				assert (num != NA);
 				byte val = cast (byte) (num +
 				    goal.is_final_pos (pos) * byte.min);
-				if (!goal.is_flipped)
-				{
-					target_board[row][col + pos] = val;
-				}
-				else
-				{
-					target_board[col + pos][row] = val;
-				}
+				target_board.place (val, to !(byte) (row),
+				    to !(byte) (col + pos), goal.is_flipped);
 			}
 
 			auto cur_move = new GameMove ();

@@ -73,7 +73,11 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{
 			version (debug_play)
 			{
-				writeln ("consider ", row, ' ', col);
+				writeln (">consider ", row, ' ', col);
+				scope (exit)
+				{ 
+					writeln ("<consider ", row, ' ', col);
+				}
 			}
 			int add_score = scoring.calculate (vert_score,
 			    main_score, score_mult, active_tiles);
@@ -82,6 +86,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			cur.closest_move.score = add_score;
 			cur.closest_move.word = cur.closest_move.word.dup;
 			auto tiles_saved = cur.tiles;
+			writeln ("saved  ", cur.tiles);
 			cur.tiles.rack.normalize ();
 			cur.fill_rack ();
 			auto hash_saved = cur.board.contents_hash[0];
@@ -92,6 +97,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				cur.xor_active ();
 				cur.board.contents_hash[0] = hash_saved;
 				cur.tiles = tiles_saved;
+				writeln ("loaded ", cur.tiles);
 				cur.closest_move = cur_move.chained_move;
 				cur.board.score -= add_score;
 			}
@@ -102,7 +108,12 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{
 			version (debug_play)
 			{
-				writeln ("check_vertical ", row, ' ', col);
+				writeln (">check_vertical ", row, ' ', col);
+				scope (exit)
+				{
+					writeln ("<check_vertical ",
+					    row, ' ', col);
+				}
 			}
 			if (!cur.board[row][col].active)
 			{
@@ -154,7 +165,12 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{ // templated to recurse into move_recur
 			version (debug_play)
 			{
-				writeln ("step_recur ", row, ' ', col);
+				writeln (">step_recur ", row, ' ', col);
+				scope (exit)
+				{
+					writeln ("<step_recur ",
+					    row, ' ', col);
+				}
 			}
 			assert (!cur.board[row][col].empty);
 
@@ -227,7 +243,12 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{
 			version (debug_play)
 			{
-				writeln ("move_recur ", row, ' ', col);
+				writeln (">move_recur ", row, ' ', col);
+				scope (exit)
+				{
+					writeln ("<move_recur ",
+					    row, ' ', col);
+				}
 			}
 			static if (rack_usage == RackUsage.Active)
 			{
@@ -251,11 +272,6 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					cur.board[row][col] = BoardCell.NONE;
 				}
 
-				version (debug_play)
-				{
-					writeln ("move_recur mid ",
-					    row, ' ', col);
-				}
 				if (cur.tiles.target_board !is null)
 				{
 					int cur_tile_number;
@@ -263,13 +279,13 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					{
 						cur_tile_number =
 						    cur.tiles.target_board
-						    [row][col];
+						    .tile_number[row][col];
 					}
 					else
 					{
 						cur_tile_number =
 						    cur.tiles.target_board
-						    [col][row];
+						    .tile_number[col][row];
 					}
 					if (cur_tile_number >= 0)
 					{ // NA = free, other_negative = guided
@@ -292,24 +308,25 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					}
 				}
 
-				version (debug_play)
-				{
-					writeln ("move_recur some ",
-					    row, ' ', col);
-				}
 				foreach (ref c; cur.tiles.rack.contents)
 				{
 					if (c.empty)
 					{
 						break;
 					}
-	
+
 					if (c.num != 0)
 					{
+						write ('<', c);
 						cur.tiles.dec (c);
+						writeln (' ', c);
 						scope (exit)
 						{
+							writeln ("here: ",
+							    cur.tiles.rack);
+							write ('>', c);
 							cur.tiles.inc (c);
+							writeln (' ', c);
 						}
 
 						if (!c.is_wildcard)
@@ -349,7 +366,11 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{
 			version (debug_play)
 			{
-				writeln ("move_horizontal");
+				writeln (">move_horizontal");
+				scope (exit)
+				{
+					writeln ("<move_horizontal");
+				}
 			}
 			static if (rack_usage != RackUsage.Active)
 			{
@@ -376,7 +397,11 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		{
 			version (debug_play)
 			{
-				writeln ("perform_move");
+				writeln (">perform_move");
+				scope (exit)
+				{
+					writeln ("<perform_move");
+				}
 			}
 			static if (rack_usage == RackUsage.Active)
 			{

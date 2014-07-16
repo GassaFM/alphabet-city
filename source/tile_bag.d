@@ -1,5 +1,6 @@
 module tile_bag;
 
+import std.algorithm;
 import std.array;
 import std.conv;
 import std.exception;
@@ -8,7 +9,6 @@ import std.range;
 import std.stdio;
 
 import board;
-import game_state;
 import general;
 import problem;
 import scoring;
@@ -65,6 +65,14 @@ struct RackEntry
 	{
 		contents -= (1 << LET_BITS);
 	}
+
+	string toString () const
+	{
+		string res;
+		res ~= to !(string) (num);
+		res ~= (letter == LET) ? '?' : (letter + 'A');
+		return res;
+	}
 }
 
 struct Rack
@@ -100,8 +108,8 @@ struct Rack
 				{
 					contents[j + 1] = contents[j];
 				}
-				contents[i] = cast (ubyte) (letter +
-				    (1 << LET_BITS));
+				contents[i] = cast (ubyte)
+				    (letter | (1 << LET_BITS));
 			}
 			active++;
 		}
@@ -144,9 +152,7 @@ struct Rack
 				break;
 			}
 			k++;
-			res ~= ' ';
-			res ~= to !(string) (c.num);
-			res ~= (c.letter == LET) ? '?' : (c.letter + 'A');
+			res ~= ' ' ~ to !(string) (c);
 		}
 		if (k == 0)
 		{
@@ -156,7 +162,7 @@ struct Rack
 	}
 }
 
-struct TargetCell
+struct Coord
 {
 	byte row = NA;
 	byte col = NA;
@@ -167,11 +173,31 @@ final class TargetBoard
 	byte [Board.SIZE] [Board.SIZE] tile_number = NA.to !(byte) ()
 	    .repeat (Board.SIZE).array ()
 	    .repeat (Board.SIZE).array ();
-	TargetCell [] coord;
+	Coord [] coord;
 
-	alias tile_number this;
+//	alias tile_number this;
 
 	static assert (TOTAL_TILES < tile_number[0][0].max);
+
+	void place (byte val, byte row, byte col, bool is_flipped)
+	{
+		if (is_flipped)
+		{
+			swap (row, col);
+		}
+		assert (tile_number[row][col] == NA);
+		tile_number[row][col] = val;
+		if (val >= 0)
+		{
+			assert (0 <= val && val < coord.length);
+			coord[val] = Coord (row, col);
+		}
+	}
+
+	this (T1) (T1 tiles_length)
+	{
+		coord = new Coord [tiles_length];
+	}
 
 	string [] to_strings () const
 	{
@@ -221,7 +247,7 @@ struct TileBag
 
 	alias contents this;
 
-	void fill_rack (const ref GameState cur)
+	void fill_rack (const ref Board board)
 	{
 		if (rack.total >= 0)
 		{
@@ -231,8 +257,7 @@ struct TileBag
 				auto letter = contents[cursor];
 				bool is_active = !(letter & IS_RESTRICTED) ||
 				    (target_board !is null &&
-				    !cur.board
-				    [target_board.coord[cursor].row]
+				    !board[target_board.coord[cursor].row]
 				    [target_board.coord[cursor].col].empty);
 				rack.add (letter, is_active);
 				cursor++;
@@ -242,21 +267,13 @@ struct TileBag
 
 	void fill_rack ()
 	{ // no board to check for target tiles
-		if (rack.total >= 0)
-		{
-			while ((cursor < contents.length) &&
-			    (rack.total < Rack.MAX_SIZE))
-			{
-				auto letter = contents[cursor];
-				bool is_active = !(letter & IS_RESTRICTED);
-				rack.add (letter, is_active);
-				cursor++;
-			}
-		}
+		static immutable Board board;
+		fill_rack (board);
 	}
 
 	void dec (ref RackEntry c)
 	{
+		assert (0 <= c.letter && c.letter <= LET);
 		c.dec ();
 		rack.total--;
 		rack.active--;
@@ -265,6 +282,7 @@ struct TileBag
 
 	void inc (ref RackEntry c)
 	{
+		assert (0 <= c.letter && c.letter <= LET);
 		c.inc ();
 		rack.total++;
 		rack.active++;

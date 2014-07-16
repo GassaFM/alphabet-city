@@ -30,7 +30,7 @@ struct GameState
 
 	void fill_rack ()
 	{
-		tiles.fill_rack (this);
+		tiles.fill_rack (board);
 	}
 
 	static GameState read (ref File f)

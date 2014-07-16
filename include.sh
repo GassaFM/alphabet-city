@@ -13,6 +13,6 @@ export DC=dmd
 export ARCHITECTURE_OPTIONS="-m64"
 export DEBUG_OPTIONS="-g -debug -unittest"
 export RELEASE_OPTIONS="-O -release -inline -noboundscheck"
-export COMMON_OPTIONS="$ARCHITECTURE_OPTIONS -O -inline -wi -odobject"
+export COMMON_OPTIONS="$ARCHITECTURE_OPTIONS -O -wi -odobject"
 #-L/SUBSYSTEM:CONSOLE:4.0
 #-L/SUBSYSTEM:WINDOWS:4.0
