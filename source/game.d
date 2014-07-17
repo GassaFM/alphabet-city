@@ -271,7 +271,8 @@ final class Game (DictClass)
 				    cur.board.total;
 				time_left = min (time_left, 0);
 				time_left = max (time_left, 32);
-				int value = 1 * (4 + 32 - time_left);
+				int value = check_point.value *
+				    (4 + 32 - time_left);
 				if (rows_visited_mask & (1 << check_point.row))
 				{
 					value *= 2;
@@ -281,7 +282,8 @@ final class Game (DictClass)
 				{
 					value /= 4;
 				}
-				res += (value >> sub) * ((20 - d) * (20 - d));
+				res += (value >> sub) * ((20 - d) *
+				    (20 - d)) / 540; // single-tile value
 				if (d > 0)
 				{
 					sub = min (2, sub + 1);

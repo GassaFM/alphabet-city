@@ -575,7 +575,7 @@ struct Sketch
 					}
 
 					// heuristic
-					static immutable int LEN_MULT = 10;
+					static immutable int LEN_MULT = 1; //10
 					int first_pos =
 					    first_final_pos (goal_num);
 					value_bad +=

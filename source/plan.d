@@ -20,8 +20,10 @@ struct CheckPoint
 	byte tile;
 	byte row;
 	byte col;
+	int value;
 
-	this (T1, T2) (T1 new_tile, T2 new_row, T2 new_col, bool is_flipped)
+	this (T1, T2) (T1 new_tile, T2 new_row, T2 new_col, bool is_flipped,
+	    int new_value)
 	{
 		if (is_flipped)
 		{
@@ -39,6 +41,7 @@ struct CheckPoint
 			row = cast (typeof (row)) (new_row);
 			col = cast (typeof (col)) (new_col);
 		}
+		value = new_value;
 	}
 
 	string toString () const
@@ -56,11 +59,13 @@ final class Plan
 	Board check_board;
 	TargetBoard target_board;
 	int score_rating = NA;
+	int sketch_value;
 
 	this (ref Problem new_problem, Goal [] new_goals,
 	    int lo = NA, int hi = NA)
 	{
 		auto sketch = Sketch (new_problem, new_goals, lo, hi);
+		sketch_value = sketch.value;
 		if (sketch.value < -Sketch.VALUE_MUCH / 2)
 		{ // bad plan
 			return;
@@ -162,16 +167,25 @@ final class Plan
 				{
 					cur_row--;
 				}
+				int cur_value = 320;
+				foreach (pos; seg.x..seg.y)
+				{
+					cur_value += 10 * min (16,
+					    tile_numbers[pos] -
+					    tile_numbers[min_pos]);
+				}
 				check_points ~=
 				    CheckPoint (tile_numbers[min_pos],
-				    cur_row, col + min_pos, goal.is_flipped);
+				    cur_row, col + min_pos, goal.is_flipped,
+				    cur_value);
 
 /*
 				foreach (pos; seg.x..seg.y)
 				{
 					check_points_add ~=
 					    CheckPoint (tile_numbers[pos],
-					    row, col + pos, goal.is_flipped);
+					    row, col + pos, goal.is_flipped,
+					    10 * 16);
 				}
 */
 			}
@@ -237,8 +251,11 @@ final class Plan
 	override string toString () const
 	{
 		string res;
-		res ~= "Plan: " ~ to !(string) (goal_moves.length) ~ ' ' ~
-		    to !(string) (score_rating) ~ '\n';
+		res ~= "Plan: " ~
+		    "goals=" ~ to !(string) (goal_moves.length) ~ ' ' ~
+		    "points=" ~ to !(string) (check_points.length) ~ ' ' ~
+		    "score=" ~ to !(string) (score_rating) ~ ' ' ~
+		    "value=" ~ to !(string) (sketch_value) ~ '\n';
 		res ~= to !(string) (goal_moves) ~ '\n';
 		res ~= to !(string) (check_points) ~ '\n';
 		if (target_board !is null)

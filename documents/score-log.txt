@@ -121,7 +121,14 @@ K
 140716 I 2831 -> 2868 up 0.00
 140716 I 2868 -> 2891 up 0.01
 140717 I 2891 -> 2899 up 0.00
+-------
+140717 Z 3141 -> 3174 best 0.00-0.01 RZ down others N/A
+140717 Y 2830 -> 3098 up 0.07 + best 0.00-0.01
+140717 SMK new best 0.00-0.01 IK N/A
+140718 Y 3098 -> 3100 best 0.00-0.01
+140718 X 2951 -> 3059 up 0.04
+140718 A 3139 -> 3149 best 0.00-0.01
 
-Expected best:  ABC.EF...J.LM.OPQR.TU....Z
+Expected best:  ABC.EF...J.LM.OPQR.TU...YZ
 Expected up:    ......GHI.K...........WX..
-Unknown:        ...D.........N....S..V..Y.
+Unknown:        ...D.........N....S..V....

@@ -106,3 +106,8 @@ Notes:
 Work:
 1. [r1174] Add value for active tiles in the rack.
 2. [r1178] Add an option to put target tiles earlier than planned.
+
+20140717:
+Work:
+3. Give values to checkpoints based on how much letters are there
+  and how close their times are to the entry time.

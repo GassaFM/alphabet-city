@@ -513,8 +513,8 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000;
 	static immutable int MAX_GOALS = 1500;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 250;
-	static immutable int MAX_WIDTH = 10_000;
+	static immutable int START_WIDTH = 360;
+	static immutable int MAX_WIDTH = 3000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_COUNTER = 60;
 	static immutable int PLANS_TO_DROP = 0;
@@ -589,7 +589,8 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	sort !((a, b) => a.score_rating > b.score_rating ||
 	    (a.score_rating == b.score_rating &&
-	    a.check_points.length < b.check_points.length),
+	    a.sketch_value > b.sketch_value),
+//	    a.check_points.length < b.check_points.length),
 	    SwapStrategy.stable) (plans);
 	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].score_rating : -1, ' ',
@@ -671,18 +672,18 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000;
 	static immutable int MAX_GOALS = 1000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 10_000;
+	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 1;
-	static immutable int MAX_COUNTER = 60;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 9999;
+	static immutable int MAX_INNER_COUNTER = 30;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
-	static immutable int MAX_ADDED_CHECK_POINTS = 8;
+	static immutable int MAX_ADDED_CHECK_POINTS = 3;
 
 	bool try_plan (Plan plan, Goal goal1, Goal goal2)
 	{
@@ -762,7 +763,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	sort !((a, b) => a.plan.score_rating > b.plan.score_rating ||
 	    (a.plan.score_rating == b.plan.score_rating &&
-	    a.plan.check_points.length < b.plan.check_points.length),
+	    a.plan.sketch_value > b.plan.sketch_value),
+//	    a.plan.check_points.length < b.plan.check_points.length),
 	    SwapStrategy.stable) (plans);
 	stdout.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
@@ -835,6 +837,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		log_progress (p, temp);
 		temp.board.normalize ();
 		if (temp.board[0][0].empty ||
+		    temp.board[0][Board.SIZE - 1].empty ||
+		    temp.board[Board.SIZE - 1][0].empty ||
 		    temp.board[Board.SIZE - 1][Board.SIZE - 1].empty)
 		{
 			continue;
@@ -1333,17 +1337,17 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
-// /*
-		if (i != 'Z' - 'A')
+/*
+		if (i != 'V' - 'A')
 		{
 			continue;
 		}
-// */
+*/
 		auto p = ps.problem[i];
-//		put_two_plan (t, s, p, m, all_goals);
-		put_three_plan (t, s, p, m, all_goals);
+		put_two_plan (t, s, p, m, all_goals);
+//		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 
