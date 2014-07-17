@@ -256,12 +256,30 @@ struct TileBag
 			{
 				auto letter = contents[cursor];
 				bool is_active = !(letter & IS_RESTRICTED);
-/*
-				bool is_active = !(letter & IS_RESTRICTED) ||
-				    (target_board !is null &&
-				    !board[target_board.coord[cursor].row]
-				    [target_board.coord[cursor].col].empty);
-*/
+				if (!is_active && target_board !is null &&
+				    target_board.coord[cursor] != Coord.init)
+				{
+					if (!board.is_flipped)
+					{
+						if (!board[target_board
+						    .coord[cursor].row]
+						    [target_board
+						    .coord[cursor].col].empty)
+						{
+							is_active = true;
+						}
+					}
+					else
+					{
+						if (!board[target_board
+						    .coord[cursor].col]
+						    [target_board
+						    .coord[cursor].row].empty)
+						{
+							is_active = true;
+						}
+					}
+				}
 				rack.add (letter, is_active);
 				cursor++;
 			}

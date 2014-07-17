@@ -26,6 +26,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 	
 	GameMove stored_cur_move;
 
+	static immutable bool allow_targets_earlier = true;
+
 	static if (rack_usage != RackUsage.Active)
 	{
 		GameMove pending_move;
@@ -86,31 +88,20 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 			cur.closest_move.score = add_score;
 			cur.closest_move.word = cur.closest_move.word.dup;
 			auto tiles_saved = cur.tiles;
-			writeln ("saved  ", cur.tiles);
 			cur.tiles.rack.normalize ();
 			cur.fill_rack ();
 			auto hash_saved = cur.board.contents_hash[0];
 			cur_move.add_hash (cur.board);
 			cur.xor_active ();
-/*
 			scope (exit)
 			{
 				cur.xor_active ();
 				cur.board.contents_hash[0] = hash_saved;
 				cur.tiles = tiles_saved;
-				writeln ("loaded ", cur.tiles);
 				cur.closest_move = cur_move.chained_move;
 				cur.board.score -= add_score;
 			}
-*/
 			int temp_result = process (cur);
-			writeln ('?', temp_result);
-				cur.xor_active ();
-				cur.board.contents_hash[0] = hash_saved;
-				cur.tiles = tiles_saved;
-				writeln ("loaded ", cur.tiles);
-				cur.closest_move = cur_move.chained_move;
-				cur.board.score -= add_score;
 		}
 
 		int check_vertical () ()
@@ -312,6 +303,50 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 								    (cur.board[row][col]);
 							}
 							step_recur ();
+							return;
+						}
+						else if (allow_targets_earlier)
+						{
+							auto target_tile =
+							    cur.tiles
+							    [cur_tile_number];
+							// '?' target
+							// not implemented
+							assert ((target_tile &
+							    LET_MASK) != LET);
+
+							foreach (ref c;
+							    cur.tiles.rack.contents)
+							{
+								if (c.empty)
+								{
+									break;
+								}
+
+								if (c.num == 0)
+								{
+									continue;
+								}
+
+								if (!c.is_wildcard &&
+								    c.letter ==
+								    (target_tile &
+								    LET_MASK))
+								{
+									cur.tiles.dec (c);
+									scope (exit)
+									{
+										cur.tiles.inc (c);
+									}
+
+									cur.board[row][col] =
+									    c.letter |
+									    (1 << BoardCell
+									    .ACTIVE_SHIFT);
+									step_recur ();
+									break;
+								}
+							}
 						}
 						return;
 					}
@@ -324,40 +359,36 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 						break;
 					}
 
-					if (c.num != 0)
+					if (c.num == 0)
 					{
-						write ('<', c);
-						cur.tiles.dec (c);
-						writeln (' ', c);
-						scope (exit)
-						{
-							writeln ("here: ",
-							    cur.tiles.rack);
-							write ('>', c);
-							cur.tiles.inc (c);
-							writeln (' ', c);
-						}
+						continue;
+					}
 
-						if (!c.is_wildcard)
-						{
-							cur.board[row][col] =
-							    c.letter |
-							    (1 << BoardCell
-							    .ACTIVE_SHIFT);
-							step_recur ();
-							continue;
-						}
+					cur.tiles.dec (c);
+					scope (exit)
+					{
+						cur.tiles.inc (c);
+					}
 
-						foreach (ubyte letter; 0..LET)
-						{
-							cur.board[row][col] =
-							    letter |
-							    (1 << BoardCell
-							    .WILDCARD_SHIFT) |
-							    (1 << BoardCell
-							    .ACTIVE_SHIFT);
-							step_recur ();
-						}
+					if (!c.is_wildcard)
+					{
+						cur.board[row][col] =
+						    c.letter |
+						    (1 << BoardCell
+						    .ACTIVE_SHIFT);
+						step_recur ();
+						continue;
+					}
+
+					foreach (ubyte letter; 0..LET)
+					{
+						cur.board[row][col] =
+						    letter |
+						    (1 << BoardCell
+						    .WILDCARD_SHIFT) |
+						    (1 << BoardCell
+						    .ACTIVE_SHIFT);
+						step_recur ();
 					}
 				}
 			}

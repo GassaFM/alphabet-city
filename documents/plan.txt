@@ -105,4 +105,4 @@ Notes:
 
 Work:
 1. [r1174] Add value for active tiles in the rack.
-2. Add an option to put target tiles earlier than planned.
+2. [r1178] Add an option to put target tiles earlier than planned.

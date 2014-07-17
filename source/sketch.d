@@ -346,6 +346,7 @@ struct Sketch
 
 			// heuristic: monotonicity
 //			writeln ("before: ", goal_locks[goal_num]);
+/*
 			foreach (lo; 0..cast (int) (goal.word.length))
 			{
 				if (goal.is_final_pos (lo))
@@ -403,6 +404,7 @@ struct Sketch
 					}
 				}
 			}
+*/
 //			writeln ("after:  ", goal_locks[goal_num]);
 
 			// heuristic

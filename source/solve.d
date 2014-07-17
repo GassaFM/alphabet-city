@@ -516,7 +516,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 300;
+	static immutable int MAX_COUNTER = 60;
 	static immutable int PLANS_TO_DROP = 0;
 
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -679,9 +679,10 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 60;
+	static immutable int MAX_INNER_COUNTER = 9999;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
+	static immutable int MAX_ADDED_CHECK_POINTS = 1;
 
 	bool try_plan (Plan plan, Goal goal1, Goal goal2)
 	{
@@ -971,6 +972,14 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 						if (inner_plan
 						    .score_rating == NA)
+						{
+							continue;
+						}
+
+						if (inner_plan.check_points
+						    .length > plan.check_points
+						    .length +
+						    MAX_ADDED_CHECK_POINTS)
 						{
 							continue;
 						}
@@ -1326,16 +1335,15 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-// /*
+/*
 		if (i != 'Z' - 'A')
 		{
 			continue;
 		}
-// */
-
+*/
 		auto p = ps.problem[i];
-//		put_two_plan (t, s, p, m, all_goals);
-		put_three_plan (t, s, p, m, all_goals);
+		put_two_plan (t, s, p, m, all_goals);
+//		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 

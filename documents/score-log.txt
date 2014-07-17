@@ -120,6 +120,7 @@ K
 140716 T 3056 -> 3069 best 0.00-0.01 all N/A
 140716 I 2831 -> 2868 up 0.00
 140716 I 2868 -> 2891 up 0.01
+140717 I 2891 -> 2899 up 0.00
 
 Expected best:  ABC.EF...J.LM.OPQR.TU....Z
 Expected up:    ......GHI.K...........WX..
