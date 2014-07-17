@@ -60,14 +60,14 @@ private final class BeamSearchStorage (alias get_hash,
 		int new_length = min (payload.length, width);
 		auto perm = (cast (int) (payload.length))
 		    .iota ().array ();
-/*
 		partialSort !((a, b) => compare_inner (payload[a],
 		    payload[b]) > 0, SwapStrategy.unstable)
 		    (perm, new_length);
-*/
+/*
 		sort !((a, b) => compare_inner (payload[a],
 		    payload[b]) > 0, SwapStrategy.stable)
 		    (perm);
+*/
 		auto inv = inverse_permutation (perm);
 
 		foreach (i; 0..new_length)

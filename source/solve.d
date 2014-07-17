@@ -671,7 +671,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000;
 	static immutable int MAX_GOALS = 1000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 250;
+	static immutable int START_WIDTH = 10_000;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_COUNTER = 60;
@@ -682,7 +682,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_INNER_COUNTER = 9999;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
-	static immutable int MAX_ADDED_CHECK_POINTS = 1;
+	static immutable int MAX_ADDED_CHECK_POINTS = 8;
 
 	bool try_plan (Plan plan, Goal goal1, Goal goal2)
 	{
@@ -1335,15 +1335,15 @@ void main (string [] args)
 
 	foreach (i; 0..LET)
 	{
-/*
+// /*
 		if (i != 'Z' - 'A')
 		{
 			continue;
 		}
-*/
+// */
 		auto p = ps.problem[i];
-		put_two_plan (t, s, p, m, all_goals);
-//		put_three_plan (t, s, p, m, all_goals);
+//		put_two_plan (t, s, p, m, all_goals);
+		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 
