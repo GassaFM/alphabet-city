@@ -1,6 +1,7 @@
 module general;
 
 import std.conv;
+import std.random;
 import std.stdio;
 import std.typecons;
 
@@ -43,4 +44,11 @@ struct Pair
 		}
 		return (y > other.y) - (y < other.y);
 	}
+}
+
+Random random_gen;
+
+static this ()
+{
+	random_gen = Random (123);
 }

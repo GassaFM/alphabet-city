@@ -199,6 +199,37 @@ final class TargetBoard
 		coord = new Coord [tiles_length];
 	}
 
+	string [] to_strings (const char [] letters) const
+	{
+		string [] res;
+		foreach (line; tile_number)
+		{
+			auto sink = appender !(string) ();
+			foreach (cell; line)
+			{
+				if (cell == NA)
+				{
+					formattedWrite (sink, "  %02d.",
+					    NA);
+				}
+				else if (cell < NA)
+				{
+					formattedWrite (sink, " *%02d%s",
+					    cell - byte.min,
+					    cast (char) ('A' - 'a' +
+					    letters[cell - byte.min]));
+				}
+				else
+				{
+					formattedWrite (sink, "  %02d%s",
+					    cell, letters[cell]);
+				}
+			}
+			res ~= sink.data;
+		}
+		return res;
+	}
+
 	string [] to_strings () const
 	{
 		string [] res;

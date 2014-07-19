@@ -72,7 +72,8 @@ final class Game (DictClass)
 		}
 
 //		writeln (s_row, ' ', s_col, ' ', t_row, ' ', t_col);
-		foreach (ch; "EAIONRTLSUDG")
+//		foreach (ch; "EAIONRTLSUDG")
+		foreach (ch; "EAIONRTLSUDGBCMPFHVWY")
 //		foreach (ch; 'A'..'Z' + 1)
 		{
 			BoardCell let = cast (byte) (ch - 'A');
@@ -224,7 +225,18 @@ final class Game (DictClass)
 					}
 				}
 
-				if (!can_fill_tile (temp, check_point.row,
+				int row = check_point.row;
+				// move away from border row
+				if (row == 0)
+				{
+					row++;
+				}
+				if (row == Board.SIZE - 1)
+				{
+					row--;
+				}
+
+				if (!can_fill_tile (temp, row,
 				    check_point.col))
 				{
 					return NA;
@@ -265,7 +277,8 @@ final class Game (DictClass)
 			foreach (check_point; plan.check_points)
 			{
 //				int d = cur.board.distance_to_covered_adjacent
-				int d = cur.board.distance_to_covered
+//				int d = cur.board.distance_to_covered
+				int d = cur.board.distance_to_covered_no_horiz
 				    (check_point.row, check_point.col, false);
 				int time_left = check_point.tile -
 				    cur.board.total;
@@ -282,8 +295,8 @@ final class Game (DictClass)
 				{
 					value /= 4;
 				}
-				res += (value >> sub) * ((20 - d) *
-				    (20 - d)) / 540; // single-tile value
+				res += (value >> sub) * ((20 - d) * (20 - d)) /
+				    (480 * 1); // 480 is a single-tile value
 				if (d > 0)
 				{
 					sub = min (2, sub + 1);
@@ -299,6 +312,7 @@ final class Game (DictClass)
 			}
 		}
 
+//		return res + cur.board.score;
 		return res;
 	}
 
@@ -349,7 +363,10 @@ GameState game_beam_search (GameStateRange, DictClass)
 //		    (ref a, ref b) => (a.board.score > b.board.score) -
 //		        (a.board.score < b.board.score), // cmp_best
 		    (const ref a, const ref b) =>
-		        a.board.value - b.board.value, // cmp_inner
+		        (a.board.value - b.board.value) ?
+		        (a.board.value - b.board.value) :
+		        (a.board.score - b.board.score), // cmp_inner
+//		        a.board.value - b.board.value, // cmp_inner
 //		    (ref a, ref b) => (a.board.value > b.board.value) -
 //		        (a.board.value < b.board.value), // cmp_inner
 		    GameState, GameStateRange)
@@ -369,7 +386,10 @@ GameState game_beam_search (GameStateRange, DictClass)
 //		    (ref a, ref b) => (a.board.score > b.board.score) -
 //		        (a.board.score < b.board.score), // cmp_best
 		    (const ref a, const ref b) =>
-		        a.board.value - b.board.value, // cmp_inner
+		        (a.board.value - b.board.value) ?
+		        (a.board.value - b.board.value) :
+		        (a.board.score - b.board.score), // cmp_inner
+//		        a.board.value - b.board.value, // cmp_inner
 //		    (ref a, ref b) => (a.board.value > b.board.value) -
 //		        (a.board.value < b.board.value), // cmp_inner
 		    GameState, GameStateRange)

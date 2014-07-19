@@ -2,6 +2,8 @@ module plan;
 
 import std.algorithm;
 import std.conv;
+import std.exception;
+import std.random;
 import std.range;
 import std.stdio;
 
@@ -47,12 +49,17 @@ struct CheckPoint
 	string toString () const
 	{
 		return "" ~ to !(string) (tile) ~ "(" ~
-		    to !(string) (row) ~ "," ~ to !(string) (col) ~ ")";
+		    to !(string) (row) ~ "," ~ to !(string) (col) ~ ")" ~
+		    to !(string) (value);
 	}
 }
 
 final class Plan
 {
+	static immutable int RANDOM_DELTA = 25;
+	static immutable int RANDOM_ADD_LO = 60;
+	static immutable int RANDOM_ADD_HI = 120;
+
 	GameMove [] goal_moves;
 	CheckPoint [] check_points;
 	Problem problem;
@@ -60,6 +67,35 @@ final class Plan
 	TargetBoard target_board;
 	int score_rating = NA;
 	int sketch_value;
+
+	void refine (Board board)
+	{
+		enforce (!board.is_flipped);
+
+		foreach (int num, ref check_point; check_points)
+		{
+			if (board[check_point.row][check_point.col].empty)
+			{
+				check_point.value += uniform !("[]")
+				    (RANDOM_ADD_LO, RANDOM_ADD_HI,
+				    random_gen);
+				if (num > 0 &&
+				    (num + 1 < check_points.length ||
+				    check_point.tile <
+				    check_points[num + 1].tile))
+				{
+					swap (check_points[num - 1],
+					    check_points[num]);
+				}
+				return;
+			}
+		}
+
+		stderr.writeln ("BAD!");
+		stderr.writeln (board);
+		stderr.flush ();
+//		enforce (false);
+	}
 
 	this (ref Problem new_problem, Goal [] new_goals,
 	    int lo = NA, int hi = NA)
@@ -159,6 +195,7 @@ final class Plan
 				   (tile_numbers[seg.x..seg.y]).length);
 				assert (seg.x <= min_pos && min_pos < seg.y);
 				int cur_row = row;
+/*
 				if (cur_row == 0)
 				{
 					cur_row++;
@@ -167,13 +204,17 @@ final class Plan
 				{
 					cur_row--;
 				}
+*/
 				int cur_value = 320;
 				foreach (pos; seg.x..seg.y)
 				{
-					cur_value += 10 * min (16,
-					    tile_numbers[pos] -
+					cur_value += 10 * max (0, 16 -
+					    tile_numbers[pos] +
 					    tile_numbers[min_pos]);
 				}
+				// randomize value
+				cur_value += uniform !("[]") (-RANDOM_DELTA,
+				    +RANDOM_DELTA, random_gen);
 				check_points ~=
 				    CheckPoint (tile_numbers[min_pos],
 				    cur_row, col + min_pos, goal.is_flipped,
@@ -260,7 +301,7 @@ final class Plan
 		res ~= to !(string) (check_points) ~ '\n';
 		if (target_board !is null)
 		{
-			res ~= target_board.to_strings ()
+			res ~= target_board.to_strings (problem.contents)
 			    .stride (Board.CENTER).join ("\n");
 			res ~= '\n';
 		}

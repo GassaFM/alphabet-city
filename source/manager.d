@@ -145,3 +145,5 @@ final class Manager
 		assert (true);
 	}
 }
+
+Manager global_manager;

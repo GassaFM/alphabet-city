@@ -59,7 +59,8 @@ void log_progress (Problem problem, GameState cur)
 	cur.board.normalize ();
 	stderr.writeln (problem.name, ' ',
 	    cur.board.score, " (",
-	    cur.board.value, ')');
+	    cur.board.value, ')', " [",
+	    cur.board.total, "]");
 	stderr.flush ();
 	if (cur.board.score < 2600 ||
 	    cur.tiles.contents.length < TOTAL_TILES)
@@ -504,6 +505,65 @@ void generate_triples (Trie trie, Problem problem)
 	writeln (num1, ' ', num2, ' ', num3);
 }
 
+void run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
+    int max_score_gap, int refine_steps, int start_width, int max_width)
+{
+	auto p = plan.problem;
+	auto game = new Game !(Trie) (t, s, plan);
+	auto start = GameState (p);
+	start.tiles.target_board = plan.target_board;
+	int prev_score = m.best[p.short_name].board.score - max_score_gap;
+
+	foreach (step; 0..refine_steps)
+	{
+		int cur_width = start_width +
+		    uniform !("[]") (0, 50, random_gen);
+		stderr.writeln (plan);
+		stderr.writeln ("width = ", cur_width);
+		stderr.flush ();
+		auto next = game_beam_search ([start], game, cur_width, 0);
+		log_progress (p, next);
+		if (next.board.total == TOTAL_TILES)
+		{
+			if (next.board.score < prev_score)
+			{
+				return;
+			}
+			else
+			{
+				prev_score = next.board.score;
+				break;
+			}
+		}
+		next.board.normalize ();
+		plan.refine (next.board);
+	}
+
+	for (int width = start_width << 1; width <= max_width; width <<= 1)
+	{
+		int cur_width = width + uniform !("[]") (0, 50, random_gen);
+		stderr.writeln (plan);
+		stderr.writeln ("width = ", cur_width);
+		stderr.flush ();
+		auto next = game_beam_search ([start], game, cur_width, 0);
+		log_progress (p, next);
+		if (!next.board.is_row_filled (0) &&
+		    !next.board.is_row_filled (Board.CENTER) &&
+		    !next.board.is_row_filled (Board.SIZE - 1))
+		{
+			break;
+		}
+		if (prev_score < next.board.score)
+		{
+			prev_score = next.board.score;
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
 void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
     Goal [] [2] all_goals)
 {
@@ -513,10 +573,10 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000;
 	static immutable int MAX_GOALS = 1500;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int START_WIDTH = 360;
-	static immutable int MAX_WIDTH = 3000;
+	static immutable int START_WIDTH = 250;
+	static immutable int MAX_WIDTH = 1000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 60;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -673,14 +733,15 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_GOALS = 1000;
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int START_WIDTH = 250;
-	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_COUNTER = 60;
 	static immutable int PLANS_TO_DROP = 0;
 
+	static immutable int START_CENTER_WIDTH = 250;
+	static immutable int MAX_CENTER_WIDTH = 250;
 	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 60;
+	static immutable int MAX_INNER_COUNTER = 50;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
 	static immutable int MAX_ADDED_CHECK_POINTS = 3;
@@ -689,7 +750,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	{
 		if (plan.score_rating != NA)
 		{
-			plans ~= FatPlan (plan, goal1, goal2);
+			plans ~= FatPlan (plan,
+			    new Goal (goal1), new Goal (goal2));
 			return (plans.length >= MAX_PLANS_LENGTH);
 		}
 		return false;
@@ -789,6 +851,13 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		{
 			continue;
 		}
+		if (plan.goal_moves[0].word.map !(a => (a & LET_MASK) + 'A') ()
+		    .array () != "NEPHRECTOMIZING" ||
+		    plan.goal_moves[1].word.map !(a => (a & LET_MASK) + 'A') ()
+		    .array () != "INEXPLICABILITY")
+		{
+			continue;
+		}
 
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -833,6 +902,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		int prev_score =
 		    m.best[p.short_name].board.score - MAX_SCORE_GAP;
 		int temp_width = START_WIDTH;
+		stderr.writeln ("width = ", temp_width);
+		stderr.flush ();
 		auto temp = game_beam_search ([cur], game, temp_width, 0);
 		log_progress (p, temp);
 		temp.board.normalize ();
@@ -888,6 +959,11 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 				continue;
 			}
 			count3++;
+			if (goal3.word.map !(a => (a & LET_MASK) + 'A') ()
+			    .array () != "OVERADVERTISING")
+			{
+				continue;
+			}
 
 			writeln (goal3.score_rating);
 			TileCounter counter_lo;
@@ -965,9 +1041,12 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 					    new Plan (p, [goal3,
 					    fat_plan.goal1, fat_plan.goal2],
 					    lo, hi)];
-
-					foreach (inner_plan; inner_plans)
+					foreach (ref inner_plan; inner_plans)
 					{
+						bool ok = true;
+						temp_loop:
+						while (ok) {
+						ok = false;
 						if (inner_counter >=
 						    MAX_INNER_COUNTER)
 						{
@@ -998,6 +1077,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 						stderr.flush ();
 						stderr.writeln (inner_plan);
 						stderr.flush ();
+						ok = true;
 
 						scope (exit)
 						{
@@ -1015,8 +1095,9 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 						    .board.score -
 						    MAX_SCORE_GAP;
 
-						for (int width = START_WIDTH;
-						    width <= MAX_WIDTH;
+						for (int width =
+						    START_CENTER_WIDTH;
+						    width <= MAX_CENTER_WIDTH;
 						    width <<= 1)
 						{
 							stderr.writeln
@@ -1027,9 +1108,38 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 							    game_beam_search
 							    ([start],
 							    inner_game,
-							    width, 0);
+//							    width, 0);
+							    width + uniform
+							    !("[]") (0, 50,
+							    random_gen), 0);
+//							    width + 25 *
+//							    inner_counter, 0);
 							log_progress (p,
 							    inner_next);
+							inner_next.board
+							    .normalize ();
+							if (inner_next.board
+							    .total ==
+							    TOTAL_TILES)
+							{
+								break
+								    temp_loop;
+							}
+							inner_plan.refine
+							    (inner_next.board);
+							if (!inner_next.board
+							    .is_row_filled
+							    (0) &&
+							    !inner_next.board
+							    .is_row_filled
+							    (Board.CENTER) &&
+							    !inner_next.board
+							    .is_row_filled
+							    (Board.SIZE - 1))
+							{
+								break;
+							}
+/*
 							if (prev_score <
 							    inner_next
 							    .board.score)
@@ -1043,7 +1153,9 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 							{
 								break;
 							}
+*/
 						}
+						} // while (ok)
 					}
 				}
 			}
@@ -1126,6 +1238,7 @@ void main (string [] args)
 	}
 
 	auto m = new Manager (ps);
+	global_manager = m;
 	GC.collect ();
 
 	version (manager)
@@ -1340,7 +1453,7 @@ void main (string [] args)
 	foreach (i; 0..LET)
 	{
 // /*
-		if (i != 'E' - 'A')
+		if (i != 'L' - 'A')
 		{
 			continue;
 		}

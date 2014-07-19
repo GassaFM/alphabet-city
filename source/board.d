@@ -281,7 +281,7 @@ struct Board
 			return 0;
 		}
 
-		int res = Board.SIZE * 2;
+		int res = Board.SIZE;
 		foreach (row; 0..Board.SIZE)
 		{
 			if (!is_flipped && row == cur_row)
@@ -303,10 +303,12 @@ struct Board
 			}
 		}
 
+/*
 		if (res == 2)
 		{ // tweak: prevent being stuck
 			res++;
 		}
+*/
 		if (res > 0)
 		{ // tweak: actual put should happen anyway
 			res--;
@@ -335,7 +337,7 @@ struct Board
 			return 1;
 		}
 
-		int res = Board.SIZE * 2;
+		int res = Board.SIZE;
 		foreach (row; 0..Board.SIZE)
 		{
 			foreach (col; 0..Board.SIZE)
