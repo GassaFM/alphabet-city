@@ -72,8 +72,8 @@ final class Game (DictClass)
 		}
 
 //		writeln (s_row, ' ', s_col, ' ', t_row, ' ', t_col);
-//		foreach (ch; "EAIONRTLSUDG")
-		foreach (ch; "EAIONRTLSUDGBCMPFHVWY")
+		foreach (ch; "EAIONRTLSUDG")
+//		foreach (ch; "EAIONRTLSUDGBCMPFHVWY")
 //		foreach (ch; 'A'..'Z' + 1)
 		{
 			BoardCell let = cast (byte) (ch - 'A');

@@ -142,7 +142,11 @@ K
 140719 F 3150 -> 3160 best 0.00-0.01
 -------
 140719 D 3070 -> 3076 best 0.00-0.01 RZ MC down [99,L]
+140719 GD new best 0.00-0.01 IK -0.01
+140719 GD new best ~0.01 IK -0.01
+-------
+140719 V 2960 -> 2980 up 0.00
 
 Expected best:  ABCDEF...JKLM.OPQR.TU..XYZ
-Expected up:    ......GHI....N........W...
-Unknown:        ..................S..V....
+Expected up:    ......GHI....N.......VW...
+Unknown:        ..................S.......

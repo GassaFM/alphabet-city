@@ -80,7 +80,7 @@ final class Plan
 				    (RANDOM_ADD_LO, RANDOM_ADD_HI,
 				    random_gen);
 				if (num > 0 &&
-				    (num + 1 < check_points.length ||
+				    (num + 1 >= check_points.length ||
 				    check_point.tile <
 				    check_points[num + 1].tile))
 				{
