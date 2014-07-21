@@ -1194,12 +1194,12 @@ void main (string [] args)
 	{
 		foreach (i; 0..LET)
 		{
-/*
-			if (i != 'X' - 'A')
+// /*
+			if (i != 'I' - 'A')
 			{
 				continue;
 			}
-*/
+// */
 
 			auto p = ps.problem[i];
 			auto game = new GameComplex (p, t, s);

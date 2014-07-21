@@ -173,6 +173,8 @@ refine 1500, 10000:
 whole submission additions:
 140721 F 3160 -> 3162
 140721 Q 3127 -> 3142
+normal submission:
+140722 I 2969 -> 2989 up 0.00
 
 Expected best:  ABCDEF...JKLMNOPQRSTUV.XYZ
 Expected up:    ......GHI.............W...

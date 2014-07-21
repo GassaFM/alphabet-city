@@ -111,3 +111,10 @@ Work:
 Work:
 3. [r1179] Give values to checkpoints based on how much letters are there
   and how close their times are to the entry time.
+
+20140722:
+Notes:
+1. Try beam search with several value functions and separate storage
+  for the bests of each of them.
+  All new states are candidates for all storages.
+2. Maybe distance to each separate checkpoint is the value parameter?
