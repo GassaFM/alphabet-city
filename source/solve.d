@@ -584,15 +584,16 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	auto random = new Random (123456);
 	Plan [] plans;
 
-	static immutable int MAX_PLANS_LENGTH = 10_000;
-	static immutable int MAX_GOALS = 1500;
+	static immutable int MAX_PLANS_LENGTH = 25_000;
+	static immutable int MAX_GOALS = 2000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 50;
-	static immutable int START_WIDTH = 10_000;
-	static immutable int MAX_WIDTH = 10_000;
+	static immutable int MAX_REFINE_STEPS = 4;
+	static immutable int START_WIDTH = 250;
+	static immutable int MAX_WIDTH = 2000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
-	static immutable int MAX_COUNTER = 700;
-	static immutable int PLANS_TO_DROP = 757;
+	static immutable int MAX_CHECK_POINTS = 99;
+	static immutable int MAX_COUNTER = 1000;
+	static immutable int PLANS_TO_DROP = 0;
 
 	TileCounter total_counter = GameState (p).tiles.counter;
 	bool try_plan (Plan plan)
@@ -677,6 +678,11 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int PRIME = 262_139;
 	foreach (plan; plans.drop (PLANS_TO_DROP))
 	{
+		if (plan.check_points.length > MAX_CHECK_POINTS)
+		{
+			continue;
+		}
+
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
 		{
@@ -1238,7 +1244,7 @@ void main (string [] args)
 			game.moves_guide = necessary_guide;
 			game.problem = p_restricted;
 			game.forced_lock_wildcards = true;
-			int beam_width = 1500;
+			int beam_width = 10000;
 			int beam_depth = 0;
 			stderr.writefln ("%s w=%s d=%s", p.name,
 			    beam_width, beam_depth);
@@ -1366,7 +1372,7 @@ void main (string [] args)
 	foreach (i; 0..LET)
 	{
 // /*
-		if (i != 'V' - 'A')
+		if (i != 'W' - 'A')
 		{
 			continue;
 		}

@@ -146,7 +146,34 @@ K
 140719 GD new best ~0.01 IK -0.01
 -------
 140719 V 2960 -> 2980 up 0.00
+-------
+140720 S 2830 -> 3025 up 0.07
+140721 S 3025 -> 3053 up 0.00 + best 0.00-0.01 all N/A
+140721 N 2919 -> 3051 up 0.03 + best 0.00-0.01 RZ SMK ID MC down
+-------
+140721 N 3051 -> 3091 best 0.01-0.02 RZ SMK ID MC down
+140721 V 2980 -> 3136 up 0.05 IK 25.91
+refine 1500, 10000:
+140721 A 3149 -> 3162 best RZ
+140721 C 3169 -> 3173 up?
+140721 D 3077 -> 3082 best SMK MC
+140721 E 3167 -> 3175 best
+140721 G 2976 -> 2983 up 0.01
+140721 H 3015 -> 3030 up 0.00
+140721 I 2967 -> 2969 up?
+140721 K 3154 -> 3167 best RZ ID
+140721 O 3086 -> 3092 best SMK
+140721 S 3053 -> 3062 best
+140721 T 3069 -> 3075 best
+140721 U 3220 -> 3226 best
+140721 V 3136 -> 3149 best
+140721 W 3096 -> 3100 up 0.01
+140721 X 3082 -> 3084 up?
+140721 Z 3174 -> 3175 up?
+whole submission additions:
+140721 F 3160 -> 3162
+140721 Q 3127 -> 3142
 
-Expected best:  ABCDEF...JKLM.OPQR.TU..XYZ
-Expected up:    ......GHI....N.......VW...
-Unknown:        ..................S.......
+Expected best:  ABCDEF...JKLMNOPQRSTUV.XYZ
+Expected up:    ......GHI.............W...
+Unknown:        ..........................
