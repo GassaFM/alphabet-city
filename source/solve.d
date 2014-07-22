@@ -592,7 +592,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_WIDTH = 2000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 1000;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -734,16 +734,16 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_GOALS = 1000;
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int MAX_REFINE_STEPS = 3;
-	static immutable int START_WIDTH = 300;
-	static immutable int MAX_WIDTH = 300;
+	static immutable int START_WIDTH = 1500;
+	static immutable int MAX_WIDTH = 1500;
 	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_CHECK_POINTS = 8;
 	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CENTER_REFINE_STEPS = 25;
-	static immutable int START_CENTER_WIDTH = 300;
-	static immutable int MAX_CENTER_WIDTH = 300;
+	static immutable int START_CENTER_WIDTH = 250;
+	static immutable int MAX_CENTER_WIDTH = 4000;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
 	static immutable int MAX_INNER_COUNTER = 120;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
@@ -894,6 +894,10 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		stdout.flush ();
 		stderr.writeln ("Entry: ", counter + 1);
 		stderr.flush ();
+		if (counter + 1 > 5)
+		{
+			break;
+		}
 
 		scope (exit)
 		{
@@ -1070,6 +1074,22 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 							inner_counter++;
 						}
 
+						static immutable string []
+						    candidates = ["1.54",
+						    "1.109", "2.109",
+						    "5.12", "5.28", "5.39",
+						    "5.40", "5.75"];
+						auto s_cur =
+						    to !(string)
+						    (counter + 1) ~ '.' ~
+						    to !(string)
+						    (inner_counter + 1);
+						if (find (candidates, s_cur)
+						    .empty)
+						{
+							continue;
+						}
+
 						run_plan (t, s, m, inner_plan,
 						    MAX_SCORE_GAP,
 						    MAX_CENTER_REFINE_STEPS,
@@ -1194,12 +1214,12 @@ void main (string [] args)
 	{
 		foreach (i; 0..LET)
 		{
-// /*
-			if (i != 'I' - 'A')
+/*
+			if (i != 'H' - 'A')
 			{
 				continue;
 			}
-// */
+*/
 
 			auto p = ps.problem[i];
 			auto game = new GameComplex (p, t, s);
@@ -1369,17 +1389,17 @@ void main (string [] args)
 		return;
 	}
 
-	foreach (i; 0..LET)
+	foreach_reverse (i; 0..LET)
 	{
 // /*
-		if (i != 'W' - 'A')
+		if (i != 'L' - 'A')
 		{
 			continue;
 		}
 // */
 		auto p = ps.problem[i];
-		put_two_plan (t, s, p, m, all_goals);
-//		put_three_plan (t, s, p, m, all_goals);
+//		put_two_plan (t, s, p, m, all_goals);
+		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
 

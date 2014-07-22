@@ -280,6 +280,21 @@ final class Game (DictClass)
 //				int d = cur.board.distance_to_covered
 				int d = cur.board.distance_to_covered_no_horiz
 				    (check_point.row, check_point.col, false);
+				int d2 = d;
+				if (check_point.row - 2 >= 0)
+				{
+					d2 = min (d2,
+					    cur.board.distance_to_covered
+					    (check_point.row - 2,
+					    check_point.col, false));
+				}
+				if (check_point.row + 2 < Board.SIZE)
+				{
+					d2 = min (d2,
+					    cur.board.distance_to_covered
+					    (check_point.row + 2,
+					    check_point.col, false));
+				}
 				int time_left = check_point.tile -
 				    cur.board.total;
 				time_left = min (time_left, 0);
@@ -295,7 +310,8 @@ final class Game (DictClass)
 				{
 					value /= 4;
 				}
-				res += (value >> sub) * ((20 - d) * (20 - d)) /
+				res += (value >> sub) * ((20 - d) *
+				    (20 - d2)) /
 				    (480 * 1); // 480 is a single-tile value
 				if (d > 0)
 				{
