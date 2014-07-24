@@ -50,5 +50,5 @@ Random random_gen;
 
 static this ()
 {
-	random_gen = Random (1234567);
+	random_gen = Random (1234567 + 7);
 }

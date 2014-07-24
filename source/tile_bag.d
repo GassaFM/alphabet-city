@@ -269,6 +269,7 @@ struct TileBag
 {
 	immutable static int RESTRICTED_BIT = LET_BITS;
 	immutable static byte IS_RESTRICTED = 1 << RESTRICTED_BIT;
+	immutable static int MIN_NEXT = 16;
 
 	Rack rack;
 	ByteString contents;
@@ -370,6 +371,52 @@ struct TileBag
 	bool empty () @property const
 	{
 		return (cursor >= contents.length) && rack.empty;
+	}
+
+	int get_next_mask (int limit)
+	{
+		limit = max (limit, cursor + MIN_NEXT);
+		limit = min (limit, contents.length);
+
+		int res = 0;
+		foreach (ref c; rack.contents)
+		{
+			if (c.empty)
+			{
+				break;
+			}
+
+			if (c.num == 0)
+			{
+				continue;
+			}
+
+			if (c.is_wildcard)
+			{
+				res = (1 << LET) - 1;
+				break;
+			}
+
+			res |= 1 << c.letter;
+		}
+
+		foreach (c; contents[cursor..limit])
+		{
+			if (c & IS_RESTRICTED)
+			{
+				continue;
+			}
+
+			if ((c & LET_MASK) == LET)
+			{
+				res = (1 << LET) - 1;
+				break;
+			}
+
+			res |= 1 << (c & LET_MASK);
+		}
+
+		return res;
 	}
 
 	static byte char_to_byte (const char c)

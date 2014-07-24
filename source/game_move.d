@@ -1,5 +1,6 @@
 module game_move;
 
+import std.algorithm;
 import std.array;
 import std.ascii;
 import std.conv;
@@ -263,6 +264,12 @@ final class GameMove
 				}
 			}
 		}
+	}
+
+	string to_masked_string () const
+	{
+		return map !(a => to !(char) (a.letter +
+		    (a.active ? 'A' : 'a'))) (word).array ().to !(string) ();
 	}
 
 	static string row_to_str (const int val)

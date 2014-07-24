@@ -27,15 +27,59 @@ final class Game (DictClass)
 	bool process_pre_dup (ref GameState cur)
 	{
 		// TODO: check forbidden goal positions here
-
+ 
 		return true;
 	}
 
-	bool can_fill_tile (ref GameState cur, int row, int col)
+	bool can_fill_tile (ref GameState cur, int row, int col, int limit)
 	{
 		if (cur.board.is_flipped)
 		{
 			swap (row, col);
+		}
+
+		if (!cur.board.is_flipped &&
+		    row == 1 && 0 < col && col + 1 < Board.SIZE)
+		{
+			if (!cur.board[row + 1][col - 1].empty &&
+			    cur.board[row + 1][col].empty &&
+			    !cur.board[row + 1][col + 1].empty)
+			{
+				return false;
+			}
+		}
+
+		if (!cur.board.is_flipped &&
+		    row == Board.SIZE - 2 && 0 < col && col + 1 < Board.SIZE)
+		{
+			if (!cur.board[row - 1][col - 1].empty &&
+			    cur.board[row - 1][col].empty &&
+			    !cur.board[row - 1][col + 1].empty)
+			{
+				return false;
+			}
+		}
+
+		if (cur.board.is_flipped &&
+		    col == 1 && 0 < row && row + 1 < Board.SIZE)
+		{
+			if (!cur.board[row - 1][col + 1].empty &&
+			    cur.board[row][col + 1].empty &&
+			    !cur.board[row + 1][col + 1].empty)
+			{
+				return false;
+			}
+		}
+
+		if (cur.board.is_flipped &&
+		    col == Board.SIZE - 2 && 0 < row && row + 1 < Board.SIZE)
+		{
+			if (!cur.board[row - 1][col - 1].empty &&
+			    cur.board[row][col - 1].empty &&
+			    !cur.board[row + 1][col - 1].empty)
+			{
+				return false;
+			}
 		}
 
 		int s_row = row;
@@ -72,11 +116,21 @@ final class Game (DictClass)
 		}
 
 //		writeln (s_row, ' ', s_col, ' ', t_row, ' ', t_col);
-		foreach (ch; "EAIONRTLSUDG")
+//		foreach (ch; "EAIOTLSUD")
+//		foreach (ch; "EAIONRTLSUDG")
 //		foreach (ch; "EAIONRTLSUDGBCMPFHVWY")
 //		foreach (ch; 'A'..'Z' + 1)
+		// TODO: Get mask from cur of next 16 | up to tile_num tiles.
+		// Only non-restricted.
+		// That should be returned by a TileBag function.
+		auto mask = cur.tiles.get_next_mask (limit);
+		foreach (ch; 0..LET)
 		{
-			BoardCell let = cast (byte) (ch - 'A');
+			if (!(mask & (1 << ch)))
+			{
+				continue;
+			}
+			BoardCell let = cast (byte) (ch);
 			swap (let, cur.board[row][col]);
 			scope (exit)
 			{
@@ -196,15 +250,58 @@ final class Game (DictClass)
 						}
 					}
 				}
+
+				// add value for tiles near border goals
+				static immutable int NEAR_TILE_BONUS = 15;
+				int near_row = goal_move.row;
+				if (!(goal_move.word.length == Board.SIZE &&
+				    !goal_move.is_flipped))
+				{
+					continue;
+				}
+				if (near_row == 0)
+				{
+					near_row++;
+				}
+				else if (near_row == Board.SIZE - 1)
+				{
+					near_row--;
+				}
+				else
+				{
+					continue;
+				}
+				foreach (pos; 0..Board.SIZE)
+				{
+					if (cur.board.is_flipped ==
+					    goal_move.is_flipped)
+					{
+						if (!cur.board[near_row][pos]
+						    .empty)
+						{
+							res +=
+							    NEAR_TILE_BONUS;
+						}
+					}
+					else
+					{
+						if (!cur.board[pos][near_row]
+						    .empty)
+						{
+							res +=
+							    NEAR_TILE_BONUS;
+						}
+					}
+				}
 			}
 			res += temp.board.score - prev_score;
 
 			// check checkpoint possibility
 			foreach (check_point; plan.check_points)
 			{
-				if (check_point.row != 1 &&
-				    check_point.row != Board.SIZE - 2)
-				{
+				if (check_point.row != 0 &&
+				    check_point.row != Board.SIZE - 1)
+				{ // leave only border goal checkpoints
 					continue;
 				}
 
@@ -237,7 +334,7 @@ final class Game (DictClass)
 				}
 
 				if (!can_fill_tile (temp, row,
-				    check_point.col))
+				    check_point.col, check_point.tile))
 				{
 					return NA;
 				}

@@ -175,7 +175,9 @@ whole submission additions:
 140721 Q 3127 -> 3142
 normal submission:
 140722 I 2969 -> 2989 up 0.00
+-------
+140724 W 3100 -> 3163 up 0.02 + best 0.00-0.01 RZ down
 
-Expected best:  ABCDEF...JKLMNOPQRSTUV.XYZ
-Expected up:    ......GHI.............W...
+Expected best:  ABCDEF...JKLMNOPQRSTUVWXYZ
+Expected up:    ......GHI.................
 Unknown:        ..........................

@@ -4,6 +4,7 @@ import std.algorithm;
 import std.conv;
 import std.range;
 import std.stdio;
+import std.string;
 
 import board;
 import general;
@@ -40,6 +41,9 @@ struct TileLock
 struct Sketch
 {
 	static immutable int VALUE_MUCH = int.max / 4;
+	static immutable int TILE_TO_MOVE = TOTAL_TILES;
+//	static immutable int TILE_TO_MOVE = 98;
+//	static immutable int TILE_TO_MOVE = 94;
 
 	TileLock [] tile_locks;
 	int [] [] goal_locks;
@@ -49,6 +53,7 @@ struct Sketch
 	byte [] tiles;
 	int value_good = -VALUE_MUCH;
 	int value_bad = +VALUE_MUCH;
+	int score_rating = 0;
 	int first_move_lo = NA;
 	int first_move_hi = NA;
 
@@ -70,7 +75,7 @@ struct Sketch
 	{
 		return value_good - value_bad;
 	}
-
+	
 	int opApply (int delegate (ref Sketch) process)
 	{
 		int [] [] tiles_by_letter;
@@ -96,6 +101,8 @@ struct Sketch
 			value_good = 0;
 			value_bad = 0;
 
+			score_rating = reduce !((a, b) => a + b.score_rating)
+			    (0, goals);
 			tile_locks = new TileLock [tiles.length];
 			goal_locks = new int [] [0];
 			foreach (ref goal; goals)
@@ -215,6 +222,11 @@ struct Sketch
 
 		bool decrease_lock () (int tile_num, int cur_floor)
 		{
+			version (debug_sketch)
+			{
+				writeln ("decrease_lock ", tile_num,
+				    ' ', cur_floor);
+			}
 			assert (tile_num != NA);
 			if (tile_num == tiles.length)
 			{
@@ -223,7 +235,9 @@ struct Sketch
 
 			auto tile_lock = tile_locks[tile_num];
 			int goal_num = tile_lock.goal_num;
+			assert (goal_num != NA);
 			int pos = tile_lock.pos;
+			assert (pos != NA);
 
 			auto let = tiles[tile_num] & LET_MASK;
 			bool found = false;
@@ -239,6 +253,7 @@ struct Sketch
 					continue;
 				}
 				tiles[tile_num] &= ~TileBag.IS_RESTRICTED;
+				tile_locks[tile_num] = TileLock.init;
 				tiles[num] |= TileBag.IS_RESTRICTED;
 				tile_locks[num] = TileLock (goal_num, pos);
 				goal_locks[goal_num][pos] = num;
@@ -261,6 +276,20 @@ struct Sketch
 				foreach (v; lock_count)
 				{
 					value_bad -= 1 << (max (0, v - 3));
+				}
+			}
+
+			if (tile_locks.length > TILE_TO_MOVE &&
+			    tile_locks[TILE_TO_MOVE] != TileLock.init)
+			{
+				value_bad += 1000;
+			}
+			scope (exit)
+			{
+				if (tile_locks.length > TILE_TO_MOVE &&
+				    tile_locks[TILE_TO_MOVE] != TileLock.init)
+				{
+					value_bad -= 1000;
 				}
 			}
 
@@ -406,6 +435,22 @@ struct Sketch
 			}
 */
 //			writeln ("after:  ", goal_locks[goal_num]);
+
+			if (tile_locks.length > TILE_TO_MOVE &&
+			    tile_locks[TILE_TO_MOVE] != TileLock.init &&
+			    tile_locks[TILE_TO_MOVE].goal_num == goal_num &&
+			    !goal.is_final_pos (tile_locks[TILE_TO_MOVE].pos))
+			{
+//				auto s = "before: " ~
+//				    format ("[%(%s, %)]", tile_locks);
+//				stderr.writeln ("before:  ", tile_locks);
+				if (!decrease_lock (TILE_TO_MOVE, NA))
+				{
+					return;
+				}
+//				stderr.writeln (s);
+//				stderr.writeln ("after:  ", tile_locks);
+			}
 
 			// heuristic
 			foreach (pos, let; goal.word)
@@ -669,12 +714,9 @@ struct Sketch
 		assert (tiles.length < byte.max);
 
 		auto cur = this;
-//		writeln ("here");
 		bool found = false;
 		foreach (ref next; cur)
 		{
-//			writeln (next);
-//			writeln ("!!! ", value, ' ', next.value);
 			if (value < next.value)
 			{
 				found = true;

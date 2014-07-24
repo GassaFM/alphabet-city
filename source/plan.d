@@ -117,8 +117,7 @@ final class Plan
 		goal_moves = new GameMove [0];
 		check_points = new CheckPoint [0];
 //		auto check_points_add = new CheckPoint [0];
-		score_rating = reduce !((a, b) => a + b.score_rating)
-		    (0, sketch.goals);
+		score_rating = sketch.score_rating;
 
 		foreach (goal_num, goal; sketch.goals)
 		{
