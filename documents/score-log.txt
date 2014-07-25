@@ -177,6 +177,11 @@ normal submission:
 140722 I 2969 -> 2989 up 0.00
 -------
 140724 W 3100 -> 3163 up 0.02 + best 0.00-0.01 RZ down
+-------
+140725 H 3030 -> 3040 up 0.00
+140725 W 3163 -> 3180 best 0.00-0.01
+140725 H 3040 -> 3069 up 0.01
+140725 E 3175 -> 3178
 
 Expected best:  ABCDEF...JKLMNOPQRSTUVWXYZ
 Expected up:    ......GHI.................

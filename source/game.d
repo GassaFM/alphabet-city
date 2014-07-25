@@ -392,6 +392,8 @@ final class Game (DictClass)
 					    (check_point.row + 2,
 					    check_point.col, false));
 				}
+				d = max (0, d - 1);
+				d2 = max (0, d2 - 1);
 				int time_left = check_point.tile -
 				    cur.board.total;
 				time_left = min (time_left, 0);
@@ -400,7 +402,8 @@ final class Game (DictClass)
 				    (4 + 32 - time_left);
 				if (rows_visited_mask & (1 << check_point.row))
 				{
-					value *= 2;
+					value *= 1;
+//					value *= 2;
 				}
 				rows_visited_mask |= 1 << check_point.row;
 				if (check_point.row == Board.CENTER)
@@ -412,7 +415,8 @@ final class Game (DictClass)
 				    (480 * 1); // 480 is a single-tile value
 				if (d > 0)
 				{
-					sub = min (2, sub + 1);
+					sub = min (1, sub + 1);
+//					sub = min (2, sub + 1);
 				}
 /*
 				int value = 1024 * (8 + 32) / (8 + time_left);
