@@ -587,9 +587,9 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 25_000;
 	static immutable int MAX_GOALS = 2000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 4;
-	static immutable int START_WIDTH = 525;
-	static immutable int MAX_WIDTH = 5000;
+	static immutable int MAX_REFINE_STEPS = 3;
+	static immutable int START_WIDTH = 1500;
+	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_COUNTER = 210;
@@ -1226,9 +1226,23 @@ void main (string [] args)
 
 	version (refine)
 	{
+		int letters_todo = (1 << LET) - 1;
+		if (args.length > 1)
+		{
+			args.popFront ();
+			auto temp_str = args.front ();
+			args.popFront ();
+			letters_todo = 0;
+			foreach (let; temp_str)
+			{
+				enforce ('A' <= let && let <= 'Z');
+				letters_todo |= 1 << (let - 'A');
+			}
+		}
+
 		foreach (i; 0..LET)
 		{
-			if (i != 'E' - 'A')
+			if (!(letters_todo & (1 << i)))
 			{
 				continue;
 			}
@@ -1401,10 +1415,10 @@ void main (string [] args)
 		return;
 	}
 
-/*
+// /*
 	foreach (i; 0..LET)
 	{
-		if (i != 'I' - 'A')
+		if (i != 'H' - 'A')
 		{
 			continue;
 		}
@@ -1412,9 +1426,9 @@ void main (string [] args)
 		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
-*/
+// */
 
-// /*
+/*
 	foreach_reverse (i; 0..LET)
 	{
 		if (i != 'L' - 'A')
@@ -1425,7 +1439,7 @@ void main (string [] args)
 		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..LET)

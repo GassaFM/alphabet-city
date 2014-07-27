@@ -329,10 +329,12 @@ struct Board
 			res++;
 		}
 */
+/*
 		if (res > 0)
 		{ // tweak: actual put should happen anyway
 			res--;
 		}
+*/
 		return res;
 	}
 
