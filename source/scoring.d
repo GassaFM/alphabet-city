@@ -1,5 +1,6 @@
 module scoring;
 
+import std.algorithm;
 import std.conv;
 import std.exception;
 import std.stdio;
@@ -80,6 +81,29 @@ final class Scoring
 		load_board_bonus ("data/board-bonus.txt");
 		load_tile_values ("data/tile-values.txt");
 		bingo = 50;
+	}
+
+	int letter_bonus (byte row, byte col, bool is_flipped) const
+	{
+		if (is_flipped)
+		{
+			swap (row, col);
+		}
+		final switch (board_bonus[row][col])
+		{
+			case Bonus.NO:
+				return 1;
+			case Bonus.DL:
+				return 2;
+			case Bonus.TL:
+				return 3;
+			case Bonus.DW:
+				return 1;
+			case Bonus.TW:
+				return 1;
+			case Bonus.SIZE:
+				assert (false);
+		}
 	}
 
 	void account (ref int score, ref int mult, const BoardCell cur,

@@ -26,6 +26,7 @@ final class Goal
 	byte col;
 	bool is_flipped;
 	int letter_bonus;
+	int stored_score_mult = 0;
 	int stored_score_rating = NA;
 	int stored_holes_rating = NA;
 	int [] stored_times;
@@ -85,7 +86,7 @@ final class Goal
 		return res;
 	}
 
-	int calc_score_rating (Scoring scoring = global_scoring) const
+	int calc_score_rating (Scoring scoring = global_scoring)
 	{
 		int score = 0;
 		int mult = 1;
@@ -100,6 +101,7 @@ final class Goal
 			}
 			scoring.account (score, mult, temp, 0, i);
 		}
+		stored_score_mult = mult;
 		return score * mult + scoring.bingo *
 		    (possible_masks.length <= 1 &&
 		    popcnt (mask_forbidden) >= Rack.MAX_SIZE);
@@ -113,6 +115,16 @@ final class Goal
 			    (global_scoring);
 		}
 		return stored_score_rating;
+	}
+
+	int score_mult () @property
+	{
+		if (stored_score_rating == NA)
+		{
+			stored_score_rating = calc_score_rating
+			    (global_scoring);
+		}
+		return stored_score_mult;
 	}
 
 	int calc_holes_rating () const

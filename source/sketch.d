@@ -190,6 +190,58 @@ struct Sketch
 			return true;
 		}
 
+		bool place_letter (int goal_num, int pos, byte let,
+		    int ceiling)
+		{
+			foreach (num; tiles_by_letter[let])
+			{
+				if (num >= ceiling ||
+				    (tiles[num] & TileBag.IS_RESTRICTED))
+				{
+					continue;
+				}
+				tiles[num] |= TileBag.IS_RESTRICTED;
+				tile_locks[num] = TileLock (goal_num, pos);
+				goal_locks[goal_num][pos] = num;
+				if (let == LET)
+				{
+					auto goal = goals[goal_num];
+					score_rating -= goal.score_mult *
+					    global_scoring.letter_bonus
+					    (goal.row, cast (byte)
+					    (goal.col + pos),
+					    goal.is_flipped);
+				}
+				return true;
+			}
+
+			if (let != LET)
+			{
+				if (place_letter (goal_num, pos, LET, ceiling))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		void clear_goal_lock (int goal_num, int pos, ref int num)
+		{
+			tiles[num] &= ~TileBag.IS_RESTRICTED;
+			tile_locks[num] = TileLock.init;
+			if ((tiles[num] & LET_MASK) == LET)
+			{
+				auto goal = goals[goal_num];
+				score_rating += goal.score_mult *
+				    global_scoring.letter_bonus
+				    (goal.row, cast (byte)
+				    (goal.col + pos),
+				    goal.is_flipped);
+			}
+			num = NA;
+		}
+
 		bool is_first_move_pos (T1) (Goal goal, T1 pos)
 		{
 			return goal.is_center_goal () &&
@@ -316,33 +368,15 @@ struct Sketch
 			foreach (pos; ORDER)
 			{
 				auto let = goal.word[pos];
-				if (goal.is_final_pos (pos))
+				if (goal.is_final_pos (pos) ||
+				    is_first_move_pos (goal, pos))
 				{
 					continue;
 				}
-				if (is_first_move_pos (goal, pos))
+				if (!place_letter (goal_num, pos, let,
+				    last_final_pos[goal_num]))
 				{
-					continue;
-				}
-				found = false;
-				foreach (num; tiles_by_letter[let])
-				{
-					if ((num >=
-					    last_final_pos[goal_num]) ||
-					    (tiles[num] &
-					    TileBag.IS_RESTRICTED))
-					{
-						continue;
-					}
-					tiles[num] |= TileBag.IS_RESTRICTED;
-					tile_locks[num] =
-					    TileLock (goal_num, pos);
-					goal_locks[goal_num][pos] = num;
-					found = true;
-					break;
-				}
-				if (!found)
-				{
+					found = false;
 					break;
 				}
 			}
@@ -351,21 +385,14 @@ struct Sketch
 			{
 				foreach (pos, ref num; goal_locks[goal_num])
 				{
-					if (goal.is_final_pos (pos))
+					if (goal.is_final_pos (pos) ||
+					    num == NA ||
+					    is_first_move_pos (goal, pos))
 					{
 						continue;
 					}
-					if (num == NA)
-					{
-						continue;
-					}
-					if (is_first_move_pos (goal, pos))
-					{
-						continue;
-					}
-					tiles[num] &= ~TileBag.IS_RESTRICTED;
-					tile_locks[num] = TileLock.init;
-					num = NA;
+					clear_goal_lock (goal_num,
+					    cast (int) (pos), num);
 				}
 			}
 
@@ -547,24 +574,10 @@ struct Sketch
 				{
 					continue;
 				}
-				found = false;
-				foreach (num; tiles_by_letter[let])
+				if (!place_letter (goal_num, cast (int) (pos),
+				    let, cur_ceiling))
 				{
-					if ((num >= cur_ceiling) ||
-					    (tiles[num] &
-					    TileBag.IS_RESTRICTED))
-					{
-						continue;
-					}
-					tiles[num] |= TileBag.IS_RESTRICTED;
-					tile_locks[num] =
-					    TileLock (goal_num, pos);
-					goal_locks[goal_num][pos] = num;
-					found = true;
-					break;
-				}
-				if (!found)
-				{
+					found = false;
 					break;
 				}
 			}
@@ -573,17 +586,13 @@ struct Sketch
 			{
 				foreach (pos, ref num; goal_locks[goal_num])
 				{
-					if (!goal.is_final_pos (pos))
+					if (!goal.is_final_pos (pos) ||
+					    num == NA)
 					{
 						continue;
 					}
-					if (num == NA)
-					{
-						continue;
-					}
-					tiles[num] &= ~TileBag.IS_RESTRICTED;
-					tile_locks[num] = TileLock.init;
-					num = NA;
+					clear_goal_lock (goal_num,
+					    cast (int) (pos), num);
 				}
 			}
 
