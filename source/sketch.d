@@ -10,6 +10,7 @@ import board;
 import general;
 import goal;
 import problem;
+import scoring;
 import tile_bag;
 
 struct TileLock

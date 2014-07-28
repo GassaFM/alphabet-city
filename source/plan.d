@@ -56,9 +56,9 @@ struct CheckPoint
 
 final class Plan
 {
-	static immutable int RANDOM_DELTA = 25;
-	static immutable int RANDOM_ADD_LO = 60;
-	static immutable int RANDOM_ADD_HI = 120;
+	static immutable int RANDOM_DELTA = 25 * 1;
+	static immutable int RANDOM_ADD_LO = 60 * 2;
+	static immutable int RANDOM_ADD_HI = 120 * 2;
 
 	GameMove [] goal_moves;
 	CheckPoint [] check_points;
@@ -79,10 +79,13 @@ final class Plan
 				check_point.value += uniform !("[]")
 				    (RANDOM_ADD_LO, RANDOM_ADD_HI,
 				    random_gen);
+				if (num > 0)
+/*
 				if (num > 0 &&
 				    (num + 1 >= check_points.length ||
 				    check_point.tile <
 				    check_points[num + 1].tile))
+*/
 				{
 					swap (check_points[num - 1],
 					    check_points[num]);
@@ -204,11 +207,14 @@ final class Plan
 					cur_row--;
 				}
 */
-				int cur_value = 320;
+				int cur_value = 160; // 320;
+				cur_value += 40 * global_scoring.tile_value
+				    [sketch.tiles[tile_numbers[min_pos]] &
+				    LET_MASK];
 				foreach (pos; seg.x..seg.y)
 				{
-					cur_value += 10 * max (0, 16 -
-					    tile_numbers[pos] +
+					cur_value += 10 * max (0,
+					    16 - tile_numbers[pos] +
 					    tile_numbers[min_pos]);
 				}
 				// randomize value

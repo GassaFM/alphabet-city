@@ -18,8 +18,8 @@ import trie;
 
 final class Game (DictClass)
 {
-	DictClass dict;
-	Scoring scoring;
+	const DictClass dict;
+	const Scoring scoring;
 	Plan plan;
 
 	int bias = 0;
@@ -457,7 +457,8 @@ final class Game (DictClass)
 		    &plan.check_board);
 	}
 
-	this (DictClass new_dict, Scoring new_scoring, Plan new_plan = null)
+	this (const DictClass new_dict, const Scoring new_scoring,
+	    Plan new_plan = null)
 	{
 		dict = new_dict;
 		scoring = new_scoring;

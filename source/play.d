@@ -18,9 +18,9 @@ enum RackUsage: byte {Active, Passive, Ignore};
 
 struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 {
-	DictClass stored_dict;
-	Scoring stored_scoring;
-	Board * stored_check_board;
+	const DictClass stored_dict;
+	const Scoring stored_scoring;
+	const Board * stored_check_board;
 
 	GameState * stored_cur;
 	
@@ -36,9 +36,9 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 	void move_start (ref GameState cur,
 	    int delegate (ref GameState) process)
 	{
-		DictClass dict = stored_dict;
-		Scoring scoring = stored_scoring;
-		Board * check_board = stored_check_board;
+		const DictClass dict = stored_dict;
+		const Scoring scoring = stored_scoring;
+		const Board * check_board = stored_check_board;
 
 		byte row = byte.max;
 		byte col = byte.max;
@@ -661,8 +661,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 		return 0;
 	}
 
-	this (DictClass new_dict, Scoring new_scoring,
-	    Board * new_check_board = null)
+	this (const DictClass new_dict, const Scoring new_scoring,
+	    const Board * new_check_board = null)
 	{
 		stored_dict = new_dict;
 		stored_scoring = new_scoring;
@@ -673,7 +673,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 }
 
 ref GameState play_move (DictClass, RackUsage rack_usage)
-    (DictClass dict, Scoring scoring, ref GameState cur, GameMove cur_move)
+    (const DictClass dict, const Scoring scoring,
+    ref GameState cur, GameMove cur_move)
 {
 	static assert (rack_usage != RackUsage.Active);
 	auto play = Play !(DictClass, rack_usage) (dict, scoring);
@@ -689,9 +690,9 @@ ref GameState play_move (DictClass, RackUsage rack_usage)
 
 struct CompoundPlay (DictClass)
 {
-	DictClass stored_dict;
-	Scoring stored_scoring;
-	Board * stored_check_board;
+	const DictClass stored_dict;
+	const Scoring stored_scoring;
+	const Board * stored_check_board;
 
 	GameState * stored_cur;
 
@@ -722,8 +723,8 @@ struct CompoundPlay (DictClass)
 		return 0;
 	}
 
-	this (DictClass new_dict, Scoring new_scoring,
-	    Board * new_check_board = null)
+	this (const DictClass new_dict, const Scoring new_scoring,
+	    const Board * new_check_board = null)
 	{
 		stored_dict = new_dict;
 		stored_scoring = new_scoring;
