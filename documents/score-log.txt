@@ -187,6 +187,8 @@ normal submission:
 -------
 140727 H 3069 -> 3101 up 0.01
 140728 G 2983 -> 3022 up 0.01 + best 0.00-0.01?
+-------
+140729 H 3101 -> 3104 up 0.00
 
 Expected best:  ABCDEF...JKLMNOPQRSTUVWXYZ
 Expected up:    ......GHI.................

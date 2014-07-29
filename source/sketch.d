@@ -206,16 +206,6 @@ struct Sketch
 				if (let == LET)
 				{
 					auto goal = goals[goal_num];
-/*
-					writeln ('-', goal.score_mult, ' ',
-					    global_scoring.tile_value
-					    [goal.word[pos] & LET_MASK], ' ',
-					    (goal.is_final_pos (pos) ?
-					    global_scoring.letter_bonus
-					    (goal.row, cast (byte)
-					    (goal.col + pos),
-					    goal.is_flipped) : 1));
-*/
 					score_rating -= goal.score_mult *
 					    global_scoring.tile_value
 					    [goal.word[pos] & LET_MASK] *
@@ -246,16 +236,6 @@ struct Sketch
 			if ((tiles[num] & LET_MASK) == LET)
 			{
 				auto goal = goals[goal_num];
-/*
-				writeln ('+', goal.score_mult, ' ',
-				    global_scoring.tile_value
-				    [goal.word[pos] & LET_MASK], ' ',
-				    (goal.is_final_pos (pos) ?
-				    global_scoring.letter_bonus
-				    (goal.row, cast (byte)
-				    (goal.col + pos),
-				    goal.is_flipped) : 1));
-*/
 				score_rating += goal.score_mult *
 				    global_scoring.tile_value
 				    [goal.word[pos] & LET_MASK] *
@@ -346,15 +326,18 @@ struct Sketch
 		void consider ()
 		{
 			// heuristic
-			foreach (v; lock_count)
+			foreach (num, v; lock_count)
 			{
-				value_bad += 1 << (max (0, v - 3));
+				value_bad += (1 + (tile_locks[num] !=
+				    TileLock.init)) << (max (0, v - 3));
 			}
 			scope (exit)
 			{
-				foreach (v; lock_count)
+				foreach (num, v; lock_count)
 				{
-					value_bad -= 1 << (max (0, v - 3));
+					value_bad -= (1 + (tile_locks[num] !=
+					    TileLock.init)) <<
+					    (max (0, v - 3));
 				}
 			}
 
@@ -425,6 +408,30 @@ struct Sketch
 			if (!found)
 			{
 				return;
+			}
+
+			static immutable int SEGMENT_PENALTY = 100;
+			foreach (lo; 0..cast (int) (goal.word.length))
+			{
+				if (goal.is_final_pos (lo) ||
+				    !(lo == 0 || goal.is_final_pos (lo - 1)))
+				{
+					continue;
+				}
+				value_bad += SEGMENT_PENALTY;
+			}
+			scope (exit)
+			{
+			foreach (lo; 0..cast (int) (goal.word.length))
+				{
+					if (goal.is_final_pos (lo) ||
+					    !(lo == 0 ||
+					    goal.is_final_pos (lo - 1)))
+					{
+						continue;
+					}
+					value_bad -= SEGMENT_PENALTY;
+				}
 			}
 
 			// heuristic: monotonicity
@@ -580,6 +587,43 @@ struct Sketch
 			return res;
 		}
 
+		void wildcardize_first_final () (int goal_num)
+		{ // templatized to recurse into put_final_tiles
+			auto goal = goals[goal_num];
+			int first_pos = first_final_pos (goal_num);
+			if (first_pos == tiles.length ||
+			    (tiles[first_pos] & LET_MASK) == LET)
+			{
+				return;
+			}
+
+			int saved_num = goal_locks[goal_num][first_pos];
+			auto saved_let = goal.word[first_pos];
+			clear_goal_lock (goal_num, first_pos,
+			    goal_locks[goal_num][first_pos]);
+			scope (exit)
+			{
+				bool ok = place_letter (goal_num, first_pos,
+				    saved_let, cur_ceiling);
+				assert (ok);
+			}
+
+			if (!place_letter (goal_num, first_pos,
+			    LET, cur_ceiling))
+			{
+				return;
+			}
+			scope (exit)
+			{
+				clear_goal_lock (goal_num, first_pos,
+				    goal_locks[goal_num][first_pos]);
+			}
+
+			put_final_tiles (goal_num + 1);
+
+			wildcardize_first_final (goal_num);
+		}
+
 		void put_final_tiles (int goal_num)
 		{
 			version (debug_sketch)
@@ -671,8 +715,6 @@ struct Sketch
 /*
 					static immutable int FIRST_POS_MULT =
 					    4;
-					int first_pos =
-					    first_final_pos (goal_num);
 					value_good +=
 					    FIRST_POS_MULT * first_pos;
 					value_bad +=
@@ -687,6 +729,12 @@ struct Sketch
 */
 
 					put_final_tiles (goal_num + 1);
+
+					if (goal_num + 1 < goals.length)
+					{
+						wildcardize_first_final
+						    (goal_num);
+					}
 				}
 
 				foreach (pos, let; goal.word)
@@ -753,7 +801,8 @@ struct Sketch
 		bool found = false;
 		foreach (ref next; cur)
 		{
-			if (value < next.value)
+			if (value + score_rating * 50 <
+			    next.value + next.score_rating * 50)
 			{
 				found = true;
 				this = next;

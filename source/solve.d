@@ -585,20 +585,22 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	Plan [] plans;
 
 	static immutable int MAX_PLANS_LENGTH = 125_000;
-	static immutable int MAX_GOALS = 2000;
+	static immutable int MAX_GOALS = 2500;
+	static immutable int MIN_SCORE_RATING = 2000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 5;
-	static immutable int START_WIDTH = 450;
+	static immutable int MAX_REFINE_STEPS = 3;
+	static immutable int START_WIDTH = 350;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
 	static immutable int MAX_COUNTER = 210;
 	static immutable int PLANS_TO_DROP = 0;
-
+	
 	TileCounter total_counter = GameState (p).tiles.counter;
 	bool try_plan (Plan plan)
 	{
-		if (plan.score_rating != NA)
+		if (plan.score_rating != NA &&
+		    plan.score_rating >= MIN_SCORE_RATING)
 		{
 			plans ~= plan;
 			return (plans.length >= MAX_PLANS_LENGTH);
@@ -627,6 +629,12 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		{
 			auto goal2 = new Goal (pre_goal2);
 			goal2.row = Board.SIZE - 1;
+
+			if (goal1.score_rating + goal2.score_rating <
+			    MIN_SCORE_RATING)
+			{
+				break;
+			}
 
 			TileCounter counter2 = counter1;
 			foreach (let; goal2.word)
@@ -682,6 +690,10 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	{
 		if (plan.check_points.length > MAX_CHECK_POINTS)
 		{
+			continue;
+		}
+		if (plan.problem.contents.find ('{').empty)
+		{ // leave only plans with wildcards
 			continue;
 		}
 
@@ -1423,10 +1435,10 @@ void main (string [] args)
 	}
 
 // /*
-	foreach_reverse (i; 0..LET)
+	foreach (i; 0..LET)
 	{
 /*
-		if (i != 'G' - 'A')
+		if (i != 'I' - 'A')
 		{
 			continue;
 		}
