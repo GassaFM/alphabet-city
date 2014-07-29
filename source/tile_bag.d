@@ -536,22 +536,24 @@ struct TileCounter
 	}
 
 	bool opBinary (string op) (ref const TileCounter other) const
-	    if (op == "<<<")
+	    if (op == ">>>")
 	{
-		int extra = other.contents[LET] - contents[LET];
+		int extra = contents[LET] - other.contents[LET];
 		if (extra < 0)
 		{
 			return false;
 		}
 		foreach (i; 0..LET)
 		{
-			int diff = contents[i] - other.contents[i];
+			int diff = other.contents[i] - contents[i];
 			if (diff > 0)
 			{
+/*
 				if (global_scoring.tile_value[i] > 1)
 				{
 					return false;
 				}
+*/
 				extra -= diff;
 				if (extra < 0)
 				{

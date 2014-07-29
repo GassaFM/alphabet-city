@@ -289,12 +289,53 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					}
 					if (cur_tile_number >= 0)
 					{ // NA = free, other_negative = guided
+						auto target_tile =
+						    cur.tiles[cur_tile_number];
+						BoardCell tile_to_put;
+						if ((target_tile & LET_MASK) == LET)
+						{
+							if (!cur.board.is_flipped)
+							{
+								assert (check_board !is null &&
+								    !(*check_board)
+								    [row][col].empty &&
+								    (*check_board)[row][col]
+								    .wildcard);
+								tile_to_put =
+								    (*check_board)[row][col];
+							}
+							else
+							{
+								assert (check_board !is null &&
+								    !(*check_board)
+								    [col][row].empty &&
+								    (*check_board)[col][row]
+								    .wildcard);
+								tile_to_put =
+								    (*check_board)[col][row];
+
+							}
+						}
+						else
+						{
+							tile_to_put =
+							    target_tile &
+							    LET_MASK;
+						}
+						tile_to_put |= BoardCell.IS_ACTIVE;
+
 						if (cur_tile_number < cur.tiles.cursor)
 						{
-							cur.board[row][col] =
-							    (cur.tiles[cur_tile_number] &
-							    LET_MASK) |
-							    (1 << BoardCell.ACTIVE_SHIFT);
+							if ((target_tile & LET_MASK) == LET)
+							{
+								cur.board[row][col] =
+								    tile_to_put;
+							}
+							else
+							{
+								cur.board[row][col] =
+								    tile_to_put;
+							}
 							cur.tiles.dec_restricted
 							    (cur.board[row][col]);
 							scope (exit)
@@ -307,13 +348,39 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 						}
 						else if (allow_targets_earlier)
 						{
-							auto target_tile =
-							    cur.tiles
-							    [cur_tile_number];
-							// '?' target
-							// not implemented
-							assert ((target_tile &
-							    LET_MASK) != LET);
+							if ((target_tile &
+							    LET_MASK) == LET)
+							{ // wildcard target
+								foreach (ref c;
+								    cur.tiles.rack.contents)
+								{
+									if (c.empty)
+									{
+										break;
+									}
+
+									if (c.num == 0)
+									{
+										continue;
+									}
+
+									if (c.is_wildcard)
+									{
+										cur.tiles.dec (c);
+										scope (exit)
+										{
+											cur.tiles.inc (c);
+										}
+
+										cur.board[row][col] =
+										    tile_to_put;
+										step_recur ();
+										break;
+									}
+								}
+
+								return;
+							}
 
 							foreach (ref c;
 							    cur.tiles.rack.contents)
@@ -340,9 +407,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 									}
 
 									cur.board[row][col] =
-									    c.letter |
-									    (1 << BoardCell
-									    .ACTIVE_SHIFT);
+									    tile_to_put;
 									step_recur ();
 									break;
 								}
@@ -374,8 +439,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					{
 						cur.board[row][col] =
 						    c.letter |
-						    (1 << BoardCell
-						    .ACTIVE_SHIFT);
+						    BoardCell.IS_ACTIVE;
 						step_recur ();
 						continue;
 					}
@@ -384,10 +448,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 					{
 						cur.board[row][col] =
 						    letter |
-						    (1 << BoardCell
-						    .WILDCARD_SHIFT) |
-						    (1 << BoardCell
-						    .ACTIVE_SHIFT);
+						    BoardCell.IS_WILDCARD |
+						    BoardCell.IS_ACTIVE;
 						step_recur ();
 					}
 				}
@@ -556,7 +618,7 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				{
 					cur.board.total++;
 					cur.board[row][col + pos] = move_tile |
-					    (1 << BoardCell.ACTIVE_SHIFT);
+					    BoardCell.IS_ACTIVE;
 					static if (rack_usage ==
 					    RackUsage.Passive)
 					{
@@ -762,8 +824,7 @@ unittest
 		cur_move.start_at (Board.CENTER, Board.CENTER);
 		cur_move.word = "cab"
 		    .map !(c => BoardCell (to !(byte) ((c - 'a') |
-		    (1 << BoardCell.ACTIVE_SHIFT)))) ()
-		    .array ();
+		    BoardCell.IS_ACTIVE))) ().array ();
 		int num = 0;
 		foreach (ref next; play (cur, cur_move))
 		{
@@ -871,8 +932,7 @@ unittest
 		cur_move.start_at (Board.CENTER, Board.CENTER);
 		cur_move.word = "cab"
 		    .map !(c => BoardCell (to !(byte) ((c - 'a') |
-		    (1 << BoardCell.ACTIVE_SHIFT)))) ()
-		    .array ();
+		    BoardCell.IS_ACTIVE))) ().array ();
 
 		int num1 = 0;
 		foreach (ref next; play1 (cur))

@@ -587,8 +587,8 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 25_000;
 	static immutable int MAX_GOALS = 2000;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 15;
-	static immutable int START_WIDTH = 1500;
+	static immutable int MAX_REFINE_STEPS = 3;
+	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;

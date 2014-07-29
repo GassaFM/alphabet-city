@@ -166,6 +166,11 @@ final class Plan
 				check_board.contents[row][col + pos] = let;
 				int num = tile_numbers[pos];
 				assert (num != NA);
+				if ((sketch.tiles[num] & LET_MASK) == LET)
+				{
+					check_board.contents[row][col + pos]
+					    .wildcard = true;
+				}
 				byte val = cast (byte) (num +
 				    goal.is_final_pos (pos) * byte.min);
 				target_board.place (val, to !(byte) (row),
@@ -180,6 +185,11 @@ final class Plan
 				{
 					cell.active = true;
 				}
+				int num = tile_numbers[pos];
+				if ((sketch.tiles[num] & LET_MASK) == LET)
+				{
+					cell.wildcard = true;
+				}
 				cur_move.word ~= cell;
 			}
 			cur_move.row = goal.row;
@@ -187,7 +197,7 @@ final class Plan
 			cur_move.tiles_before =
 			    cast (byte) (sketch.last_final_pos[goal_num] -
 			    Rack.MAX_SIZE + 1);
-			cur_move.is_flipped = false;
+			cur_move.is_flipped = goal.is_flipped;
 			cur_move.score = NA;
 			goal_moves ~= cur_move;
 
@@ -208,9 +218,18 @@ final class Plan
 				}
 */
 				int cur_value = 160; // 320;
-				cur_value += 40 * global_scoring.tile_value
-				    [sketch.tiles[tile_numbers[min_pos]] &
-				    LET_MASK];
+				if (sketch.tiles[tile_numbers[min_pos]] &
+				    BoardCell.IS_WILDCARD)
+				{
+					cur_value += 40 * 5;
+				}
+				else
+				{
+					cur_value += 40 *
+					    global_scoring.tile_value
+					    [sketch.tiles[tile_numbers
+					    [min_pos]] & LET_MASK];
+				}
 				foreach (pos; seg.x..seg.y)
 				{
 					cur_value += 10 * max (0,
@@ -310,8 +329,9 @@ final class Plan
 			    .stride (Board.CENTER).join ("\n");
 			res ~= '\n';
 		}
-		res ~= to !(string) (problem); // ~ '\n';
-//		res ~= to !(string) (check_board);
+//		res ~= to !(string) (problem); // ~ '\n';
+		res ~= to !(string) (problem) ~ '\n';
+		res ~= to !(string) (check_board);
 //		if (target_board !is null)
 //		{
 //			res ~= target_board.toString ();
@@ -326,9 +346,27 @@ unittest
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
 	auto s = new Scoring ();
-	auto p = Problem ("?:", "OXYPHENBUTAZONE");
-	auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
-	auto plan = new Plan (p, [goal]);
-//	writeln (plan);
-	assert (plan.check_points.length == 3);
+
+	void test_regular ()
+	{
+		auto p = Problem ("?:", "OXYPHENBUTAZONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+//		writeln (plan);
+		assert (plan.check_points.length == 3);
+	}
+
+	void test_wildcards ()
+	{
+		auto p = Problem ("?:", "OXY?HENBU?A?ONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+//		writeln (plan);
+		assert (plan.check_points.length == 3);
+		assert (plan.score_rating < 900);
+//		assert (plan.score_rating == 779);
+	}
+
+	test_regular ();
+	test_wildcards ();
 }

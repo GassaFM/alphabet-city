@@ -207,6 +207,8 @@ struct Sketch
 				{
 					auto goal = goals[goal_num];
 					score_rating -= goal.score_mult *
+					    global_scoring.tile_value
+					    [goal.word[pos] & LET_MASK] *
 					    global_scoring.letter_bonus
 					    (goal.row, cast (byte)
 					    (goal.col + pos),
@@ -234,6 +236,8 @@ struct Sketch
 			{
 				auto goal = goals[goal_num];
 				score_rating += goal.score_mult *
+				    global_scoring.tile_value
+				    [goal.word[pos] & LET_MASK] *
 				    global_scoring.letter_bonus
 				    (goal.row, cast (byte)
 				    (goal.col + pos),
@@ -683,8 +687,8 @@ struct Sketch
 		}
 
 		prepare ();
-		if (!(goals_counter << total_counter))
-		{
+		if (!(total_counter >>> goals_counter))
+		{ // take wildcards into account if needed!
 			return 0;
 		}
 		if (!put_first_move ())

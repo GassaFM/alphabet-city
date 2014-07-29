@@ -538,7 +538,7 @@ unittest
 		    "OXYPHENBUTAZONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, [goal]);
-		writeln (plan);
+//		writeln (plan);
 		auto game = new Game !(Trie) (t, s, plan);
 		auto cur = GameState (plan.problem);
 		cur.tiles.target_board = plan.target_board;
@@ -548,6 +548,75 @@ unittest
 //		assert (next.board.score == 1693);
 	}
 
+	void test_planned_wildcard_start ()
+	{
+		auto p = Problem ("?:",
+		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
+		    "OXYP?ENBUTAZONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+//		writeln (plan);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 10, 0);
+		writeln (next);
+		assert (next.board.score >= 1250);
+	}
+
+
+	void test_planned_wildcard_final ()
+	{
+		auto p = Problem ("?:",
+		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
+		    "OXYPHENBUTA?ONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+		writeln (plan);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 10, 0);
+		writeln (next);
+		assert (next.board.score >= 800);
+	}
+
+	void test_planned_wildcard_both ()
+	{
+		auto p = Problem ("?:",
+		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
+		    "OXYP?ENBUTA?ONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+//		writeln (plan);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 10, 0);
+		writeln (next);
+		assert (next.board.score >= 650);
+	}
+
+	void test_planned_wildcard_many ()
+	{
+		auto p = Problem ("?:",
+		    "AELSNEARTOAIE" ~ "?ELSNEARTOAI?" ~
+		    "OXYP?ENBUTA?ONE");
+		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
+		auto plan = new Plan (p, [goal]);
+//		writeln (plan);
+		auto game = new Game !(Trie) (t, s, plan);
+		auto cur = GameState (plan.problem);
+		cur.tiles.target_board = plan.target_board;
+		auto next = game_beam_search ([cur], game, 10, 0);
+		writeln (next);
+		assert (next.board.score >= 650);
+	}
+
 	test_regular ();
 	test_planned ();
+	test_planned_wildcard_start ();
+	test_planned_wildcard_final ();
+	test_planned_wildcard_both ();
+	test_planned_wildcard_many ();
 }
