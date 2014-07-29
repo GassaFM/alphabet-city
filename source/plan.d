@@ -97,6 +97,17 @@ final class Plan
 		stderr.writeln ("BAD!");
 		stderr.writeln (board);
 		stderr.flush ();
+		foreach (int num, ref check_point; check_points)
+		{
+			if (board[check_point.row][check_point.col].empty)
+			{
+				check_point.value += uniform !("[]")
+				    (-RANDOM_DELTA, +RANDOM_DELTA,
+				    random_gen);
+				check_point.value =
+				    max (check_point.value, RANDOM_ADD_HI);
+			}
+		}
 //		enforce (false);
 	}
 

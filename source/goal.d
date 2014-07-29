@@ -359,6 +359,7 @@ final class Goal
 		col = other.col;
 		is_flipped = other.is_flipped;
 		letter_bonus = other.letter_bonus;
+		stored_score_mult = other.stored_score_mult;
 		stored_score_rating = other.stored_score_rating;
 		stored_holes_rating = other.stored_holes_rating;
 		stored_times = other.stored_times.dup;

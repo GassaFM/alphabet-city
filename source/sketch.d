@@ -191,7 +191,7 @@ struct Sketch
 		}
 
 		bool place_letter (int goal_num, int pos, byte let,
-		    int ceiling, bool is_final_tile)
+		    int ceiling)
 		{
 			foreach (num; tiles_by_letter[let])
 			{
@@ -206,10 +206,20 @@ struct Sketch
 				if (let == LET)
 				{
 					auto goal = goals[goal_num];
+/*
+					writeln ('-', goal.score_mult, ' ',
+					    global_scoring.tile_value
+					    [goal.word[pos] & LET_MASK], ' ',
+					    (goal.is_final_pos (pos) ?
+					    global_scoring.letter_bonus
+					    (goal.row, cast (byte)
+					    (goal.col + pos),
+					    goal.is_flipped) : 1));
+*/
 					score_rating -= goal.score_mult *
 					    global_scoring.tile_value
 					    [goal.word[pos] & LET_MASK] *
-					    (is_final_tile ?
+					    (goal.is_final_pos (pos) ?
 					    global_scoring.letter_bonus
 					    (goal.row, cast (byte)
 					    (goal.col + pos),
@@ -220,8 +230,7 @@ struct Sketch
 
 			if (let != LET)
 			{
-				if (place_letter (goal_num, pos, LET,
-				    ceiling, is_final_tile))
+				if (place_letter (goal_num, pos, LET, ceiling))
 				{
 					return true;
 				}
@@ -230,18 +239,27 @@ struct Sketch
 			return false;
 		}
 
-		void clear_goal_lock (int goal_num, int pos, ref int num,
-		    bool is_final_tile)
+		void clear_goal_lock (int goal_num, int pos, ref int num)
 		{
 			tiles[num] &= ~TileBag.IS_RESTRICTED;
 			tile_locks[num] = TileLock.init;
 			if ((tiles[num] & LET_MASK) == LET)
 			{
 				auto goal = goals[goal_num];
+/*
+				writeln ('+', goal.score_mult, ' ',
+				    global_scoring.tile_value
+				    [goal.word[pos] & LET_MASK], ' ',
+				    (goal.is_final_pos (pos) ?
+				    global_scoring.letter_bonus
+				    (goal.row, cast (byte)
+				    (goal.col + pos),
+				    goal.is_flipped) : 1));
+*/
 				score_rating += goal.score_mult *
 				    global_scoring.tile_value
 				    [goal.word[pos] & LET_MASK] *
-				    (is_final_tile ?
+				    (goal.is_final_pos (pos) ?
 				    global_scoring.letter_bonus
 				    (goal.row, cast (byte)
 				    (goal.col + pos),
@@ -382,7 +400,7 @@ struct Sketch
 					continue;
 				}
 				if (!place_letter (goal_num, pos, let,
-				    last_final_pos[goal_num], false))
+				    last_final_pos[goal_num]))
 				{
 					found = false;
 					break;
@@ -400,7 +418,7 @@ struct Sketch
 						continue;
 					}
 					clear_goal_lock (goal_num,
-					    cast (int) (pos), num, false);
+					    cast (int) (pos), num);
 				}
 			}
 
@@ -583,7 +601,7 @@ struct Sketch
 					continue;
 				}
 				if (!place_letter (goal_num, cast (int) (pos),
-				    let, cur_ceiling, true))
+				    let, cur_ceiling))
 				{
 					found = false;
 					break;
@@ -600,7 +618,7 @@ struct Sketch
 						continue;
 					}
 					clear_goal_lock (goal_num,
-					    cast (int) (pos), num, true);
+					    cast (int) (pos), num);
 				}
 			}
 
