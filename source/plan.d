@@ -329,9 +329,9 @@ final class Plan
 			    .stride (Board.CENTER).join ("\n");
 			res ~= '\n';
 		}
-//		res ~= to !(string) (problem); // ~ '\n';
-		res ~= to !(string) (problem) ~ '\n';
-		res ~= to !(string) (check_board);
+		res ~= to !(string) (problem);
+//		res ~= to !(string) (problem) ~ '\n';
+//		res ~= to !(string) (check_board);
 //		if (target_board !is null)
 //		{
 //			res ~= target_board.toString ();
