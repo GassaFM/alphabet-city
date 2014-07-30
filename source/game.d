@@ -40,7 +40,7 @@ final class Game (DictClass)
 
 		if (!cur.board.is_flipped &&
 		    row == 1 && 0 < col && col + 1 < Board.SIZE)
-		{
+		{ // heuristic
 			if (!cur.board[row + 1][col - 1].empty &&
 			    cur.board[row + 1][col].empty &&
 			    !cur.board[row + 1][col + 1].empty)
@@ -51,7 +51,7 @@ final class Game (DictClass)
 
 		if (!cur.board.is_flipped &&
 		    row == Board.SIZE - 2 && 0 < col && col + 1 < Board.SIZE)
-		{
+		{ // heuristic
 			if (!cur.board[row - 1][col - 1].empty &&
 			    cur.board[row - 1][col].empty &&
 			    !cur.board[row - 1][col + 1].empty)
@@ -62,7 +62,7 @@ final class Game (DictClass)
 
 		if (cur.board.is_flipped &&
 		    col == 1 && 0 < row && row + 1 < Board.SIZE)
-		{
+		{ // heuristic
 			if (!cur.board[row - 1][col + 1].empty &&
 			    cur.board[row][col + 1].empty &&
 			    !cur.board[row + 1][col + 1].empty)
@@ -73,7 +73,7 @@ final class Game (DictClass)
 
 		if (cur.board.is_flipped &&
 		    col == Board.SIZE - 2 && 0 < row && row + 1 < Board.SIZE)
-		{
+		{ // heuristic
 			if (!cur.board[row - 1][col - 1].empty &&
 			    cur.board[row][col - 1].empty &&
 			    !cur.board[row + 1][col - 1].empty)
@@ -119,10 +119,6 @@ final class Game (DictClass)
 //		foreach (ch; "EAIOTLSUD")
 //		foreach (ch; "EAIONRTLSUDG")
 //		foreach (ch; "EAIONRTLSUDGBCMPFHVWY")
-//		foreach (ch; 'A'..'Z' + 1)
-		// TODO: Get mask from cur of next 16 | up to tile_num tiles.
-		// Only non-restricted.
-		// That should be returned by a TileBag function.
 		auto mask = cur.tiles.get_next_mask (limit);
 		foreach (ch; 0..LET)
 		{
@@ -226,6 +222,7 @@ final class Game (DictClass)
 
 				// add value for each present goal letter
 				static immutable int LETTER_BONUS = 100;
+				bool goal_achieved = true;
 				foreach (pos; 0..goal_move.word.length)
 				{
 					if (cur.board.is_flipped ==
@@ -238,6 +235,10 @@ final class Game (DictClass)
 						{
 							res += LETTER_BONUS;
 						}
+						else
+						{
+							goal_achieved = false;
+						}
 					}
 					else
 					{
@@ -248,48 +249,56 @@ final class Game (DictClass)
 						{
 							res += LETTER_BONUS;
 						}
+						else
+						{
+							goal_achieved = false;
+						}
 					}
 				}
 
 				// add value for tiles near border goals
 				static immutable int NEAR_TILE_BONUS = 15;
-				int near_row = goal_move.row;
-				if (!(goal_move.word.length == Board.SIZE &&
-				    !goal_move.is_flipped))
+				if (!goal_achieved)
 				{
-					continue;
-				}
-				if (near_row == 0)
-				{
-					near_row++;
-				}
-				else if (near_row == Board.SIZE - 1)
-				{
-					near_row--;
-				}
-				else
-				{
-					continue;
-				}
-				foreach (pos; 0..Board.SIZE)
-				{
-					if (cur.board.is_flipped ==
-					    goal_move.is_flipped)
+					int near_row = goal_move.row;
+					if (!(goal_move.word.length ==
+					    Board.SIZE &&
+					    !goal_move.is_flipped))
 					{
-						if (!cur.board[near_row][pos]
-						    .empty)
-						{
-							res +=
-							    NEAR_TILE_BONUS;
-						}
+						continue;
+					}
+					if (near_row == 0)
+					{
+						near_row++;
+					}
+					else if (near_row == Board.SIZE - 1)
+					{
+						near_row--;
 					}
 					else
 					{
-						if (!cur.board[pos][near_row]
-						    .empty)
+						continue;
+					}
+					foreach (pos; 0..Board.SIZE)
+					{
+						if (cur.board.is_flipped ==
+						    goal_move.is_flipped)
 						{
-							res +=
-							    NEAR_TILE_BONUS;
+							if (!cur.board
+							    [near_row][pos]
+							    .empty)
+							{
+								res += NEAR_TILE_BONUS;
+							}
+						}
+						else
+						{
+							if (!cur.board
+							    [pos][near_row]
+							    .empty)
+							{
+								res += NEAR_TILE_BONUS;
+							}
 						}
 					}
 				}
@@ -308,16 +317,30 @@ final class Game (DictClass)
 				if (!cur.board.is_flipped)
 				{
 					if (!cur.board[check_point.row]
-					    [check_point.col].empty)
-					{
+					    [check_point.col].empty ||
+					    (check_point.col > 0 &&
+					    !cur.board[check_point.row]
+					    [check_point.col - 1].empty) ||
+					    (check_point.col <
+					    Board.SIZE - 1 &&
+					    !cur.board[check_point.row]
+					    [check_point.col + 1].empty))
+					{ // also look at two adjacent cells
 						continue;
 					}
 				}
 				else
 				{
 					if (!cur.board[check_point.col]
-					    [check_point.row].empty)
-					{
+					    [check_point.row].empty ||
+					    (check_point.col > 0 &&
+					    !cur.board[check_point.col - 1]
+					    [check_point.row].empty) ||
+					    (check_point.col <
+					    Board.SIZE - 1 &&
+					    !cur.board[check_point.col + 1]
+					    [check_point.row].empty))
+					{ // also look at two adjacent cells
 						continue;
 					}
 				}
@@ -396,8 +419,8 @@ final class Game (DictClass)
 //				d2 = max (0, d2 - 1);
 				int time_left = check_point.tile -
 				    cur.board.total;
-				time_left = min (time_left, 0);
-				time_left = max (time_left, 32);
+				time_left = max (time_left, 0);
+				time_left = min (time_left, 32);
 				int value = check_point.value *
 				    (8 + 32 - time_left);
 				if (rows_visited_mask & (1 << check_point.row))

@@ -586,14 +586,14 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	static immutable int MAX_PLANS_LENGTH = 125_000;
 	static immutable int MAX_GOALS = 2500;
-	static immutable int MIN_SCORE_RATING = 2000;
+	static immutable int MIN_SCORE_RATING = 2150;
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int MAX_REFINE_STEPS = 3;
-	static immutable int START_WIDTH = 350;
+	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 210;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 	
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -692,11 +692,13 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		{
 			continue;
 		}
+/*
 		if (plan.problem.contents.find ('{').empty)
 		{ // leave only plans with wildcards
 			continue;
 		}
-
+*/
+		
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
 		{
