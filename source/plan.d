@@ -99,14 +99,10 @@ final class Plan
 		stderr.flush ();
 		foreach (int num, ref check_point; check_points)
 		{
-			if (board[check_point.row][check_point.col].empty)
-			{
-				check_point.value += uniform !("[]")
-				    (-RANDOM_DELTA, +RANDOM_DELTA,
-				    random_gen);
-				check_point.value =
-				    max (check_point.value, RANDOM_ADD_HI);
-			}
+			check_point.value += uniform !("[]")
+			    (-RANDOM_DELTA, +RANDOM_DELTA, random_gen);
+			check_point.value =
+			    max (check_point.value, RANDOM_ADD_HI);
 		}
 //		enforce (false);
 	}
@@ -217,6 +213,14 @@ final class Plan
 				int min_pos = seg.y - cast (int) (minPos
 				   (tile_numbers[seg.x..seg.y]).length);
 				assert (seg.x <= min_pos && min_pos < seg.y);
+/*
+				// HACK!!!
+				if (min_pos == Board.SIZE - 2 &&
+				    seg.x < min_pos)
+				{
+					min_pos--;
+				}
+*/
 				int cur_row = row;
 /*
 				if (cur_row == 0)

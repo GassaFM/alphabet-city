@@ -222,7 +222,7 @@ final class Game (DictClass)
 
 				// add value for each present goal letter
 				static immutable int LETTER_BONUS = 100;
-				bool goal_achieved = true;
+//				bool goal_achieved = true;
 				foreach (pos; 0..goal_move.word.length)
 				{
 					if (cur.board.is_flipped ==
@@ -235,10 +235,10 @@ final class Game (DictClass)
 						{
 							res += LETTER_BONUS;
 						}
-						else
-						{
-							goal_achieved = false;
-						}
+//						else
+//						{
+//							goal_achieved = false;
+//						}
 					}
 					else
 					{
@@ -249,13 +249,14 @@ final class Game (DictClass)
 						{
 							res += LETTER_BONUS;
 						}
-						else
-						{
-							goal_achieved = false;
-						}
+//						else
+//						{
+//							goal_achieved = false;
+//						}
 					}
 				}
 
+/*
 				// add value for tiles near border goals
 				static immutable int NEAR_TILE_BONUS = 15;
 				if (!goal_achieved)
@@ -302,6 +303,7 @@ final class Game (DictClass)
 						}
 					}
 				}
+*/
 			}
 			res += temp.board.score - prev_score;
 
@@ -422,7 +424,7 @@ final class Game (DictClass)
 				time_left = max (time_left, 0);
 				time_left = min (time_left, 32);
 				int value = check_point.value *
-				    (8 + 32 - time_left);
+				    (16 + 32 - time_left);
 				if (rows_visited_mask & (1 << check_point.row))
 				{
 //					value *= 1;

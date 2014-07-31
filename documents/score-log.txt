@@ -189,7 +189,12 @@ normal submission:
 140728 G 2983 -> 3022 up 0.01 + best 0.00-0.01?
 -------
 140729 H 3101 -> 3104 up 0.00
+-------
+140730 X 3084 -> 3131 best 0.01-0.02 all N/A
+140730 C 3173 -> 3176 up! 0.01 IK 25.99
+Raw score sum: 81623 * 26 / 25.985 = 81670.11. Estimate = 47.
+140730 V 3149 -> 3171 up 0.00-0.01 all N/A
 
-Expected best:  ABCDEF...JKLMNOPQRSTUVWXYZ
-Expected up:    ......GHI.................
+Expected best:  AB.DEF...JKLMNOPQRSTUVWXYZ
+Expected up:    ..C...GHI.................
 Unknown:        ..........................

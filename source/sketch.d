@@ -42,9 +42,7 @@ struct TileLock
 struct Sketch
 {
 	static immutable int VALUE_MUCH = int.max / 4;
-	static immutable int TILE_TO_MOVE = TOTAL_TILES;
-//	static immutable int TILE_TO_MOVE = 98;
-//	static immutable int TILE_TO_MOVE = 94;
+	static immutable int [] TILES_TO_MOVE = [96, 97, 93, 84, 57];
 
 	TileLock [] tile_locks;
 	int [] [] goal_locks;
@@ -195,6 +193,10 @@ struct Sketch
 		{
 			foreach (num; tiles_by_letter[let])
 			{
+				if (num == 57)
+				{
+					break;
+				}
 				if (num >= ceiling ||
 				    (tiles[num] & TileBag.IS_RESTRICTED))
 				{
@@ -341,17 +343,24 @@ struct Sketch
 				}
 			}
 
-			if (tile_locks.length > TILE_TO_MOVE &&
-			    tile_locks[TILE_TO_MOVE] != TileLock.init)
+			foreach (tile_to_move; TILES_TO_MOVE)
 			{
-				value_bad += 1000;
+				if (tile_locks.length > tile_to_move &&
+				    tile_locks[tile_to_move] != TileLock.init)
+				{
+					value_bad += 1000;
+				}
 			}
 			scope (exit)
 			{
-				if (tile_locks.length > TILE_TO_MOVE &&
-				    tile_locks[TILE_TO_MOVE] != TileLock.init)
+				foreach (tile_to_move; TILES_TO_MOVE)
 				{
-					value_bad -= 1000;
+					if (tile_locks.length > tile_to_move &&
+					    tile_locks[tile_to_move] !=
+					    TileLock.init)
+					{
+						value_bad -= 1000;
+					}
 				}
 			}
 
@@ -497,20 +506,28 @@ struct Sketch
 */
 //			writeln ("after:  ", goal_locks[goal_num]);
 
-			if (tile_locks.length > TILE_TO_MOVE &&
-			    tile_locks[TILE_TO_MOVE] != TileLock.init &&
-			    tile_locks[TILE_TO_MOVE].goal_num == goal_num &&
-			    !goal.is_final_pos (tile_locks[TILE_TO_MOVE].pos))
-			{
-//				auto s = "before: " ~
-//				    format ("[%(%s, %)]", tile_locks);
-//				stderr.writeln ("before:  ", tile_locks);
-				if (!decrease_lock (TILE_TO_MOVE, NA))
+                        foreach (tile_to_move; TILES_TO_MOVE)
+                        {
+				if (tile_locks.length > tile_to_move &&
+				    tile_locks[tile_to_move] !=
+				    TileLock.init &&
+				    tile_locks[tile_to_move].goal_num ==
+				    goal_num &&
+				    !goal.is_final_pos
+				    (tile_locks[tile_to_move].pos))
 				{
-					return;
+//					auto s = "before: " ~
+//					    format ("[%(%s, %)]", tile_locks);
+//					stderr.writeln ("before:  ",
+//					    tile_locks);
+					if (!decrease_lock (tile_to_move, NA))
+					{
+						return;
+					}
+//					stderr.writeln (s);
+//					stderr.writeln ("after:  ",
+//					    tile_locks);
 				}
-//				stderr.writeln (s);
-//				stderr.writeln ("after:  ", tile_locks);
 			}
 
 			// heuristic
@@ -699,18 +716,18 @@ struct Sketch
 						    cur_ceiling);
 					}
 
-					// heuristic
-					static immutable int LEN_MULT = 1; //10
+					// heuristic, tried mults 1 and 10
+					static immutable int LEN_MULT = 1;
 					int first_pos =
 					    first_final_pos (goal_num);
-					value_bad +=
-					    last_final_pos[goal_num] -
-					    first_pos;
+					value_bad += LEN_MULT *
+					    (last_final_pos[goal_num] -
+					    first_pos);
 					scope (exit)
 					{
-						value_bad -=
-						    last_final_pos[goal_num] -
-						    first_pos;
+						value_bad -= LEN_MULT *
+						    (last_final_pos[goal_num] -
+						    first_pos);
 					}
 /*
 					static immutable int FIRST_POS_MULT =
