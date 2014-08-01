@@ -71,10 +71,12 @@ final class Plan
 	void refine (Board board)
 	{
 		enforce (!board.is_flipped);
-
+		
+		int stage = 0;
 		foreach (int num, ref check_point; check_points)
 		{
-			if (board[check_point.row][check_point.col].empty)
+			if (stage == 0 &&
+			    board[check_point.row][check_point.col].empty)
 			{
 				check_point.value += uniform !("[]")
 				    (RANDOM_ADD_LO, RANDOM_ADD_HI,
@@ -90,8 +92,22 @@ final class Plan
 					swap (check_points[num - 1],
 					    check_points[num]);
 				}
-				return;
+				stage = 1;
 			}
+			else if (stage == 1 &&
+			    !board[check_point.row][check_point.col].empty)
+			{
+				check_point.value -= uniform !("[]")
+				    (RANDOM_ADD_LO, RANDOM_ADD_HI,
+				    random_gen);
+				check_point.value =
+				    max (check_point.value, RANDOM_ADD_HI);
+				stage = 2;
+			}
+		}
+		if (stage > 0)
+		{
+			return;
 		}
 
 		stderr.writeln ("BAD!");
@@ -104,7 +120,6 @@ final class Plan
 			check_point.value =
 			    max (check_point.value, RANDOM_ADD_HI);
 		}
-//		enforce (false);
 	}
 
 	this (ref Problem new_problem, Goal [] new_goals,

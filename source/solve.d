@@ -584,16 +584,16 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	auto random = new Random (123456);
 	Plan [] plans;
 
-	static immutable int MAX_PLANS_LENGTH = 125_000;
-	static immutable int MAX_GOALS = 2500;
-	static immutable int MIN_SCORE_RATING = 2600; // 2150
+	static immutable int MAX_PLANS_LENGTH = 10_000_000;
+	static immutable int MAX_GOALS = 5849; // 891
+	static immutable int MIN_SCORE_RATING = 2250;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 1;
-	static immutable int START_WIDTH = 2500;
+	static immutable int MAX_REFINE_STEPS = 5;
+	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 10_000;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 4;
+	static immutable int MAX_COUNTER = 120;
 	static immutable int PLANS_TO_DROP = 0;
 	
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -1439,12 +1439,12 @@ void main (string [] args)
 // /*
 	foreach (i; 0..LET)
 	{
-// /*
+/*
 		if (i != 'C' - 'A')
 		{
 			continue;
 		}
-// */
+*/
 		auto p = ps.problem[i];
 		put_two_plan (t, s, p, m, all_goals);
 	}
