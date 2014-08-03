@@ -194,6 +194,12 @@ normal submission:
 140730 C 3173 -> 3176 up! 0.01 IK 25.99
 Raw score sum: 81623 * 26 / 25.985 = 81670.11. Estimate = 47.
 140730 V 3149 -> 3171 up 0.00-0.01 all N/A
+-------
+140801 M 3244 -> 3249 best 0.00-0.01 all N/A
+140802 Y 3100 -> 3104 best 0.00-0.01 all N/A
+-------
+140803 O 3092 -> 3117 best 0.00-0.01 SMK ID RZ MC down
+140803 P 3192 -> 3207 up??? + best 0.00-0.01 all N/A
 
 Expected best:  AB.DEF...JKLMNOPQRSTUVWXYZ
 Expected up:    ..C...GHI.................

@@ -158,7 +158,7 @@ final class GameMove
 
 	this (GameMove other)
 	{
-		word = other.word;
+		word = other.word.dup;
 		row = other.row;
 		col = other.col;
 		tiles_before = other.tiles_before;

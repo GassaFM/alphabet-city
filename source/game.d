@@ -625,7 +625,7 @@ unittest
 	void test_planned_wildcard_many ()
 	{
 		auto p = Problem ("?:",
-		    "AELSNEARTOAIE" ~ "?ELSNEARTOAI?" ~
+		    "AELSNEARTOAIE" ~ "?ELSNECARTOAI?" ~
 		    "OXYP?ENBUTA?ONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, [goal]);

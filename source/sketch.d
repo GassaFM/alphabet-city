@@ -42,7 +42,9 @@ struct TileLock
 struct Sketch
 {
 	static immutable int VALUE_MUCH = int.max / 4;
-	static immutable int [] TILES_TO_MOVE = []; // [96, 97, 93, 84, 57];
+	static immutable int [] TILES_TO_MOVE = [];
+//	static immutable int [] TILES_TO_MOVE = [96, 95, 94];
+//	static immutable int [] TILES_TO_MOVE = [96, 97, 93, 84, 57];
 
 	TileLock [] tile_locks;
 	int [] [] goal_locks;

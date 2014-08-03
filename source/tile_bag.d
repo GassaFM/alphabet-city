@@ -178,6 +178,7 @@ final class TargetBoard
 //	alias tile_number this;
 
 	static assert (TOTAL_TILES < tile_number[0][0].max);
+	static assert (TOTAL_TILES - 1 + tile_number[0][0].min < NA);
 
 	void place (byte val, byte row, byte col, bool is_flipped)
 	{
