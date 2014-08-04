@@ -118,3 +118,15 @@ Notes:
   for the bests of each of them.
   All new states are candidates for all storages.
 2. Maybe distance to each separate checkpoint is the value parameter?
+
+20140803:
+Work:
+4. Make a RackUsage.Fake version of play: similar to RackUsage.Ignore.
+  Connectivity is taken into account but the rack is not.
+
+Notes:
+1. Check theoretical feasibility of a plan.
+  Simulate by maintaining three visited segments: first, center and last row.
+  Move up and down from the center segment.
+  Find the best case by dynamic programming.
+  If there are more than seven pending tiles, the plan is not feasible.

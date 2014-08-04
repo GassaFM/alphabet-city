@@ -751,19 +751,19 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	static immutable int MAX_PLANS_LENGTH = 10_000_000;
 	static immutable int MAX_GOALS = 5849; // 891
-	static immutable int MIN_SCORE_RATING = 2550; // 2250
+	static immutable int MIN_SCORE_RATING = 2250;
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int MAX_REFINE_STEPS = 3;
 	static immutable int START_WIDTH = 250;
-	static immutable int MAX_WIDTH = 2000;
-	static immutable int MAX_SIMILAR_PLANS = 1;
-	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 30;
+	static immutable int MAX_WIDTH = 250;
+	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int MAX_CHECK_POINTS = 8;
+	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CENTER_REFINE_STEPS = 12;
-	static immutable int START_CENTER_WIDTH = 250;
-	static immutable int MAX_CENTER_WIDTH = 2000;
+	static immutable int START_CENTER_WIDTH = 2000;
+	static immutable int MAX_CENTER_WIDTH = 8000;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
 	static immutable int MAX_INNER_COUNTER = 300;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
@@ -885,15 +885,17 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			continue;
 		}
 
-/*
 		if (!(plan.goal_moves[0].to_masked_string ().toUpper () ==
 		    "DEMYTHOLOGIZERS" &&
-		    plan.goal_moves[1].to_masked_string () ==
-		    "IneXPliCabILitY"))
+//		    "NONQUANTIFIABLE" &&
+		    plan.goal_moves[1].to_masked_string ().toUpper () ==
+		    "NONQUANTIFIABLE"))
+//		    "OXYPHENBUTAZONE"))
+//		    plan.goal_moves[1].to_masked_string () ==
+//		    "IneXPliCabILitY"))
 		{
 			continue;
 		}
-*/
 
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -984,14 +986,14 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 			count3++;
 
-/*
 			if (goal3.word.map !(a => (a & LET_MASK) + 'A') ()
-			    .array () != "OVERADVERTISING")
+			    .array () != "THERMOCHEMISTRY")
+//			    .array () != "OVERGENERALIZED")
+//			    .array () != "OVERADVERTISING")
 //			    .array () != "SUPERPHENOMENON")
 			{
 				continue;
 			}
-*/
 
 			writeln (goal3.score_rating);
 			TileCounter counter_lo;
@@ -1488,7 +1490,7 @@ void main (string [] args)
 // /*
 	foreach (i; 0..LET)
 	{
-		if (i != 'C' - 'A')
+		if (i != 'H' - 'A')
 		{
 			continue;
 		}
