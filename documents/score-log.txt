@@ -203,6 +203,8 @@ Raw score sum: 81623 * 26 / 25.985 = 81670.11. Estimate = 47.
 140804 P 3207 -> 3265 three! best 0.01-0.02 SMK ID RZ MC down: -0.02
 -------
 140804 P 3265 -> 3266 best 0.00-0.01
+-------
+140805 C 3176 -> 3181 up 0.00
 
 Expected best:  AB.DEF...JKLMNOPQRSTUVWXYZ
 Expected up:    ..C...GHI.................
