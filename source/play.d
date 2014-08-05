@@ -14,7 +14,22 @@ import scoring;
 import tile_bag;
 import trie;
 
-enum RackUsage: byte {Active, Passive, Ignore};
+enum RackUsage: byte
+    {Active, // use tiles.rack to produce moves
+    Passive, // use cur_move to produce moves
+    Fake, // invalidate tiles.rack but watch connectivity and activity
+    Ignore}; // allow disconnected and passive, check only the resulting board
+
+// This boils down to the following:                          A P F I
+// (1) use tiles.rack (+) or cur_move (-) to generate moves   + - - -
+// (2) account in tiles.rack (+) or invalidate it (-)         + + - -
+// (3) allow present but active cells (+) or not (-)          - - - +
+// (4) allow missing but passive cells (+) or not (-)         - - - +
+// (5) allow fully present moves (+) or not (-)               - - - +
+// (6) allow disconnected moves (+) or not (-)                - - - +
+// TODO 1: derive these booleans as enums or static immutable bools
+// TODO 2: unittests on that
+// TODO 3: correctly account for bingos when counting active tiles
 
 struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 {
@@ -564,7 +579,8 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 				}
 			}
 
-			static if (rack_usage == RackUsage.Passive)
+			static if (rack_usage == RackUsage.Passive ||
+			    rack_usage == RackUsage.Fake)
 			{
 				if (has_passive_empty)
 				{
@@ -574,27 +590,38 @@ struct Play (DictClass, RackUsage rack_usage = RackUsage.Active)
 
 			if (has_active_filled)
 			{
-				if (!has_empty)
+				static if (rack_usage == RackUsage.Ignore)
 				{
-					process (cur);
+					if (!has_empty)
+					{
+						process (cur);
+					}
 				}
 				return;
 			}
 
-			static if (rack_usage == RackUsage.Ignore)
+			static if (rack_usage == RackUsage.Fake ||
+			    rack_usage == RackUsage.Ignore)
 			{
 				byte saved_total = Rack.IGNORED;
 				swap (cur.tiles.rack.total, saved_total);
 				byte saved_active = Rack.IGNORED;
 				swap (cur.tiles.rack.active, saved_active);
-				active_tiles += 2;
-				connections++;
 				scope (exit)
 				{
 					swap (cur.tiles.rack.total,
 					    saved_total);
 					swap (cur.tiles.rack.active,
 					    saved_active);
+				}
+			}
+
+			static if (rack_usage == RackUsage.Ignore)
+			{
+				active_tiles += 2;
+				connections++;
+				scope (exit)
+				{
 					active_tiles -= 2;
 					connections--;
 				}
@@ -835,6 +862,75 @@ unittest
 		assert (num == 1);
 	}
 
+	void test_play_fake ()
+	{
+		auto play = Play !(Trie, RackUsage.Fake) (t, s);
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		auto cur_move = new GameMove ();
+		GameState temp;
+		int num;
+
+		// connected by center cell
+		cur_move.initialize (cur);
+		cur_move.start_at (Board.CENTER, Board.CENTER);
+		cur_move.is_flipped = true;
+		cur_move.word = "BAKE"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
+		num = 0;
+		foreach (ref next; play (cur, cur_move))
+		{
+			temp = next;
+			assert (next.board.score > 1);
+			assert (next.board.score == 20);
+			num++;
+		}
+		assert (num == 1);
+		cur = temp;
+
+		// connected by passive cell
+		cur_move.initialize (cur);
+		cur_move.start_at (Board.CENTER - 1, Board.CENTER + 3);
+		cur_move.is_flipped = true;
+		cur_move.word = "BED"
+		    .map !(c => BoardCell (to !(byte) (c - 'A' +
+		    (c == 'E' ? 0 : BoardCell.IS_ACTIVE)))) ().array ();
+		num = 0;
+		foreach (ref next; play (cur, cur_move))
+		{
+			temp = next;
+			assert (next.board.score > 20);
+			assert (next.board.score == 26);
+			num++;
+		}
+		assert (num == 1);
+		cur = temp;
+
+		// not connected
+		cur_move.initialize (cur);
+		cur_move.start_at (0, 1);
+		cur_move.is_flipped = true;
+		cur_move.word = "SWAMP"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
+		foreach (ref next; play (cur, cur_move))
+		{
+			assert (false);
+		}
+
+		// not active
+		cur_move.initialize (cur);
+		cur_move.start_at (Board.CENTER, Board.CENTER);
+		cur_move.is_flipped = true;
+		cur_move.word = "BIPOLAR"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A'))) ().array ();
+		foreach (ref next; play (cur, cur_move))
+		{
+			assert (false);
+		}
+	}
+
 	void test_play_ignore ()
 	{
 		auto play = Play !(Trie, RackUsage.Ignore) (t, s);
@@ -954,6 +1050,7 @@ unittest
 
 	test_play_active ();
 	test_play_passive ();
+	test_play_fake ();
 	test_play_ignore ();
 	test_play_move ();
 	test_check_vertical_on_ignore ();
