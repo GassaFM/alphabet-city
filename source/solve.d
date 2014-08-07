@@ -590,12 +590,12 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_GOALS = 5849; // 891
 	static immutable int MIN_SCORE_RATING = 2250;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 0;
-	static immutable int START_WIDTH = 250;
-	static immutable int MAX_WIDTH = 250;
-	static immutable int MAX_SIMILAR_PLANS = 1;
+	static immutable int MAX_REFINE_STEPS = 5;
+	static immutable int START_WIDTH = 1000;
+	static immutable int MAX_WIDTH = 8000;
+	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 30;
+	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
 	
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -660,6 +660,10 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 
 			swap (goal1.row, goal2.row);
+			scope (exit)
+			{
+				swap (goal1.row, goal2.row);
+			}
 
 			if (try_plan (new Plan (p, [goal1, goal2])))
 			{
@@ -670,8 +674,6 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 			{
 				break first_loop;
 			}
-
-			swap (goal1.row, goal2.row);
 		}
 	}
 	GC.collect ();
@@ -756,7 +758,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_REFINE_STEPS = 3;
 	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 250;
-	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_CHECK_POINTS = 8;
 	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
@@ -839,6 +841,10 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 
 			swap (goal1.row, goal2.row);
+			scope (exit)
+			{
+				swap (goal1.row, goal2.row);
+			}
 
 			if (try_plan (new Plan (p, [goal1, goal2]),
 			    goal1, goal2))
@@ -851,8 +857,6 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			{
 				break first_loop;
 			}
-
-			swap (goal1.row, goal2.row);
 		}
 	}
 
@@ -885,17 +889,21 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			continue;
 		}
 
+// /*
 		if (!(plan.goal_moves[0].to_masked_string ().toUpper () ==
-		    "DEMYTHOLOGIZERS" &&
+		    "UNEXCEPTIONABLY" &&
+//		    "DEMYTHOLOGIZERS" &&
 //		    "NONQUANTIFIABLE" &&
 		    plan.goal_moves[1].to_masked_string ().toUpper () ==
-		    "NONQUANTIFIABLE"))
+		    "DEMYTHOLOGIZERS"))
 //		    "OXYPHENBUTAZONE"))
+//		    "NONQUANTIFIABLE"))
 //		    plan.goal_moves[1].to_masked_string () ==
 //		    "IneXPliCabILitY"))
 		{
 			continue;
 		}
+// */
 
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -986,14 +994,17 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 			count3++;
 
+// /*
 			if (goal3.word.map !(a => (a & LET_MASK) + 'A') ()
-			    .array () != "THERMOCHEMISTRY")
+			    .array () != "FORESIGHTEDNESS")
+//			    .array () != "THERMOCHEMISTRY")
 //			    .array () != "OVERGENERALIZED")
 //			    .array () != "OVERADVERTISING")
 //			    .array () != "SUPERPHENOMENON")
 			{
 				continue;
 			}
+// */
 
 			writeln (goal3.score_rating);
 			TileCounter counter_lo;
@@ -1474,10 +1485,10 @@ void main (string [] args)
 		return;
 	}
 
-/*
+// /*
 	foreach (i; 0..LET)
 	{
-		if (i != 'Z' - 'A')
+		if (i != 'C' - 'A')
 		{
 			continue;
 		}
@@ -1485,12 +1496,12 @@ void main (string [] args)
 		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
-*/
+// */
 
-// /*
+/*
 	foreach (i; 0..LET)
 	{
-		if (i != 'H' - 'A')
+		if (i != 'K' - 'A')
 		{
 			continue;
 		}
@@ -1498,7 +1509,7 @@ void main (string [] args)
 		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..LET)
