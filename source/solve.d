@@ -507,7 +507,8 @@ void generate_triples (Trie trie, Problem problem)
 }
 
 bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
-    int max_score_gap, int refine_steps, int start_width, int max_width)
+    int max_score_gap, int refine_steps,
+    int start_width, int max_width, int delta_width, int cur_height)
 {
 	auto p = plan.problem;
 	auto game = new Game !(Trie) (t, s, plan);
@@ -518,13 +519,14 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 	bool found = false;
 	foreach (step; 0..refine_steps)
 	{
-		int cur_width = start_width +
-		    uniform !("[]") (0, 50, random_gen);
+		int cur_width = start_width + uniform !("[]")
+		    (0, delta_width, random_gen);
 		stderr.writeln (plan);
 		stderr.writeln ("refine step: ", step + 1);
 		stderr.writeln ("width = ", cur_width);
 		stderr.flush ();
-		auto next = game_beam_search ([start], game, cur_width, 0);
+		auto next = game_beam_search
+		    ([start], game, cur_width, cur_height);
 		log_progress (p, next);
 		if (next.board.total >= TOTAL_TILES - 2)
 		{
@@ -553,11 +555,13 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 
 	for (int width = start_width; width <= max_width; width <<= 1)
 	{
-		int cur_width = width + uniform !("[]") (0, 50, random_gen);
+		int cur_width = width + uniform !("[]")
+		    (0, delta_width, random_gen);
 		stderr.writeln (plan);
 		stderr.writeln ("width = ", cur_width);
 		stderr.flush ();
-		auto next = game_beam_search ([start], game, cur_width, 0);
+		auto next = game_beam_search
+		    ([start], game, cur_width, cur_height);
 		log_progress (p, next);
 		next.board.normalize ();
 		if (!next.board.is_row_filled (0) &&
@@ -591,11 +595,13 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MIN_SCORE_RATING = 2250;
 	static immutable int MAX_SCORE_GAP = 150;
 	static immutable int MAX_REFINE_STEPS = 5;
-	static immutable int START_WIDTH = 1000;
-	static immutable int MAX_WIDTH = 8000;
-	static immutable int MAX_SIMILAR_PLANS = 9999;
+	static immutable int START_WIDTH = 10;
+	static immutable int MAX_WIDTH = 40;
+	static immutable int DELTA_WIDTH = 0;
+	static immutable int MAX_HEIGHT = 1;
+	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 300;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 	
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -733,8 +739,8 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 		stdout.flush ();
 		stderr.writeln ("Entry: ", counter + 1);
 		stderr.flush ();
-		run_plan (t, s, m, plan,
-		    MAX_SCORE_GAP, MAX_REFINE_STEPS, START_WIDTH, MAX_WIDTH);
+		run_plan (t, s, m, plan, MAX_SCORE_GAP, MAX_REFINE_STEPS,
+		    START_WIDTH, MAX_WIDTH, DELTA_WIDTH, MAX_HEIGHT);
 
 		counter++;
 		if (counter >= MAX_COUNTER)
@@ -758,6 +764,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_REFINE_STEPS = 3;
 	static immutable int START_WIDTH = 250;
 	static immutable int MAX_WIDTH = 250;
+	static immutable int DELTA_WIDTH = 50;
+	static immutable int MAX_HEIGHT = 0;
 	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_CHECK_POINTS = 8;
 	static immutable int MAX_COUNTER = 300;
@@ -766,6 +774,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_CENTER_REFINE_STEPS = 12;
 	static immutable int START_CENTER_WIDTH = 2000;
 	static immutable int MAX_CENTER_WIDTH = 8000;
+	static immutable int DELTA_CENTER_WIDTH = 50;
+	static immutable int MAX_CENTER_HEIGHT = 0;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
 	static immutable int MAX_INNER_COUNTER = 300;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
@@ -941,8 +951,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 		
 // /*
-		if (!run_plan (t, s, m, plan,
-		    MAX_SCORE_GAP, MAX_REFINE_STEPS, START_WIDTH, MAX_WIDTH))
+		if (!run_plan (t, s, m, plan, MAX_SCORE_GAP, MAX_REFINE_STEPS,
+		    START_WIDTH, MAX_WIDTH, DELTA_WIDTH, MAX_HEIGHT))
 		{
 			continue;
 		}
@@ -1148,7 +1158,9 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 						    MAX_SCORE_GAP,
 						    MAX_CENTER_REFINE_STEPS,
 						    START_CENTER_WIDTH,
-						    MAX_CENTER_WIDTH);
+						    MAX_CENTER_WIDTH,
+						    DELTA_CENTER_WIDTH,
+						    MAX_CENTER_HEIGHT);
 					}
 				}
 			}
@@ -1488,10 +1500,10 @@ void main (string [] args)
 // /*
 	foreach (i; 0..LET)
 	{
-		if (i != 'C' - 'A')
-		{
-			continue;
-		}
+//		if (i != 'C' - 'A')
+//		{
+//			continue;
+//		}
 		auto p = ps.problem[i];
 		put_two_plan (t, s, p, m, all_goals);
 	}
