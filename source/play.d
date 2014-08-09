@@ -900,7 +900,7 @@ unittest
 		// connected by center cell
 		cur_move.initialize (cur);
 		cur_move.start_at (Board.CENTER, Board.CENTER);
-		cur_move.is_flipped = true;
+		cur_move.is_flipped = false;
 		cur_move.word = "BAKE"
 		    .map !(c => BoardCell (to !(byte)
 		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
@@ -917,7 +917,7 @@ unittest
 
 		// connected by passive cell
 		cur_move.initialize (cur);
-		cur_move.start_at (Board.CENTER - 1, Board.CENTER + 3);
+		cur_move.start_at (Board.CENTER + 3, Board.CENTER - 1);
 		cur_move.is_flipped = true;
 		cur_move.word = "BED"
 		    .map !(c => BoardCell (to !(byte) (c - 'A' +
@@ -936,7 +936,7 @@ unittest
 		// not connected
 		cur_move.initialize (cur);
 		cur_move.start_at (0, 1);
-		cur_move.is_flipped = true;
+		cur_move.is_flipped = false;
 		cur_move.word = "SWAMP"
 		    .map !(c => BoardCell (to !(byte)
 		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
@@ -1022,29 +1022,66 @@ unittest
 	void test_play_moves_sequence ()
 	{
 		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		GameState temp;
 		GameMove [] cur_moves_sequence;
 
-		auto move_one = new GameMove ();
-		move_one.initialize (cur);
-		move_one.start_at (Board.CENTER, Board.CENTER);
-		move_one.is_flipped = true;
-		move_one.word = "BAKE"
+		auto move1 = new GameMove ();
+		move1.initialize (cur);
+		move1.start_at (Board.CENTER, Board.CENTER);
+		move1.is_flipped = false;
+		move1.word = "BAKE"
 		    .map !(c => BoardCell (to !(byte)
 		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
 
-		auto move_two = new GameMove ();
-		move_two.initialize (cur);
-		move_two.start_at (Board.CENTER - 1, Board.CENTER + 3);
-		move_two.is_flipped = true;
-		move_two.word = "BED"
+		auto move2 = new GameMove ();
+		move2.initialize (cur);
+		move2.start_at (Board.CENTER + 3, Board.CENTER - 1);
+		move2.is_flipped = true;
+		move2.word = "BED"
 		    .map !(c => BoardCell (to !(byte) (c - 'A' +
 		    (c == 'E' ? 0 : BoardCell.IS_ACTIVE)))) ().array ();
 
-		cur_moves_sequence = [move_one, move_two];
+		// not connected
+		auto move3 = new GameMove ();
+		move3.initialize (cur);
+		move3.start_at (0, 1);
+		move3.is_flipped = false;
+		move3.word = "SWAMP"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
+
+		// not active
+		auto move4 = new GameMove ();
+		move4.initialize (cur);
+		move4.start_at (Board.CENTER, Board.CENTER);
+		move4.is_flipped = true;
+		move4.word = "BIPOLAR"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A'))) ().array ();
+
+		cur_moves_sequence = [move1, move2];
 		play_moves_sequence !(Trie, RackUsage.Fake)
 		    (t, s, cur, cur_moves_sequence);
 		assert (cur.board.score > 20);
 		assert (cur.board.score == 26);
+		
+		cur_moves_sequence = [move1, move2];
+		temp = cur;
+		play_moves_sequence !(Trie, RackUsage.Fake)
+		    (t, s, temp, cur_moves_sequence);
+		assert (temp.board.score == NA);
+
+		cur_moves_sequence = [move3];
+		temp = cur;
+		play_moves_sequence !(Trie, RackUsage.Fake)
+		    (t, s, temp, cur_moves_sequence);
+		assert (temp.board.score == NA);
+
+		cur_moves_sequence = [move4];
+		temp = cur;
+		play_moves_sequence !(Trie, RackUsage.Fake)
+		    (t, s, temp, cur_moves_sequence);
+		assert (temp.board.score == NA);
 	}
 
 	void test_check_vertical_on_ignore ()

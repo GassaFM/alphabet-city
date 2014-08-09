@@ -186,11 +186,16 @@ final class TargetBoard
 		{
 			swap (row, col);
 		}
-		assert (tile_number[row][col] == NA);
+		assert (tile_number[row][col] == NA ||
+		    tile_number[row][col] == val);
+//		writeln (row, ' ', col, ' ', val);
 		tile_number[row][col] = val;
 		if (val >= 0)
 		{
 			assert (0 <= val && val < coord.length);
+//			writeln (coord[val], ' ', Coord (row, col));
+			assert (coord[val] == Coord.init ||
+			    coord[val] == Coord (row, col));
 			coord[val] = Coord (row, col);
 		}
 	}

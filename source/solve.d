@@ -1380,12 +1380,12 @@ void main (string [] args)
 			auto p = ps.problem[i];
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
 			stderr.writeln (p);
-			auto full_guide_boards =
-			    build_full_guide_boards (p, temp);
-			stderr.writeln (full_guide_boards);
-			auto reduced_guide_boards = reduce_guide_boards
-			    (full_guide_boards, p, temp, t);
-			stderr.writeln (reduced_guide_boards);
+			auto full_guide =
+			    build_full_guide (p, temp);
+			stderr.writeln (full_guide);
+			auto reduced_guide = reduce_guide
+			    (full_guide, p, temp, t);
+			stderr.writeln (reduced_guide);
 			stderr.flush ();
 		}
 		return;
