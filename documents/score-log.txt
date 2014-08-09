@@ -229,7 +229,9 @@ improve 250:
 improve 2500:
 140809 C 3202 -> 3204 best 0.00-0.01
 140809 F 3163 -> 3173 best 0.00-0.01 SMK down others N/A
+140809 G 3022 -> 3025 best 0.00-0.01
+140809 I 3035 -> 3041 best 0.00-0.01 total=82001:!
 
-Expected best:  ..C..F..I........R.....X.Z
-Expected up:    ......GH..................
+Expected best:  ..C..FG.I........R.....X.Z
+Expected up:    .......H..................
 Unknown:        AB.DE....JKLMNOPQ.STUVW.Y.
