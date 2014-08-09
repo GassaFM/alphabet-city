@@ -121,7 +121,7 @@ Notes:
 
 20140803:
 Work:
-4. Make a RackUsage.Fake version of play: similar to RackUsage.Ignore.
+4. [r1214] Make a RackUsage.Fake version of play: similar to RackUsage.Ignore.
   Connectivity is taken into account but the rack is not.
 
 Notes:
