@@ -195,9 +195,15 @@ final class TargetBoard
 		}
 	}
 
-	this (T1) (T1 tiles_length)
+	this (long tiles_length)
 	{
 		coord = new Coord [tiles_length];
+	}
+
+	this (const TargetBoard other)
+	{
+		tile_number = other.tile_number;
+		coord = other.coord.dup;
 	}
 
 	string [] to_strings (const char [] letters) const

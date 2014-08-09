@@ -3,6 +3,7 @@ module play;
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.range;
 import std.stdio;
 
 import board;
@@ -777,6 +778,32 @@ ref GameState play_move (DictClass, RackUsage rack_usage)
 	return cur;
 }
 
+ref GameState play_moves_sequence (DictClass, RackUsage rack_usage,
+    GameMoveRange)
+    (const DictClass dict, const Scoring scoring,
+    ref GameState cur, GameMoveRange cur_moves_sequence)
+    if (isInputRange !(GameMoveRange) &&
+    is (Unqual !(ElementType !(GameMoveRange)) == GameMove))
+{
+	static assert (rack_usage != RackUsage.Active);
+	auto play = Play !(DictClass, rack_usage) (dict, scoring);
+	foreach (cur_move; cur_moves_sequence)
+	{
+		GameState temp;
+		temp.board.score = NA;
+		foreach (ref next; play (cur, cur_move))
+		{
+			temp = next;
+		}
+		cur = temp;
+		if (cur.board.score == NA)
+		{
+			return cur;
+		}
+	}
+	return cur;
+}
+
 struct CompoundPlay (DictClass)
 {
 	const DictClass stored_dict;
@@ -990,6 +1017,34 @@ unittest
 		    .array ();
 		play_move !(Trie, RackUsage.Ignore) (t, s, cur, cur_move);
 		assert (cur.board.score == NA);
+	}
+
+	void test_play_moves_sequence ()
+	{
+		auto cur = GameState (Problem ("?:", "ABCDEFG"));
+		GameMove [] cur_moves_sequence;
+
+		auto move_one = new GameMove ();
+		move_one.initialize (cur);
+		move_one.start_at (Board.CENTER, Board.CENTER);
+		move_one.is_flipped = true;
+		move_one.word = "BAKE"
+		    .map !(c => BoardCell (to !(byte)
+		    (c - 'A' + BoardCell.IS_ACTIVE))) ().array ();
+
+		auto move_two = new GameMove ();
+		move_two.initialize (cur);
+		move_two.start_at (Board.CENTER - 1, Board.CENTER + 3);
+		move_two.is_flipped = true;
+		move_two.word = "BED"
+		    .map !(c => BoardCell (to !(byte) (c - 'A' +
+		    (c == 'E' ? 0 : BoardCell.IS_ACTIVE)))) ().array ();
+
+		cur_moves_sequence = [move_one, move_two];
+		play_moves_sequence !(Trie, RackUsage.Fake)
+		    (t, s, cur, cur_moves_sequence);
+		assert (cur.board.score > 20);
+		assert (cur.board.score == 26);
 	}
 
 	void test_check_vertical_on_ignore ()

@@ -8,8 +8,11 @@ import board;
 import game_move;
 import game_state;
 import general;
+import play;
 import problem;
+import scoring;
 import tile_bag;
+import trie;
 
 GameMove [] build_moves_history (ref GameState cur)
 {
@@ -28,10 +31,13 @@ GameMove [] build_moves_history (ref GameState cur)
 	return moves_history;
 }
 
-TargetBoard build_full_target_board (Problem problem, ref GameState cur)
+alias GuideBoards = Tuple !(TargetBoard, "target_board", Board, "check_board");
+
+GuideBoards build_full_guide_boards (Problem problem, ref GameState cur)
 {
 	TargetBoard target_board;
 	target_board = new TargetBoard (problem.contents.length);
+	Board check_board;
 
 	auto tiles_by_letter = new byte [] [LET + 1];
 
@@ -45,6 +51,10 @@ TargetBoard build_full_target_board (Problem problem, ref GameState cur)
 
 	foreach (ref cur_move; moves_history)
 	{
+		if (check_board.is_flipped != cur_move.is_flipped)
+		{
+			check_board.flip ();
+		}
 		foreach (pos, ref tile; cur_move.word)
 		{
 			byte row = cur_move.row;
@@ -68,9 +78,62 @@ TargetBoard build_full_target_board (Problem problem, ref GameState cur)
 				tiles_by_letter[let].popFront ();
 				target_board.place (num, row, col,
 				    cur_move.is_flipped);
+				check_board[row][col] =
+				    tile & ~BoardCell.IS_ACTIVE;
 			}
 		}
 	}
+	check_board.normalize_flip ();
 
-	return target_board;
+	return GuideBoards (target_board, check_board);
+}
+
+GuideBoards reduce_guide_boards (Dict) (GuideBoards guide_boards,
+    Problem problem, ref GameState cur, Dict dict)
+{
+	TargetBoard target_board;
+	target_board = new TargetBoard (problem.contents.length);
+	Board check_board;
+
+	GameMove [] moves_history = build_moves_history (cur);
+	GameMove [] reduced_moves_history;
+
+	foreach_reverse (num, ref cur_move; moves_history)
+	{
+		if (cur_move.word.length != Board.SIZE)
+		{
+			auto temp = GameState (problem);
+			play_moves_sequence !(Trie, RackUsage.Fake)
+			    (dict, global_scoring, temp,
+			    moves_history[0..num]);
+			assert (cur.board.score != NA);
+			play_moves_sequence !(Trie, RackUsage.Fake)
+			    (dict, global_scoring, temp,
+			    reduced_moves_history.retro ());
+			if (cur.board.score != NA)
+			{
+				continue;
+			}
+		}
+
+		reduced_moves_history ~= cur_move;
+		foreach (pos, ref tile; cur_move.word)
+		{
+			byte row = cur_move.row;
+			byte col = cast (byte) (cur_move.col + pos);
+
+			target_board.place (guide_boards.target_board
+			    .tile_number[row][col], row, col,
+			    cur_move.is_flipped);
+
+			if (cur_move.is_flipped)
+			{
+				swap (row, col);
+			}
+			check_board[row][col] =
+			    guide_boards.check_board[row][col];
+		}
+	}
+
+	return GuideBoards (target_board, check_board);
 }
