@@ -374,9 +374,11 @@ final class Plan
 			}
 			new_contents ~= new_tile;
 		}
+/*
 		writeln (problem.contents);
 		writeln (new_contents);
 		stdout.flush ();
+*/
 		problem.contents = to !(string) (new_contents);
 	}
 

@@ -1379,7 +1379,7 @@ void main (string [] args)
 
 			auto p_temp = ps.problem[i];
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
-			stderr.writeln (p_temp);
+//			stderr.writeln (p_temp);
 			auto full_guide =
 			    build_full_guide (p_temp, temp);
 //			stderr.writeln (full_guide);
@@ -1394,7 +1394,7 @@ void main (string [] args)
 			    reduced_guide.moves_history
 			    .filter !(x => x.word.length == Board.SIZE));
 			auto p = plan.problem;
-			stderr.writeln (p);
+//			stderr.writeln (p);
 /*
 			foreach (goal_move; plan.goal_moves)
 			{
@@ -1407,7 +1407,7 @@ void main (string [] args)
 			auto game = new Game !(Trie) (t, s, plan);
 			auto start = GameState (p);
 			start.tiles.target_board = plan.target_board;
-			int cur_width = 2500;
+			int cur_width = 15_000;
 			int cur_depth = 0;
 			stderr.writeln (plan);
 			stderr.flush ();
