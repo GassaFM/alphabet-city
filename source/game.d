@@ -150,7 +150,7 @@ final class Game (DictClass)
 					continue;
 				}
 			}
-
+			
 			int vv = DictClass.ROOT;
 			foreach (cur_row; s_row..t_row + 1)
 			{
@@ -184,6 +184,17 @@ final class Game (DictClass)
 		if (cur.tiles.rack.active >= 0)
 		{ // if not ignored
 			res += cur.tiles.rack.active * ACTIVE_TILE_VALUE;
+		}
+
+		// add individual scores for active tiles
+		foreach (ref c; cur.tiles.rack.contents)
+		{
+			if (c.empty)
+			{
+				break;
+			}
+
+			res += c.num * scoring.tile_value[c.letter];
 		}
 
 		// add bias value
@@ -609,7 +620,7 @@ unittest
 	void test_planned_wildcard_both ()
 	{
 		auto p = Problem ("?:",
-		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
+		    "AELSNEARTOAIE" ~ "AELSNPRAETOAIE" ~
 		    "OXYP?ENBUTA?ONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, [goal]);

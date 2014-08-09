@@ -343,6 +343,43 @@ final class Plan
 */
 	}
 
+	this (GameMoveRange)
+	    (ref Problem new_problem, TargetBoard new_target_board,
+	    Board * new_check_board, GameMoveRange new_goal_moves)
+	    if (isInputRange !(GameMoveRange) &&
+	    is (Unqual !(ElementType !(GameMoveRange)) == GameMove))
+	{
+		problem = new_problem;
+		if (new_check_board !is null)
+		{
+			check_board = *new_check_board;
+		}
+		target_board = new TargetBoard (new_target_board);
+		goal_moves = new_goal_moves.array ();
+		check_points = new CheckPoint [0];
+		score_rating = 0;
+
+		char [] new_contents;
+		new_contents.reserve (problem.contents.length);
+		foreach (num, tile; problem.contents)
+		{
+			char new_tile = tile;
+			if (new_tile == '?')
+			{
+				new_tile = to !(char) (LET + 'A');
+			}
+			if (!target_board.coord[num].is_empty)
+			{
+				new_tile |= TileBag.IS_RESTRICTED;
+			}
+			new_contents ~= new_tile;
+		}
+		writeln (problem.contents);
+		writeln (new_contents);
+		stdout.flush ();
+		problem.contents = to !(string) (new_contents);
+	}
+
 	override string toString () const
 	{
 		string res;

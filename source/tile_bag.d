@@ -92,6 +92,7 @@ struct Rack
 	{
 		if (is_active)
 		{
+//			writeln ("> ", this, ' ', letter);
 			int i = 0;
 			while (!contents[i].empty &&
 			    (contents[i].letter < letter))
@@ -164,8 +165,20 @@ struct Rack
 
 struct Coord
 {
+	static immutable Coord LOCKED = Coord (NA - 1, NA - 1);
+
 	byte row = NA;
 	byte col = NA;
+
+	bool is_passive () @property const
+	{
+		return row >= 0;
+	}
+
+	bool is_empty () @property const
+	{
+		return this == Coord.init;
+	}
 }
 
 final class TargetBoard
@@ -188,15 +201,21 @@ final class TargetBoard
 		}
 		assert (tile_number[row][col] == NA ||
 		    tile_number[row][col] == val);
-//		writeln (row, ' ', col, ' ', val);
 		tile_number[row][col] = val;
 		if (val >= 0)
 		{
 			assert (0 <= val && val < coord.length);
-//			writeln (coord[val], ' ', Coord (row, col));
-			assert (coord[val] == Coord.init ||
+			assert (coord[val].is_empty ||
 			    coord[val] == Coord (row, col));
 			coord[val] = Coord (row, col);
+		}
+		else
+		{
+			byte real_val = cast (byte) (val - byte.min);
+			assert (0 <= real_val && real_val < coord.length);
+			assert (coord[real_val].is_empty ||
+			    coord[real_val] == Coord.LOCKED);
+			coord[real_val] = Coord.LOCKED;
 		}
 	}
 
@@ -298,10 +317,11 @@ struct TileBag
 			while ((cursor < contents.length) &&
 			    (rack.total < Rack.MAX_SIZE))
 			{
-				auto letter = contents[cursor];
+				byte letter = contents[cursor];
 				bool is_active = !(letter & IS_RESTRICTED);
+				letter &= ~IS_RESTRICTED;
 				if (!is_active && target_board !is null &&
-				    target_board.coord[cursor] != Coord.init)
+				    target_board.coord[cursor].is_passive)
 				{
 					if (!board.is_flipped)
 					{

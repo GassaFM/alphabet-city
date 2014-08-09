@@ -218,7 +218,11 @@ Raw score sum: 81623 * 26 / 25.985 = 81670.11. Estimate = 47.
 140808 C 3181 -> 3198 up 0.00 + best 0.00-0.01
 140808 C 3198 -> 3202 best 0.00?
 140808 R 3376 -> 3381 three! best 0.00-0.01
+-------
+improve 250:
+140809 F 3162 -> 3163 no change
+140809 Z 3175 -> 3176 best 0.00-0.01
 
-Expected best:  ..C.....I........R........
+Expected best:  ..C.....I........R.......Z
 Expected up:    ......GH..................
-Unknown:        AB.DEF...JKLMNOPQ.STUVWXYZ
+Unknown:        AB.DEF...JKLMNOPQ.STUVWXY.

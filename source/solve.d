@@ -1377,16 +1377,43 @@ void main (string [] args)
 				continue;
 			}
 
-			auto p = ps.problem[i];
+			auto p_temp = ps.problem[i];
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
-			stderr.writeln (p);
+			stderr.writeln (p_temp);
 			auto full_guide =
-			    build_full_guide (p, temp);
-			stderr.writeln (full_guide);
+			    build_full_guide (p_temp, temp);
+//			stderr.writeln (full_guide);
 			auto reduced_guide = reduce_guide
-			    (full_guide, p, temp, t);
-			stderr.writeln (reduced_guide);
+			    (full_guide, p_temp, temp, t);
+//			stderr.writeln (reduced_guide);
 			stderr.flush ();
+
+			auto plan = new Plan (p_temp,
+			    reduced_guide.target_board,
+			    &reduced_guide.check_board,
+			    reduced_guide.moves_history
+			    .filter !(x => x.word.length == Board.SIZE));
+			auto p = plan.problem;
+			stderr.writeln (p);
+/*
+			foreach (goal_move; plan.goal_moves)
+			{
+				writeln (goal_move.word.map !(a => to !(char)
+				    ((a & BoardCell.IS_ACTIVE) ? '*' :
+				    a + 'a')).array, '!',
+				    goal_move.tiles_before);
+			}
+*/
+			auto game = new Game !(Trie) (t, s, plan);
+			auto start = GameState (p);
+			start.tiles.target_board = plan.target_board;
+			int cur_width = 2500;
+			int cur_depth = 0;
+			stderr.writeln (plan);
+			stderr.flush ();
+			auto next = game_beam_search
+			    ([start], game, cur_width, cur_depth);
+			log_progress (p, next);
 		}
 		return;
 	}
@@ -1504,6 +1531,18 @@ void main (string [] args)
 		return;
 	}
 
+/*
+	foreach (i; 0..LET)
+	{
+		auto p = ps.problem[i];
+		[GameState (p)]
+		    .game_beam_search (new Game !(Trie) (t, s), 10, 0)
+		    .board.writeln;
+		stdout.flush ();
+	}
+	return;
+*/
+
 // /*
 	foreach (i; 0..LET)
 	{
@@ -1562,18 +1601,6 @@ void main (string [] args)
 		cur.tiles.target_board = plan.target_board;
 		auto next = game_beam_search ([cur], game, 100, 0);
 		log_progress (p, next);
-	}
-	return;
-*/
-
-/*
-	foreach (i; 0..1)
-	{
-		auto p = ps.problem[i];
-		[GameState (p)]
-		    .game_beam_search (new Game !(Trie) (t, s), 10, 0)
-		    .writeln;
-		stdout.flush ();
 	}
 	return;
 */

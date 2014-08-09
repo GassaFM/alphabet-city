@@ -41,6 +41,7 @@ Guide build_full_guide (Problem problem, ref GameState cur)
 	Board check_board;
 
 	auto tiles_by_letter = new byte [] [LET + 1];
+	byte tiles_before = 0;
 
 	auto temp = GameState (problem);
 	foreach (num, tile; temp.tiles)
@@ -56,6 +57,7 @@ Guide build_full_guide (Problem problem, ref GameState cur)
 		{
 			check_board.flip ();
 		}
+		cur_move.tiles_before = tiles_before;
 		foreach (pos, ref tile; cur_move.word)
 		{
 			byte row = cur_move.row;
@@ -69,6 +71,7 @@ Guide build_full_guide (Problem problem, ref GameState cur)
 			}
 			if (tile.active)
 			{
+				tiles_before++;
 				auto let = tile.wildcard ? LET : tile.letter;
 				assert (!tiles_by_letter[let].empty);
 				byte num = tiles_by_letter[let].front;
@@ -106,33 +109,32 @@ Guide reduce_guide (Dict) (Guide guide,
 			play_moves_sequence !(Trie, RackUsage.Fake)
 			    (dict, global_scoring, temp,
 			    guide.moves_history[0..num]);
-			writeln ("1: ", temp);
 			assert (temp.board.score != NA);
 			play_moves_sequence !(Trie, RackUsage.Fake)
 			    (dict, global_scoring, temp,
 			    reduced_moves_history.retro ());
-			writeln ("2: ", temp);
 			if (temp.board.score != NA)
 			{
 				continue;
 			}
-			writeln ("! ", cur_move, ' ', reduced_moves_history);
 		}
 
 		reduced_moves_history ~= cur_move;
-/*
-		writeln (cur_move, ' ', cur_move.row, ' ',
-		    cur_move.col, ' ', cur_move.is_flipped);
-*/
 		foreach (pos, ref tile; cur_move.word)
 		{
 			byte row = cur_move.row;
 			byte col = cast (byte) (cur_move.col + pos);
 
-			target_board.place (!cur_move.is_flipped ?
+			byte tile_pos = (!cur_move.is_flipped ?
 			    guide.target_board.tile_number[row][col] :
-			    guide.target_board.tile_number[col][row],
-			    row, col, cur_move.is_flipped);
+			    guide.target_board.tile_number[col][row]);
+			assert (tile_pos != NA);
+			assert ((0 <= tile_pos &&
+			    tile_pos < problem.contents.length) ||
+			    (0 <= tile_pos - byte.min &&
+			    tile_pos - byte.min < problem.contents.length));
+			target_board.place
+			    (tile_pos, row, col, cur_move.is_flipped);
 
 			if (cur_move.is_flipped)
 			{
@@ -142,6 +144,8 @@ Guide reduce_guide (Dict) (Guide guide,
 			    guide.check_board[row][col];
 		}
 	}
+
+	reverse (reduced_moves_history);
 
 	return Guide (target_board, check_board, reduced_moves_history);
 }
