@@ -135,3 +135,5 @@ Notes:
 Notes:
 1. [r1214] Add score for active letters in the rack to the value
   of a game state.
+2. Make beam search store best states by score along best states by value.
+  This way, it will be possible to start moving towards checkpoints later.
