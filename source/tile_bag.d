@@ -219,7 +219,7 @@ final class TargetBoard
 		}
 	}
 
-	this (long tiles_length)
+	this (T: long) (T tiles_length)
 	{
 		coord = new Coord [tiles_length];
 	}

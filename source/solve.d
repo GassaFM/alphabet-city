@@ -510,6 +510,8 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
     int max_score_gap, int refine_steps,
     int start_width, int max_width, int delta_width, int cur_depth)
 {
+	immutable int MAX_IMPROVE_GAP = 50;
+
 	auto p = plan.problem;
 	auto game = new Game !(Trie) (t, s, plan);
 	auto start = GameState (p);
@@ -534,6 +536,12 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 				return true;
 			}
 			found = true;
+			if (next.board.score + MAX_IMPROVE_GAP >=
+			    m.best[p.short_name].board.score)
+			{
+				improve_game (p, t, s,
+				    next, cur_width, cur_depth);
+			}
 			break;
 		}
 		next.board.normalize ();
@@ -571,6 +579,12 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 		if (prev_score < next.board.score)
 		{
 			prev_score = next.board.score;
+			if (next.board.score + MAX_IMPROVE_GAP >=
+			    m.best[p.short_name].board.score)
+			{
+				improve_game (p, t, s,
+				    next, cur_width, cur_depth);
+			}
 		}
 		else
 		{
@@ -592,14 +606,14 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_GOALS = 5849; // 891
 	static immutable int MIN_SCORE_RATING = 2250;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 5;
-	static immutable int START_WIDTH = 1000;
+	static immutable int MAX_REFINE_STEPS = 3;
+	static immutable int START_WIDTH = 500;
 	static immutable int MAX_WIDTH = 8000;
 	static immutable int DELTA_WIDTH = 50;
 	static immutable int MAX_DEPTH = 0;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 210;
+	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
 	
 	TileCounter total_counter = GameState (p).tiles.counter;
@@ -682,11 +696,16 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	}
 	GC.collect ();
 
+	sort !((a, b) => a.sketch_value * 1 + a.score_rating * 1 >
+	    b.sketch_value * 1 + b.score_rating * 1,
+	    SwapStrategy.stable) (plans);
+/*
 	sort !((a, b) => a.score_rating > b.score_rating ||
 	    (a.score_rating == b.score_rating &&
 	    a.sketch_value > b.sketch_value),
 //	    a.check_points.length < b.check_points.length),
 	    SwapStrategy.stable) (plans);
+*/
 	stderr.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].score_rating : -1, ' ',
 	    plans.length > 0 ? plans[$ - 1].score_rating : -1);
@@ -766,16 +785,16 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_DEPTH = 0;
 	static immutable int MAX_SIMILAR_PLANS = 1;
 	static immutable int MAX_CHECK_POINTS = 8;
-	static immutable int MAX_COUNTER = 300;
+	static immutable int MAX_COUNTER = 30;
 	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CENTER_REFINE_STEPS = 12;
 	static immutable int START_CENTER_WIDTH = 250;
-	static immutable int MAX_CENTER_WIDTH = 2000;
+	static immutable int MAX_CENTER_WIDTH = 1000;
 	static immutable int DELTA_CENTER_WIDTH = 50;
 	static immutable int MAX_CENTER_DEPTH = 0;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 300;
+	static immutable int MAX_INNER_COUNTER = 30;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
 	static immutable int MAX_ADDED_CHECK_POINTS = 2;
@@ -868,11 +887,16 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 	}
 
+	sort !((a, b) => a.plan.sketch_value * 1 + a.plan.score_rating * 1 >
+	    b.plan.sketch_value * 1 + b.plan.score_rating * 1,
+	    SwapStrategy.stable) (plans);
+/*
 	sort !((a, b) => a.plan.score_rating > b.plan.score_rating ||
 	    (a.plan.score_rating == b.plan.score_rating &&
 	    a.plan.sketch_value > b.plan.sketch_value),
 //	    a.plan.check_points.length < b.plan.check_points.length),
 	    SwapStrategy.stable) (plans);
+*/
 	stdout.writeln ("Problem ", p.name, ' ', plans.length, ' ',
 	    plans.length > 0 ? plans[0].plan.score_rating : -1, ' ',
 	    plans.length > 0 ? plans[$ - 1].plan.score_rating : -1);
@@ -965,6 +989,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 		}
 
+		Plan [] inner_plans;
 		int count0;
 		int count1;
 		int count2;
@@ -1014,7 +1039,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 */
 
-			writeln (goal3.score_rating);
+//			writeln (goal3.score_rating);
 			TileCounter counter_lo;
 			foreach_reverse (lo; 1..Board.CENTER + 1)
 			{
@@ -1089,81 +1114,51 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 					    !(a => to !(char)
 					    ((a & LET_MASK) + 'A'))
 					    .to !(string));
-					auto inner_plans =
+					foreach (ref inner_plan;
 					    [new Plan (p, [fat_plan.goal1,
 					    fat_plan.goal2, goal3], lo, hi),
 					    new Plan (p, [fat_plan.goal1,
 					    goal3, fat_plan.goal2], lo, hi),
 					    new Plan (p, [goal3,
 					    fat_plan.goal1, fat_plan.goal2],
-					    lo, hi)];
-					foreach (ref inner_plan; inner_plans)
+					    lo, hi)].filter !(a =>
+					    a.score_rating != NA &&
+					    a.check_points.length <=
+					    plan.check_points.length +
+					    MAX_ADDED_CHECK_POINTS))
 					{
-						if (inner_counter >=
-						    MAX_INNER_COUNTER)
-						{
-							break outer_loop;
-						}
-
-						if (inner_plan
-						    .score_rating == NA)
-						{
-							continue;
-						}
-
-						if (inner_plan.check_points
-						    .length > plan.check_points
-						    .length +
-						    MAX_ADDED_CHECK_POINTS)
-						{
-							continue;
-						}
-
-						stdout.writeln ("Entry: ",
-						    counter + 1, '.',
-						    inner_counter + 1);
-						stdout.flush ();
-						stderr.writeln ("Entry: ",
-						    counter + 1, '.',
-						    inner_counter + 1);
-						stderr.flush ();
-
-						scope (exit)
-						{
-							inner_counter++;
-						}
-
-/*
-						static immutable string []
-						    candidates = ["1.28"];
-//						    candidates = ["1.54",
-//						    "1.109", "2.109",
-//						    "5.12", "5.28", "5.39",
-//						    "5.40", "5.75"];
-						auto s_cur =
-						    to !(string)
-						    (counter + 1) ~ '.' ~
-						    to !(string)
-						    (inner_counter + 1);
-						if (find (candidates, s_cur)
-						    .empty)
-						{
-							continue;
-						}
-*/
-
-						run_plan (t, s, m, inner_plan,
-						    MAX_SCORE_GAP,
-						    MAX_CENTER_REFINE_STEPS,
-						    START_CENTER_WIDTH,
-						    MAX_CENTER_WIDTH,
-						    DELTA_CENTER_WIDTH,
-						    MAX_CENTER_DEPTH);
+						inner_plans ~= inner_plan;
 					}
 				}
 			}
 		}
 		writeln (count0, ' ', count1, ' ', count2, ' ', count3);
+
+		sort !((a, b) => a.sketch_value * 1 + a.score_rating * 1 >
+		    b.sketch_value * 1 + b.score_rating * 1,
+		    SwapStrategy.stable) (inner_plans);
+		foreach (inner_plan; inner_plans.take (MAX_INNER_COUNTER))
+		{
+			stdout.writeln ("Entry: ", counter + 1, '.',
+			    inner_counter + 1);
+			stdout.flush ();
+			stderr.writeln ("Entry: ", counter + 1, '.',
+			    inner_counter + 1);
+			stderr.flush ();
+
+			scope (exit)
+			{
+				inner_counter++;
+			}
+
+			run_plan (t, s, m, inner_plan,
+			    MAX_SCORE_GAP,
+			    MAX_CENTER_REFINE_STEPS,
+			    START_CENTER_WIDTH,
+			    MAX_CENTER_WIDTH,
+			    DELTA_CENTER_WIDTH,
+			    MAX_CENTER_DEPTH);
+		}
 	}
 }
 
@@ -1568,10 +1563,10 @@ void main (string [] args)
 	return;
 */
 
-/*
-	foreach (i; 0..LET)
+// /*
+	foreach_reverse (i; 0..LET)
 	{
-		if (i != 'S' - 'A')
+		if (i != 'H' - 'A')
 		{
 			continue;
 		}
@@ -1579,20 +1574,20 @@ void main (string [] args)
 		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
-*/
+// */
 
-// /*
+/*
 	foreach (i; 0..LET)
 	{
-		if (i != 'Y' - 'A')
-		{
-			continue;
-		}
+//		if (i != 'Y' - 'A')
+//		{
+//			continue;
+//		}
 		auto p = ps.problem[i];
 		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..LET)

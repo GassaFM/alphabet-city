@@ -137,3 +137,7 @@ Notes:
   of a game state.
 2. Make beam search store best states by score along best states by value.
   This way, it will be possible to start moving towards checkpoints later.
+
+20140811:
+Notes:
+1. Sort plans by value * coeff1 + score * coeff2.
