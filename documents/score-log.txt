@@ -250,9 +250,19 @@ improve 15_000:
 140810 O 3118 -> 3123 best 0.00-0.01
 140810 S 3062 -> 3063 no change
 140810 T 3075 -> 3080 best 0.00-0.01
+140810 U 3246 -> 3250 best 0.00-0.01
+140810 V 3171 -> 3172 best 0.00-0.01
 normal:
 140810 G 3027 -> 3044 best 0.00-0.01 SMK RZ down
+140810 T 3080 -> 3084 best 0.00-0.01
+140810 T 3084 -> 3089 best 0.00-0.01
+140810 U 3250 -> 3253 three! best 0.00-0.01
+140811 U 3253 -> 3342 three! best 0.02-0.03 ID MC RZ down SMK N/A
 
-Expected best:  ..CD.FG.I...MNO.QR.TU.WX.Z
+Expected best:  ..CD.FG.I...MNO.QR.TUVWX.Z
 Expected up:    .......H..................
-Unknown:        AB..E....JKL...P..S..V..Y.
+Unknown:        AB..E....JKL...P..S.....Y.
+
+                ABCDEFGHIJKLMNOPQRSTUVWXYZ
+Threes:         ..0..030..233..*.*-0*101.0
+. none, - fail, 0 zero, 1 one, 2 two, 3 three, * record

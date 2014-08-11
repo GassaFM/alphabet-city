@@ -236,6 +236,9 @@ private final class BeamSearch (int max_level,
 	    if (isForwardRange !(StateRange) &&
 	        (ElementType !(StateRange).init is State.init))
 	{
+		stderr.writeln ("beam search: width ", width,
+		    ", depth ", depth);
+		stderr.flush;
 		foreach (cur_state; init_states)
 		{
 			put (cur_state);

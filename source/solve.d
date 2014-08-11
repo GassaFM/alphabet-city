@@ -523,7 +523,6 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 		    (0, delta_width, random_gen);
 		stderr.writeln (plan);
 		stderr.writeln ("refine step: ", step + 1);
-		stderr.writeln ("width = ", cur_width);
 		stderr.flush ();
 		auto next = game_beam_search
 		    ([start], game, cur_width, cur_depth);
@@ -558,7 +557,6 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 		int cur_width = width + uniform !("[]")
 		    (0, delta_width, random_gen);
 		stderr.writeln (plan);
-		stderr.writeln ("width = ", cur_width);
 		stderr.flush ();
 		auto next = game_beam_search
 		    ([start], game, cur_width, cur_depth);
@@ -772,8 +770,8 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int PLANS_TO_DROP = 0;
 
 	static immutable int MAX_CENTER_REFINE_STEPS = 12;
-	static immutable int START_CENTER_WIDTH = 2000;
-	static immutable int MAX_CENTER_WIDTH = 8000;
+	static immutable int START_CENTER_WIDTH = 250;
+	static immutable int MAX_CENTER_WIDTH = 2000;
 	static immutable int DELTA_CENTER_WIDTH = 50;
 	static immutable int MAX_CENTER_DEPTH = 0;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
@@ -899,7 +897,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			continue;
 		}
 
-// /*
+/*
 		if (!(plan.goal_moves[0].to_masked_string ().toUpper () ==
 		    "UNEXCEPTIONABLY" &&
 //		    "DEMYTHOLOGIZERS" &&
@@ -913,7 +911,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		{
 			continue;
 		}
-// */
+*/
 
 		ulong cur_hash = 0;
 		foreach (goal_move; plan.goal_moves)
@@ -1004,7 +1002,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			}
 			count3++;
 
-// /*
+/*
 			if (goal3.word.map !(a => (a & LET_MASK) + 'A') ()
 			    .array () != "FORESIGHTEDNESS")
 //			    .array () != "THERMOCHEMISTRY")
@@ -1014,7 +1012,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 			{
 				continue;
 			}
-// */
+*/
 
 			writeln (goal3.score_rating);
 			TileCounter counter_lo;
@@ -1169,6 +1167,46 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 	}
 }
 
+void improve_game (Problem p_temp, Trie t, Scoring s,
+    ref GameState temp, int cur_width, int cur_depth)
+{
+	stderr.writeln ("improve ", cur_width, ' ', cur_depth);
+	stderr.writeln (p_temp.name, ' ', temp.board.score);
+	stderr.flush ();
+//	stderr.writeln (p_temp);
+	auto full_guide =
+	    build_full_guide (p_temp, temp);
+//	stderr.writeln (full_guide);
+	auto reduced_guide = reduce_guide
+	    (full_guide, p_temp, temp, t);
+//	stderr.writeln (reduced_guide);
+	stderr.flush ();
+
+	auto plan = new Plan (p_temp,
+	    reduced_guide.target_board,
+	    &reduced_guide.check_board,
+	    reduced_guide.moves_history
+	    .filter !(x => x.word.length == Board.SIZE));
+	auto p = plan.problem;
+//	stderr.writeln (p);
+/*
+	foreach (goal_move; plan.goal_moves)
+	{
+		writeln (goal_move.word.map !(a => to !(char)
+		    ((a & BoardCell.IS_ACTIVE) ? '*' :
+		    a + 'a')).array, '!',
+		    goal_move.tiles_before);
+	}
+*/
+	auto game = new Game !(Trie) (t, s, plan);
+	auto start = GameState (p);
+	start.tiles.target_board = plan.target_board;
+	stderr.writeln (plan);
+	stderr.flush ();
+	auto next = game_beam_search ([start], game, cur_width, cur_depth);
+	log_progress (p, next);
+}
+
 void main (string [] args)
 {
 	auto t = new Trie (read_all_lines ("data/words.txt"), 540_130);
@@ -1278,17 +1316,28 @@ void main (string [] args)
 
 	version (refine)
 	{
+		static immutable int DEFAULT_WIDTH = 10_000;
+		int cur_width = DEFAULT_WIDTH;
+		int cur_depth = 0;
 		int letters_todo = (1 << LET) - 1;
-		if (args.length > 1)
+		args.popFront (); // path to executable
+		while (!args.empty)
 		{
-			args.popFront ();
 			auto temp_str = args.front ();
 			args.popFront ();
-			letters_todo = 0;
-			foreach (let; temp_str)
+			try
 			{
-				enforce ('A' <= let && let <= 'Z');
-				letters_todo |= 1 << (let - 'A');
+				int temp = to !(int) (temp_str);
+				cur_width = temp;
+			}
+			catch (Exception)
+			{
+				letters_todo = 0;
+				foreach (let; temp_str)
+				{
+					enforce ('A' <= let && let <= 'Z');
+					letters_todo |= 1 << (let - 'A');
+				}
 			}
 		}
 
@@ -1335,19 +1384,16 @@ void main (string [] args)
 			}
 			stderr.writefln ("necessary guide (%s): %(%s, %)",
 			    gm2.length, gm2);
-			stderr.writeln (p_restricted.contents.count
-			    !("a >= 'a'") (), ' ', p_restricted);
+			stderr.writeln (p_restricted);
 			stderr.flush ();
 
 			game.moves_guide = necessary_guide;
 			game.problem = p_restricted;
 			game.forced_lock_wildcards = true;
-			int beam_width = 10000;
-			int beam_depth = 0;
 			stderr.writefln ("%s w=%s d=%s", p.name,
-			    beam_width, beam_depth);
+			    cur_width, cur_depth);
 			stderr.flush ();
-			game.play (beam_width, beam_depth,
+			game.play (cur_width, cur_depth,
 			    GameComplex.Keep.False);
 			log_progress (game);
 		}
@@ -1356,17 +1402,28 @@ void main (string [] args)
 
 	version (improve)
 	{
+		static immutable int DEFAULT_WIDTH = 10_000;
+		int cur_width = DEFAULT_WIDTH;
+		int cur_depth = 0;
 		int letters_todo = (1 << LET) - 1;
-		if (args.length > 1)
+		args.popFront (); // path to executable
+		while (!args.empty)
 		{
-			args.popFront ();
 			auto temp_str = args.front ();
 			args.popFront ();
-			letters_todo = 0;
-			foreach (let; temp_str)
+			try
 			{
-				enforce ('A' <= let && let <= 'Z');
-				letters_todo |= 1 << (let - 'A');
+				int temp = to !(int) (temp_str);
+				cur_width = temp;
+			}
+			catch (Exception)
+			{
+				letters_todo = 0;
+				foreach (let; temp_str)
+				{
+					enforce ('A' <= let && let <= 'Z');
+					letters_todo |= 1 << (let - 'A');
+				}
 			}
 		}
 
@@ -1379,41 +1436,9 @@ void main (string [] args)
 
 			auto p_temp = ps.problem[i];
 			auto temp = m.best["" ~ to !(char) (i + 'a')];
-//			stderr.writeln (p_temp);
-			auto full_guide =
-			    build_full_guide (p_temp, temp);
-//			stderr.writeln (full_guide);
-			auto reduced_guide = reduce_guide
-			    (full_guide, p_temp, temp, t);
-//			stderr.writeln (reduced_guide);
-			stderr.flush ();
 
-			auto plan = new Plan (p_temp,
-			    reduced_guide.target_board,
-			    &reduced_guide.check_board,
-			    reduced_guide.moves_history
-			    .filter !(x => x.word.length == Board.SIZE));
-			auto p = plan.problem;
-//			stderr.writeln (p);
-/*
-			foreach (goal_move; plan.goal_moves)
-			{
-				writeln (goal_move.word.map !(a => to !(char)
-				    ((a & BoardCell.IS_ACTIVE) ? '*' :
-				    a + 'a')).array, '!',
-				    goal_move.tiles_before);
-			}
-*/
-			auto game = new Game !(Trie) (t, s, plan);
-			auto start = GameState (p);
-			start.tiles.target_board = plan.target_board;
-			int cur_width = 10000;
-			int cur_depth = 0;
-			stderr.writeln (plan);
-			stderr.flush ();
-			auto next = game_beam_search
-			    ([start], game, cur_width, cur_depth);
-			log_progress (p, next);
+			improve_game (p_temp, t, s,
+			    temp, cur_width, cur_depth);
 		}
 		return;
 	}
@@ -1543,10 +1568,10 @@ void main (string [] args)
 	return;
 */
 
-// /*
+/*
 	foreach (i; 0..LET)
 	{
-		if (i != 'T' - 'A')
+		if (i != 'S' - 'A')
 		{
 			continue;
 		}
@@ -1554,12 +1579,12 @@ void main (string [] args)
 		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
-// */
+*/
 
-/*
+// /*
 	foreach (i; 0..LET)
 	{
-		if (i != 'K' - 'A')
+		if (i != 'Y' - 'A')
 		{
 			continue;
 		}
@@ -1567,7 +1592,7 @@ void main (string [] args)
 		put_three_plan (t, s, p, m, all_goals);
 	}
 	return;
-*/
+// */
 
 /*
 	foreach (i; 0..LET)

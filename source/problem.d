@@ -100,7 +100,8 @@ struct Problem
 
 	string toString () const
 	{
-		return name ~ ' ' ~ contents;
+		return name ~ " (" ~ to !(string) (count_restricted) ~ '/' ~
+		    to !(string) (contents.length) ~ ") " ~ contents;
 	}
 }
 
