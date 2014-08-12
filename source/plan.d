@@ -110,9 +110,11 @@ final class Plan
 			return;
 		}
 
-		stderr.writeln ("BAD!");
-		stderr.writeln (board);
-		stderr.flush ();
+		stderr.writeln ("plan refine warning: " ~
+		    "all checkpoints reached");
+//		stderr.writeln ("BAD!");
+//		stderr.writeln (board);
+//		stderr.flush ();
 		foreach (int num, ref check_point; check_points)
 		{
 			check_point.value += uniform !("[]")

@@ -260,11 +260,16 @@ normal:
 140811 U 3253 -> 3342 three! best 0.02-0.03 ID MC RZ down SMK N/A
 -------
 140811 T 3089 -> 3090 no change
+-------
+140812 S 3063 -> 3073 best 0.00-0.01 ID MC down SMK RZ N/A
+140813 J 3141 -> 3152 best 0.00-0.01 all N/A
+140813 P 3266 -> 3288 three! best 0.00-0.01 ID SMK MC down RZ N/A
+140813 J 3152 -> 3153 no change
 
-Expected best:  ..CD.FG.I...MNO.QR.TUVWX.Z
+Expected best:  ..CD.FG.IJ..MNOPQRSTUVWX.Z
 Expected up:    .......H..................
-Unknown:        AB..E....JKL...P..S.....Y.
+Unknown:        AB..E.....KL............Y.
 
                 ABCDEFGHIJKLMNOPQRSTUVWXYZ
-Threes:         ..0..030..233..*.*-0*10100
+Threes:         3.0.0030..233..*.*-0*10100
 . none, - fail, 0 zero, 1 one, 2 two, 3 three, * record

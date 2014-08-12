@@ -506,6 +506,13 @@ void generate_triples (Trie trie, Problem problem)
 	writeln (num1, ' ', num2, ' ', num3);
 }
 
+bool plan_better (Plan a, Plan b)
+{
+	return
+	    a.sketch_value * 1 + a.score_rating * 5 >
+	    b.sketch_value * 1 + b.score_rating * 5;
+}
+
 bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
     int max_score_gap, int refine_steps,
     int start_width, int max_width, int delta_width, int cur_depth)
@@ -529,6 +536,7 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 		auto next = game_beam_search
 		    ([start], game, cur_width, cur_depth);
 		log_progress (p, next);
+		next.board.normalize ();
 		if (next.board.total >= TOTAL_TILES - 2)
 		{
 			if (next.board.score < prev_score)
@@ -539,12 +547,13 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 			if (next.board.score + MAX_IMPROVE_GAP >=
 			    m.best[p.short_name].board.score)
 			{
+				int improve_width = max (2000, cur_width);
+				int improve_depth = min (0, cur_depth);
 				improve_game (p, t, s,
-				    next, cur_width, cur_depth);
+				    next, improve_width, improve_depth);
 			}
 			break;
 		}
-		next.board.normalize ();
 		plan.refine (next.board);
 	}
 	if (refine_steps == 0)
@@ -582,8 +591,10 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 			if (next.board.score + MAX_IMPROVE_GAP >=
 			    m.best[p.short_name].board.score)
 			{
+				int improve_width = max (2000, cur_width);
+				int improve_depth = min (0, cur_depth);
 				improve_game (p, t, s,
-				    next, cur_width, cur_depth);
+				    next, improve_width, improve_depth);
 			}
 		}
 		else
@@ -605,17 +616,17 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MAX_PLANS_LENGTH = 10_000_000;
 	static immutable int MAX_GOALS = 5849; // 891
 	static immutable int MIN_SCORE_RATING = 2250;
-	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 3;
-	static immutable int START_WIDTH = 500;
-	static immutable int MAX_WIDTH = 8000;
+	static immutable int MAX_SCORE_GAP = 100;
+	static immutable int MAX_REFINE_STEPS = 6;
+	static immutable int START_WIDTH = 2500;
+	static immutable int MAX_WIDTH = 10000;
 	static immutable int DELTA_WIDTH = 50;
 	static immutable int MAX_DEPTH = 0;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 300;
+	static immutable int MAX_COUNTER = 150;
 	static immutable int PLANS_TO_DROP = 0;
-	
+
 	TileCounter total_counter = GameState (p).tiles.counter;
 	bool try_plan (Plan plan)
 	{
@@ -696,8 +707,7 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	}
 	GC.collect ();
 
-	sort !((a, b) => a.sketch_value * 1 + a.score_rating * 1 >
-	    b.sketch_value * 1 + b.score_rating * 1,
+	sort !((a, b) => plan_better (a, b),
 	    SwapStrategy.stable) (plans);
 /*
 	sort !((a, b) => a.score_rating > b.score_rating ||
@@ -790,11 +800,11 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 
 	static immutable int MAX_CENTER_REFINE_STEPS = 12;
 	static immutable int START_CENTER_WIDTH = 250;
-	static immutable int MAX_CENTER_WIDTH = 1000;
+	static immutable int MAX_CENTER_WIDTH = 2000;
 	static immutable int DELTA_CENTER_WIDTH = 50;
 	static immutable int MAX_CENTER_DEPTH = 0;
 	static immutable int MAX_CENTER_GOALS = 1_000_000;
-	static immutable int MAX_INNER_COUNTER = 30;
+	static immutable int MAX_INNER_COUNTER = 100;
 	static immutable int MAX_CENTER_FORBIDDEN = 7;
 	static immutable int MIN_FIRST_MOVE = 1;
 	static immutable int MAX_ADDED_CHECK_POINTS = 2;
@@ -887,8 +897,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 	}
 
-	sort !((a, b) => a.plan.sketch_value * 1 + a.plan.score_rating * 1 >
-	    b.plan.sketch_value * 1 + b.plan.score_rating * 1,
+	sort !((a, b) => plan_better (a.plan, b.plan),
 	    SwapStrategy.stable) (plans);
 /*
 	sort !((a, b) => a.plan.score_rating > b.plan.score_rating ||
@@ -1134,8 +1143,7 @@ void put_three_plan (Trie t, Scoring s, Problem p, Manager m,
 		}
 		writeln (count0, ' ', count1, ' ', count2, ' ', count3);
 
-		sort !((a, b) => a.sketch_value * 1 + a.score_rating * 1 >
-		    b.sketch_value * 1 + b.score_rating * 1,
+		sort !((a, b) => plan_better (a, b),
 		    SwapStrategy.stable) (inner_plans);
 		foreach (inner_plan; inner_plans.take (MAX_INNER_COUNTER))
 		{
@@ -1169,15 +1177,14 @@ void improve_game (Problem p_temp, Trie t, Scoring s,
 	stderr.writeln (p_temp.name, ' ', temp.board.score);
 	stderr.flush ();
 //	stderr.writeln (p_temp);
-	auto full_guide =
-	    build_full_guide (p_temp, temp);
+	auto full_guide = build_full_guide (p_temp, temp);
 //	stderr.writeln (full_guide);
-	auto reduced_guide = reduce_guide
-	    (full_guide, p_temp, temp, t);
+	auto reduced_guide = reduce_guide (full_guide, p_temp, temp, t);
 //	stderr.writeln (reduced_guide);
 	stderr.flush ();
 
-	auto plan = new Plan (p_temp,
+	auto p_cur = Problem.clean (p_temp);
+	auto plan = new Plan (p_cur,
 	    reduced_guide.target_board,
 	    &reduced_guide.check_board,
 	    reduced_guide.moves_history
@@ -1440,6 +1447,57 @@ void main (string [] args)
 
 	if (args.length > 1)
 	{
+		args.popFront (); // path to executable
+		auto command_str = args.front;
+		args.popFront ();
+
+		int letters_todo = 0;
+		while (!args.empty)
+		{
+			auto temp_str = args.front;
+			args.popFront ();
+			letters_todo = 0;
+			foreach (let; temp_str)
+			{
+				enforce ('A' <= let && let <= 'Z');
+				letters_todo |= 1 << (let - 'A');
+			}
+		}
+		if (letters_todo == 0)
+		{
+			letters_todo = (1 << LET) - 1;
+		}
+
+		foreach (i; 0..LET)
+		{
+			if (!(letters_todo & (1 << i)))
+			{
+				continue;
+			}
+
+			auto p = ps.problem[i];
+			if (command_str == "two")
+			{
+				put_two_plan (t, s, p, m, all_goals);
+			}
+			else if (command_str == "three")
+			{
+				put_three_plan (t, s, p, m, all_goals);
+			}
+			else
+			{
+				enforce (false);
+			}
+		}
+		return;
+	}
+	else
+	{
+		enforce (false);
+	}
+/*
+	if (args.length > 1)
+	{
 		args.popFront ();
 		auto temp_str = args.front ();
 		args.popFront ();
@@ -1508,7 +1566,7 @@ void main (string [] args)
 			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
-			    cur_middle /* - 10 */, GameComplex.Keep.False,
+			    cur_middle, GameComplex.Keep.False,
 			    true, false, true);
 			log_progress (game);
 		}
@@ -1542,7 +1600,7 @@ void main (string [] args)
 			    game.goals);
 			stderr.flush ();
 			game.resume (beam_width * 2, beam_depth,
-			    cur_middle /* - 10 */, GameComplex.Keep.False,
+			    cur_middle, GameComplex.Keep.False,
 			    true, false, true);
 			log_progress (game);
 		}
@@ -1550,6 +1608,7 @@ void main (string [] args)
 		
 		return;
 	}
+*/
 
 /*
 	foreach (i; 0..LET)
@@ -1563,7 +1622,7 @@ void main (string [] args)
 	return;
 */
 
-// /*
+/*
 	foreach_reverse (i; 0..LET)
 	{
 		if (i != 'H' - 'A')
@@ -1574,15 +1633,15 @@ void main (string [] args)
 		put_two_plan (t, s, p, m, all_goals);
 	}
 	return;
-// */
+*/
 
 /*
 	foreach (i; 0..LET)
 	{
-//		if (i != 'Y' - 'A')
-//		{
-//			continue;
-//		}
+		if (i != 'E' - 'A')
+		{
+			continue;
+		}
 		auto p = ps.problem[i];
 		put_three_plan (t, s, p, m, all_goals);
 	}
