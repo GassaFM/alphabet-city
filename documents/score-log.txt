@@ -270,6 +270,16 @@ normal:
 140814 Y 3104 -> 3105 no change
 140814 Y 3105 -> 3109 up 0.00
 140814 (23:43 MSK) SMK best by 0.00-0.01 IK -0.00 GD MM WL -0.01 others N/A
+-------
+140814 Y 3109 -> 3116 up 0.00
+140814 Z 3181 -> 3185 up? + best 0.00-0.01 ID down
+140814 Q 3145 -> 3146 best 0.00-0.01 MC down
+140814 X 3143 -> 3166 best 0.00-0.01 SMK down others N/A
+140814 Q 3146 -> 3157 best 0.00-0.01
+140814 N 3099 -> 3163 best 0.01-0.02 ID SMK MC RZ down
+140814 (23:43 MSK) SMK up 1.00
+140814 Q 3157 -> 3159 best 0.00-0.01 SMK down
+140814 X 3166 -> 3170 best 0.00-0.01
 
 Expected best:  ..CD.FG.IJ..MNOPQRSTUVWX.Z
 Expected up:    .......H................Y.
