@@ -265,10 +265,15 @@ normal:
 140813 J 3141 -> 3152 best 0.00-0.01 all N/A
 140813 P 3266 -> 3288 three! best 0.00-0.01 ID SMK MC down RZ N/A
 140813 J 3152 -> 3153 no change
+-------
+140813 J 3153 -> 3177 best 0.00-0.01 SMK RZ down ID MC N/A
+140814 Y 3104 -> 3105 no change
+140814 Y 3105 -> 3109 up 0.00
+140814 (23:43 MSK) SMK best by 0.00-0.01 IK -0.00 GD MM WL -0.01 others N/A
 
 Expected best:  ..CD.FG.IJ..MNOPQRSTUVWX.Z
-Expected up:    .......H..................
-Unknown:        AB..E.....KL............Y.
+Expected up:    .......H................Y.
+Unknown:        AB..E.....KL..............
 
                 ABCDEFGHIJKLMNOPQRSTUVWXYZ
 Threes:         3.0.0030..233..*.*-0*10100
