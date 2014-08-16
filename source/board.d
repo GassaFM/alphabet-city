@@ -251,6 +251,26 @@ struct Board
 		{ // optimization
 			return 0;
 		}
+		if (cur_row > 0 &&
+		    !contents[cur_row - 1][cur_col].empty)
+		{
+			return 1;
+		}
+		if (cur_row + 1 < Board.SIZE &&
+		    !contents[cur_row + 1][cur_col].empty)
+		{
+			return 1;
+		}
+		if (cur_col > 0 &&
+		    !contents[cur_row][cur_col - 1].empty)
+		{
+			return 1;
+		}
+		if (cur_col + 1 < Board.SIZE &&
+		    !contents[cur_row][cur_col + 1].empty)
+		{
+			return 1;
+		}
 
 		static assert (Board.SIZE < int.sizeof * 8);
 		int res = Board.SIZE;

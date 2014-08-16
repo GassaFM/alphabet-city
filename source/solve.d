@@ -543,6 +543,7 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 			{
 				return true;
 			}
+			prev_score = next.board.score;
 			found = true;
 			if (next.board.score + MAX_IMPROVE_GAP >=
 			    m.best[p.short_name].board.score)
@@ -567,6 +568,53 @@ bool run_plan (Trie t, Scoring s, Manager m, ref Plan plan,
 	if (!found)
 	{
 		return false;
+	}
+
+	if (refine_steps > 0)
+	{
+		start_width >>= 1;
+		enhance_loop:
+		while (true)
+		{
+			for (byte row = 5; row <= 9; row += 4)
+			{
+				for (byte col = 5; col <= 9; col += 4)
+				{
+					auto eplan = new Plan (plan);
+					if (!eplan.enhance (row, col))
+					{
+						continue;
+					}
+					auto ep = eplan.problem;
+					auto egame = new Game !(Trie)
+					    (t, s, eplan);
+					auto estart = GameState (ep);
+					estart.tiles.target_board =
+					    eplan.target_board;
+					int cur_width = start_width +
+					    uniform !("[]")
+					    (0, delta_width, random_gen);
+					stderr.writeln (eplan);
+					stderr.flush ();
+					auto next = game_beam_search
+					    ([estart], egame,
+					    cur_width, cur_depth);
+					log_progress (ep, next);
+					next.board.normalize ();
+					if (prev_score < next.board.score)
+					{
+						prev_score = next.board.score;
+						plan = eplan;
+						start = estart;
+						p = ep;
+						game = egame;
+						continue enhance_loop;
+					}
+				}
+			}
+			break;
+		}
+		start_width <<= 1;
 	}
 
 	for (int width = start_width; width <= max_width; width <<= 1)
@@ -614,12 +662,14 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	Plan [] plans;
 
 	static immutable int MAX_PLANS_LENGTH = 10_000_000;
+//	static immutable int MAX_GOALS = 1000;
 	static immutable int MAX_GOALS = 5849; // 891
 	static immutable int MIN_SCORE_RATING = 2250;
-	static immutable int MAX_SCORE_GAP = 100;
-	static immutable int MAX_REFINE_STEPS = 6;
-	static immutable int START_WIDTH = 2500;
-	static immutable int MAX_WIDTH = 10000;
+//	static immutable int MAX_SCORE_GAP = 250;
+	static immutable int MAX_SCORE_GAP = 150;
+	static immutable int MAX_REFINE_STEPS = 3;
+	static immutable int START_WIDTH = 500;
+	static immutable int MAX_WIDTH = 2000;
 	static immutable int DELTA_WIDTH = 50;
 	static immutable int MAX_DEPTH = 0;
 	static immutable int MAX_SIMILAR_PLANS = 9999;

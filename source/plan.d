@@ -24,7 +24,8 @@ struct CheckPoint
 	byte col;
 	int value;
 
-	this (T1, T2) (T1 new_tile, T2 new_row, T2 new_col, bool is_flipped,
+	this (T1: long, T2: long)
+	    (T1 new_tile, T2 new_row, T2 new_col, bool is_flipped,
 	    int new_value)
 	{
 		if (is_flipped)
@@ -59,6 +60,7 @@ final class Plan
 	static immutable int RANDOM_DELTA = 25 * 1;
 	static immutable int RANDOM_ADD_LO = 60 * 2;
 	static immutable int RANDOM_ADD_HI = 120 * 2;
+	static immutable int ENHANCE_VALUE = 40;
 
 	GameMove [] goal_moves;
 	CheckPoint [] check_points;
@@ -67,6 +69,17 @@ final class Plan
 	TargetBoard target_board;
 	int score_rating = NA;
 	int sketch_value;
+
+	this (Plan other)
+	{
+		goal_moves = other.goal_moves.dup;
+		check_points = other.check_points.dup;
+		problem = other.problem;
+		check_board = other.check_board;
+		target_board = new TargetBoard (other.target_board);
+		score_rating = other.score_rating;
+		sketch_value = other.sketch_value;
+	}
 
 	void refine (Board board)
 	{
@@ -110,11 +123,11 @@ final class Plan
 			return;
 		}
 
-		stderr.writeln ("plan refine warning: " ~
-		    "all checkpoints reached");
 //		stderr.writeln ("BAD!");
 //		stderr.writeln (board);
-//		stderr.flush ();
+		stderr.writeln ("plan refine warning: " ~
+		    "all checkpoints reached");
+		stderr.flush ();
 		foreach (int num, ref check_point; check_points)
 		{
 			check_point.value += uniform !("[]")
@@ -122,6 +135,60 @@ final class Plan
 			check_point.value =
 			    max (check_point.value, RANDOM_ADD_HI);
 		}
+	}
+
+	bool enhance (byte row, byte col)
+	{
+		if (target_board.tile_number[row][col] != NA)
+		{
+			return false;
+		}
+		byte best_pos = NA;
+		int best_val = 0;
+		foreach_reverse (pos, let; problem.contents)
+		{
+			if (pos * 2 < problem.contents.length)
+			{
+				break;
+			}
+			if (let & TileBag.IS_RESTRICTED)
+			{
+				continue;
+			}
+			int val = global_scoring.tile_value
+			    [(let == '?') ? LET : ((let - 'A') & LET_MASK)];
+			if (val > best_val)
+			{
+				best_pos = cast (byte) (pos);
+				best_val = val;
+			}
+		}
+		if (best_pos == NA)
+		{
+			return false;
+		}
+
+		stderr.writeln ("plan enhahce: found tile ",
+		    problem.contents[best_pos], " of value ",
+		    best_val, " at position ", best_pos,
+		    " to place at (", row, ", ", col, ")");
+		stderr.flush ();
+		check_board.normalize_flip ();
+		BoardCell tile = (problem.contents[best_pos] - 'A') & LET_MASK;
+		check_board[row][col] = tile;
+		target_board.place (best_pos, row, col, false);
+		char [] temp_contents = problem.contents.dup;
+		temp_contents[best_pos] |= TileBag.IS_RESTRICTED;
+		problem.contents = to !(string) (temp_contents);
+		check_points ~= CheckPoint (best_pos, row, col,
+		    false, ENHANCE_VALUE);
+		version (verbose)
+		{
+			writeln (check_board);
+			writeln (target_board);
+			stdout.flush ();
+		}
+		return true;
 	}
 
 	this (ref Problem new_problem, Goal [] new_goals,

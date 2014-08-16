@@ -175,6 +175,102 @@ final class Game (DictClass)
 		return false;
 	}
 
+	int put_value (ref GameState cur,
+	    int value, int row, int col, bool is_flipped)
+	{
+		if (cur.board.is_flipped != is_flipped)
+		{
+			swap (row, col);
+		}
+
+		int s_row = row;
+		while (s_row > 0 &&
+		    !cur.board[s_row - 1][col].empty)
+		{
+			s_row--;
+			int letter = (cur.board[s_row][col].wildcard ? LET :
+			    cur.board[s_row][col].letter);
+		}
+
+		int t_row = row;
+		while (t_row + 1 < Board.SIZE &&
+		    !cur.board[t_row + 1][col].empty)
+		{
+			t_row++;
+			int letter = (cur.board[t_row][col].wildcard ? LET :
+			    cur.board[t_row][col].letter);
+		}
+
+		int s_col = col;
+		while (s_col > 0 &&
+		    !cur.board[row][s_col - 1].empty)
+		{
+			s_col--;
+			int letter = (cur.board[row][s_col].wildcard ? LET :
+			    cur.board[row][s_col].letter);
+		}
+
+		int t_col = col;
+		while (t_col + 1 < Board.SIZE &&
+		    !cur.board[row][t_col + 1].empty)
+		{
+			t_col++;
+			int letter = (cur.board[row][t_col].wildcard ? LET :
+			    cur.board[row][t_col].letter);
+		}
+
+		BoardCell cur_cell =
+		    (cur.board.is_flipped == plan.check_board.is_flipped) ?
+		    plan.check_board[row][col] : plan.check_board[col][row];
+		GameMove check_move;
+		if (s_col < t_col)
+		{
+			check_move = new GameMove ();
+			check_move.start_at
+			    (cast (byte) (row), cast (byte) (s_col));
+			check_move.is_flipped = cur.board.is_flipped;
+			check_move.word.length = t_col - s_col + 1;
+			foreach (cur_col; s_col..t_col + 1)
+			{
+				check_move.word[cur_col - s_col] =
+				    cur.board[row][cur_col];
+			}
+			check_move.word[col - s_col] =
+			    cur_cell | BoardCell.IS_ACTIVE;
+		}
+		else if (s_row < t_row)
+		{
+			check_move = new GameMove ();
+			check_move.start_at
+			    (cast (byte) (s_row), cast (byte) (col));
+			check_move.is_flipped = !cur.board.is_flipped;
+			check_move.word.length = t_row - s_row + 1;
+			foreach (cur_row; s_row..t_row + 1)
+			{
+				check_move.word[cur_row - s_row] =
+				    cur.board[cur_row][col];
+			}
+			check_move.word[row - s_row] =
+			    cur_cell | BoardCell.IS_ACTIVE;
+		}
+		
+		if (check_move !is null)
+		{
+			GameState temp = cur;
+			play_move !(DictClass, RackUsage.Ignore)
+			    (dict, scoring, temp, check_move);
+			if (temp.board.score == NA)
+			{
+				return NA;
+			}
+			return temp.board.score - cur.board.score;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
 	int calc_value (ref GameState cur)
 	{
 		int res = cur.board.score;
@@ -411,8 +507,26 @@ final class Game (DictClass)
 			{
 //				int d = cur.board.distance_to_covered_adjacent
 //				int d = cur.board.distance_to_covered
-				int d = cur.board.distance_to_covered_no_horiz
-				    (check_point.row, check_point.col, false);
+//				int d = cur.board.distance_to_covered_no_horiz
+//				    (check_point.row, check_point.col, false);
+				bool is_lone_point = !(check_point.row == 0 ||
+				    check_point.row == Board.CENTER ||
+				    check_point.row == Board.SIZE - 1);
+				int d;
+				if (is_lone_point)
+				{
+					d = cur.board
+					    .distance_to_covered
+					    (check_point.row, check_point.col,
+					    false);
+				}
+				else
+				{
+					d = cur.board
+					    .distance_to_covered_no_horiz
+					    (check_point.row, check_point.col,
+					    false);
+				}
 				int d2 = d;
 				if (check_point.row - 2 >= 0)
 				{
@@ -428,6 +542,10 @@ final class Game (DictClass)
 					    (check_point.row + 2,
 					    check_point.col, false));
 				}
+				if (is_lone_point)
+				{
+					d2 = d;
+				}
 //				d = max (0, d - 1);
 //				d2 = max (0, d2 - 1);
 				int time_left = check_point.tile -
@@ -436,7 +554,8 @@ final class Game (DictClass)
 				time_left = min (time_left, 32);
 				int value = check_point.value *
 				    (16 + 32 - time_left);
-				if (rows_visited_mask & (1 << check_point.row))
+				if (!is_lone_point &&
+				    rows_visited_mask & (1 << check_point.row))
 				{
 //					value *= 1;
 					value *= 2;
@@ -450,7 +569,7 @@ final class Game (DictClass)
 				    (20 - d2)) /
 				    (480 * 1); // 480 is a single-tile value
 //				if (d > 0)
-				if (d > 1)
+				if (!is_lone_point && d > 1)
 				{
 //					sub = min (1, sub + 1);
 					sub = min (2, sub + 1);
@@ -463,6 +582,19 @@ final class Game (DictClass)
 					sub = max (2, sub + 1);
 				}
 */
+				if (is_lone_point && d == 1)
+				{
+					int point_value = put_value (cur,
+					    global_scoring.tile_value
+					    [cur.tiles[check_point.tile] &
+					    LET_MASK], check_point.row,
+					    check_point.col, false);
+					if (point_value == NA)
+					{
+						return NA;
+					}
+					res += point_value;
+				}
 			}
 		}
 
@@ -587,7 +719,7 @@ unittest
 	void test_planned_wildcard_start ()
 	{
 		auto p = Problem ("?:",
-		    "AELSNEARTOAIE" ~ "AELSNRAETOAIE" ~
+		    "AELSNEARTOAIE" ~ "AELSNRAUETOAIE" ~
 		    "OXYP?ENBUTAZONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, [goal]);
@@ -636,7 +768,7 @@ unittest
 	void test_planned_wildcard_many ()
 	{
 		auto p = Problem ("?:",
-		    "AELSNEARTOAIE" ~ "?ELBSNECARTOAI?" ~
+		    "AELSNEARTOAIE" ~ "?ELABSNECARTOAI?" ~
 		    "OXYP?ENBUTA?ONE");
 		auto goal = new Goal ("OXYPhenButaZonE", 0, 0, false);
 		auto plan = new Plan (p, [goal]);
