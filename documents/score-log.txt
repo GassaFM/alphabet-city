@@ -287,10 +287,12 @@ normal:
 -------
 140817 G 3044 -> 3058 best 0.00-0.01
 140817 F 3175 -> 3190 best 0.00-0.01
+140817 K 3167 -> 3175 best 0.00-0.01
+140817 V 3172 -> 3173 best 0.00-0.01
 
-Expected best:  ..CDEFG.IJ..MNOPQRSTUVWX.Z
+Expected best:  ..CDEFG.IJK.MNOPQRSTUVWX.Z
 Expected up:    .......H................Y.
-Unknown:        AB........KL..............
+Unknown:        AB.........L..............
 
                 ABCDEFGHIJKLMNOPQRSTUVWXYZ
 Threes:         3.0.0030..233..*0*-0*10100
