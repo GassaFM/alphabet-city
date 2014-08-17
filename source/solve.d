@@ -667,14 +667,14 @@ void put_two_plan (Trie t, Scoring s, Problem p, Manager m,
 	static immutable int MIN_SCORE_RATING = 2250;
 //	static immutable int MAX_SCORE_GAP = 250;
 	static immutable int MAX_SCORE_GAP = 150;
-	static immutable int MAX_REFINE_STEPS = 3;
-	static immutable int START_WIDTH = 500;
-	static immutable int MAX_WIDTH = 2000;
+	static immutable int MAX_REFINE_STEPS = 2;
+	static immutable int START_WIDTH = 275;
+	static immutable int MAX_WIDTH = 2200;
 	static immutable int DELTA_WIDTH = 50;
 	static immutable int MAX_DEPTH = 0;
 	static immutable int MAX_SIMILAR_PLANS = 9999;
 	static immutable int MAX_CHECK_POINTS = 99;
-	static immutable int MAX_COUNTER = 150;
+	static immutable int MAX_COUNTER = 300;
 	static immutable int PLANS_TO_DROP = 0;
 
 	TileCounter total_counter = GameState (p).tiles.counter;

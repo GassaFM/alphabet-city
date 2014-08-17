@@ -280,10 +280,14 @@ normal:
 140814 (23:43 MSK) SMK up 1.00
 140814 Q 3157 -> 3159 best 0.00-0.01 SMK down
 140814 X 3166 -> 3170 best 0.00-0.01
+-------
+140817 S 3073 -> 3098 best 0.00-0.01
+140817 D 3084 -> 3087 best 0.00-0.01
+140817 E 3224 -> 3230 best 0.00-0.01 ID SMK down MC RZ N/A
 
-Expected best:  ..CD.FG.IJ..MNOPQRSTUVWX.Z
+Expected best:  ..CDEFG.IJ..MNOPQRSTUVWX.Z
 Expected up:    .......H................Y.
-Unknown:        AB..E.....KL..............
+Unknown:        AB........KL..............
 
                 ABCDEFGHIJKLMNOPQRSTUVWXYZ
 Threes:         3.0.0030..233..*.*-0*10100
