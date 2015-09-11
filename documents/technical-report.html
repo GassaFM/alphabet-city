@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<title>Al Zimmermann's Alphabet City Contest &mdash; Technical Report</title>
+</head>
+<body>
+<p>Al Zimmermann's Alphabet City Contest &mdash; Technical Report</p>
+
+<p>
+This report currently assumes quite a familiarity with
+<a href="http://azspcs.net/Contest/AlphabetCity/">the contest</a>.
+Also, it is just converted from a post in the
+<a href="https://groups.yahoo.com/neo/groups/AlZimmermannsProgrammingContests/conversations/messages">discussion group</a>,
+so a bit of context goes from there.
+</p>
+
+<p>
+Here's a brief overview of what my program was able to do.
+</p>
+
+<h3>
+0. Things I did not do.
+</h3>
+
+<p>
+I had no GADDAG implemented, just a trie, see below.  I was curious of DAWG or GADDAG, and it would have helped with the speed, and thus allow better search parameters, but I had unimplemented problem-level ideas all the way, and these usually turn out to outperform optimization-level ideas.  There's no point in a 100x speedup when your program can't choose the right words to put, right?
+</p>
+
+<p>
+Also, I had no visualizer since Al's online visualizer was enough for me to see whether everything went as planned, and look for potential improvements.  When it was not enough, I switched to debugging with textual views of the board.
+</p>
+
+<h3>
+1. First steps: Beam Search.
+</h3>
+
+<p>
+The basic technique for the entire contest is <a href="http://en.wikipedia.org/wiki/Beam_search">Beam Search</a>.  In simple terms, for every number N in [0..100] of letters on the board, we store W best boards with N letters on the board (best in terms of score).  Another view is that it is a breadth-first search keeping W best results on each level.  Here, W is the width of the search.  For my program, it was on the order of 50 to 40,000, most runs were made with widths 250 to 1000.  A single successful width-50 search with no other constraints takes a few seconds on my Core i7.  I believe that's slow, and other contestants perhaps have programs which would be orders of magnitude faster (or consequently, of much higher width within the same time).  The result of such a run has a score of 900-1200.
+</p>
+
+<h3>
+2. Generating next moves.
+</h3>
+
+<p>
+To generate all moves from a certain position, I used my trusted
+(see <a href="http://acm.math.spbu.ru/~gassa/slides/words-search-talk.en.pdf">my report</a>
+for the 2007 <a href="http://recmath.org/contest/WordsSearch/index.php">Words Search</a> contest) compressed trie which turns out to be about 8 MB in size for the given dictionary.  We store the nodes of the trie in an array.  The twist is that we build the trie by breadth-first search over all the words in the dictionary.  This allows us to put each node's children together in the array.  So, instead of 26 pointers to different parts of the array, we are good to go with one pointer to the start of the children block and one 26-bit mask specifying which children are present.  A transition involves a bitwise AND with that mask and a POPCNT of what's left, all O(1) operations on modern hardware.  I believe this implementation is a reasonable compromise between size (cache misses => slow) and speed (too much instructions per transition => slow).
+Here is <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/source/trie.d#L12-L128">the code</a>.
+</p>
+
+<h3>
+3. OXYPHENBUTAZONE.
+</h3>
+
+<p>
+The basic search suggested that most score points result from putting two tiles on Triple-Word cells simultaneously.  Naturally, it looked like covering three such cells simultaneously would be a big win.  So, I introduced goals.  In the middle of implementing that, people started reporting that it is possible on the list, so I was motivated to continue.
+</p>
+
+<p>
+A goal is a 15-letter word along with the position where I want it to be placed, and a mask specifying which of the letters are restricted, that is, must be placed simultaneously after all other letters are present.  The other letters must either be single or form dictionary words.  It is mandatory that letters 1, 8 and 15 are restricted.  It is good when letters 4 and 11 are restricted, since there are Double-Letter bonuses beneath them.  There turned out to be a bit more than 3000 words and a bit more than 100,000 valid (word, mask) pairs.  Each such pair has a guaranteed score associated with it.
+</p>
+
+<p>
+This list of goals looks like:<br/>
+<tt>
+-----<br/>
+OxYPHenButaZonE 1508 7<br/>
+OxYPhEnButaZonE 1508 7<br/>
+OxYPheNButaZonE 1508 7<br/>
+...<br/>
+TrinITrOtoluEnE 405 6<br/>
+TrinItROtoluEnE 405 6<br/>
+-----<br/>
+</tt>
+Here, the uppercase letters are the restricted letters.  The numbers are the score (all bonuses and +50 for a bingo included) and the number of restricted letters.
+</p>
+
+<p>
+After discovering that OXYPHENBUTAZONE is both an easy and a high-scoring word (X|Y, HEN, UTA, ON are usually the non-restricted parts), I got something like 2000-2400 for each bag.
+</p>
+
+<h3>
+4. Value is not just Score.
+</h3>
+
+<p>
+The beam search picks W "best" boards on each level.  The "value" function to determine what's "best" was just the score of the board initially.  Later, this function was separated from the score.  Of course the base value is the score, but we could now do some tweaks to help the distant purposes of our search.
+</p>
+
+<p>
+After each successful move, my search now checked whether the goal is still possible to achieve (value = -1 if not).  It also added to the value all the score I would get if I somehow placed the goal word immediately.  This allows to build words "hanging" on the future goal word in advance.  One downside to this is that it is always required that both the hanging word with the restricted goal letter and the hanging word without it are valid dictionary words.  This limitation remained in my program until the end of the contest.
+</p>
+
+<p>
+To help approach the goal, I introduced a bias: every cell close to the goal word adds some points to the value. The final scheme for the bias was the following. Suppose the goal is at line 1.  Now, for each column, find the uppermost covered cell in it.  If it is at row 7, add 1 * C points to the value. If it is at row 6, add 2 * C points, and so on to 7 * C points if the covered cell is at row 1.  Also, a few more points were given for each non-restricted letter of the goal which was put successfully.  A similar scheme applied if the goal is at row 15.
+</p>
+
+<h3>
+5. Refining a solution.
+</h3>
+
+<p>
+When we successfully put an OXYPHENBUTAZONE, we will most likely make some unnecessary moves: the moves which can be removed and played elsewhere.  After all, the upper part of the board is 105 cells, and we have 100 tiles.  Surely they don't all go there.
+</p>
+
+<p>
+So, we make a carcass of the necessary moves, and then replay the remaining letters freely.  Now, we don't have to add bias and goal tweaks to the value, since the required moves are already fixed.  Of course, after each new move, we check that all the remaining required moves are still possible.  As a result, this usually allows to get a few more points.
+</p>
+
+<h3>
+6. REMYTHOLOGIZING SESQUICARBONATE.
+</h3>
+
+<p>
+After it became easy for my program to put an OXYPHENBUTAZONE in place, leaving quite a few tiles for refinement, I wondered whether two goal words were possible.  Again, when I was toying with the idea, people on the list reported it's already done for some of the bags, so I went on with the implementation.
+</p>
+
+<p>
+First, we pick two goal words: one from the start of the problem's 100 letters and another from the end, so that they don't intersect.  After that, we try to put the first word, just like we put OXYPHENBUTAZONE before.  If we succeed, we fix the necessary moves for that word and run another search with an opposite bias to place the second word.  If we succeed once more, we may refine the whole solution, fixing the moves required for both goal words.
+</p>
+
+<p>
+This approach allowed me to get to the top near the first month's end, giving an average score of 2990.  Still, it didn't look like the best approach one is able to come up with. I expected my result at that time to finish 5th.  Looks like in fact it would be 4th, between Gil Dogon and Stuart Martin Klimek.  Anyway, I motivated myself by thinking my current result will be soon beaten.
+</p>
+
+<p>
+The main improvement I dreamed of was to be able to construct the two goal words simultaneously: bring a letter to row 1, then two letters to row 15, then a few more to row 1, and so on.  Obviously, the technique I used so far (adding bias to one of the sides of the board) won't help here.  Also, when the letters of the two goals intersected (last letter of the first goal not earlier than first letter of the second goal), I had no way to check whether that was even possible.
+</p>
+
+<h3>
+7. The rewrite of my program.
+</h3>
+
+<p>
+At this point, my program became hard to maintain.
+I wanted to introduce the third goal word at the center for a 9x bonus.
+I wanted to try finding words of moderate length which can lie next
+to goal words (at rows 2 and 14), so that it would be easier to approach
+the goals (didn't get to it until the end of the contest).
+I had <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/documents/plan.txt#L1-L79">a few more ideas</a> to try.
+And I implemented them with a bit of thought, but not too much of it.
+As a result, all the ideas and tweaks turned into
+a <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/source/game_complex.d">twisted 1000+ lines monster</a>,
+and it took hours to introduce a new one.
+</p>
+
+<p>
+I decided to start from scratch and implement most parts of the engine
+once more. 
+The upside was that now I knew what are the parts of my program
+which proved useful, and could separate them better.
+For example, I separated <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/source/search/beam.d">beam search</a>
+from <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/source/play.d">move generation</a>
+and the <a href="https://github.com/GassaFM/alphabet-city/blob/contest-finish/source/game.d">general flow</a> of the game.
+The new implementation took a few weeks, and was a bit slower initially, but it turned out to be a lot more open to improvements.  The old implementation remained runnable side-by-side with the new one, and the part refining existing solutions was useful until the end of the contest.
+</p>
+
+<p>
+In the meantime, Wes Sampson took the first place again, proving that I was right to worry about my current score.
+</p>
+
+<h3>
+8. The new approach.
+</h3>
+
+<p>
+My new approach which was working until the end of the contest is a multi-step process.
+</p>
+
+<p>
+First, we select two goal words.  They are used to build a Sketch: which 30 of the 100 tiles will go to cover the letters of our two goal words.  At this point, we pretend there is nothing on the board except the two goal rows, and we can put the letters in these rows immediately.  Many positions are tried in a recursive fashion by starting from the latest possible tiles and then substituting them by earlier ones.  Each configuration which does not look surely impossible is given a score, and the best-scoring one becomes the Sketch.
+</p>
+
+<p>
+Here is a Sketch for problem A:<br/>
+<tt>
+-----<br/>
+ *97U *95N  93e *90X  52c  67e  73p *99T  88i  70o  92n *89A  42b *91L *96Y<br/>
+ *84D  64e  77m *66Y  71t  34h  69o *78L *83O  56g *87I *37Z  79i  85n *63G<br/>
+-----<br/>
+</tt>
+The uppercase letters (with asterisks) are restricted, the lowercase letters (without asterisks) have to arrive before the final goal move.  The construction procedure recursively tries a few mappings of restricted goal 1 letters, for each of them a few mappings of restricted goal 2 letters, and for each of these puts the free ones for goals 1 and 2 almost greedily.
+</p>
+
+<p>
+Next, we construct a Plan.  The Plan contains the 30 tiles information from the winning Sketch, but also tries to give a hint on how we will approach the non-restricted letters.  In each run of consecutive free letters, the earliest tile is called a CheckPoint.  A CheckPoint has the tile number (time), coordinates, and is also given a value based on the letter, neighboring free letters and their relative times.
+</p>
+
+<p>
+Here is a complete Plan for problem A:<br/>
+<tt>
+-----<br/>
+Plan: goals=2 check_points=8 goals_score=2503 sketch_value=1274<br/>
+GameMoves: [ 1A UNEXCEPTIONABLY, 15A DEMYTHOLOGIZING]<br/>
+CheckPoints: [34(14,5)525, 42(0,12)513, 52(0,4)531, 56(14,9)539, 64(14,1)565,<br/>
+70(0,9)526, 79(14,12)628, 93(0,2)545]     legend: time(row,col)value<br/>
+Sketch:<br/>
+ *97U *95N  93e *90X  52c  67e  73p *99T  88i  70o  92n *89A  42b *91L *96Y<br/>
+ *84D  64e  77m *66Y  71t  34h  69o *78L *83O  56g *87I *37Z  79i  85n *63G<br/>
+Problem Constraints: A (30/100)<br/>
+AIOIETPRTIRDDGNEOEDERUCERAAOIOEEFAhASzENKBbSTLRIUR<br/>
+MSc[SFgLQETAIgeOyeAoot[pVNUmliJVWodnAiiaxlneWnyuHt<br/>
+-----
+</tt>
+</p>
+
+<p>
+An important tweak here is that we are allowed to use earlier tiles when the letter is the same.  So, for example, instead of 88i 70o 92n, we can use 88i 70o 74n and so have "o" -> "on" -> "ion" where "on" is a valid dictionary word (while "io" is not).  I was willing to actually check whether all the words are in the dictionary if we follow the order of the tiles, and do something if they are not, but didn't figure out how to do that without another combinatorial explosion, and this tweak was enough most of the time.
+</p>
+
+<p>
+Now, we play a game with that Plan.  For each CheckPoint, much value is given for getting closer to it.  Also, the order of CheckPoints is taken into account, giving less value to all CheckPoints after a non-visited CheckPoint in that order.  As a result, the program tries to visit the first CheckPoint, then the second one, and so on.
+</p>
+
+<p>
+Two results of such games would be (successful and unsuccessful):<br/>
+<tt>
+-----<br/>
+beam search: width 320, depth 0<br/>
+A: 3089 (314329) [100]<br/>
+...<br/>
+beam search: width 320, depth 0<br/>
+A: 423 (272637) [77]<br/>
+-----<br/>
+</tt>
+These are score, value and the number of tiles in the best solution.  As you can see, the value components related to CheckPoints turn out to be much more important than the score.
+</p>
+
+<p>
+For unsuccessful games, there may also be a few plan refinement steps.  The first unvisited CheckPoint is given a bit more value and moved one place closer to the start of the CheckPoints array.  Then, another game takes place.
+</p>
+
+<p>
+Finally, to find good results for a bag, we construct plenty of Plans (up to 125,000) using pairs of high-scoring goals, pick a few (30-300) Plans which are the best by some combination of goals_score and sketch_value, and then run a game, or a sequence of refining games, for each such Plan.  As you may remember, each game is essentially a beam search.  When a game is moderately successful (within 150 score of the current best score), we run the beam search a few more times, doubling the width each time.
+</p>
+
+<p>
+This approach allowed me to get scores of 2989-3254 for each of the 26 bags, and return to the first place.
+</p>
+
+<h3>
+9. Wildcards.
+</h3>
+
+<p>
+Sometimes, using a wildcard allows a much better pair of goal words
+to be picked.
+I had to balance between allowing such wildcards and spending too much time
+building sketches.
+I implemented some limited ways of using wildcards, and even had
+a few running records with them, but there are no wildcards
+in the goals in my final submissions.
+Other people had more success with them (see submissions for letters H and Y
+in the <a href="http://azspcs.net/Contest/AlphabetCity/FinalReport">final report</a>).
+</p>
+
+<h3>
+10. Three goal words.
+</h3>
+
+<p>
+When rewriting my program, I made sure that the number of goal words scales without problems for Sketch, Plan and the following game.  This allowed me to try introducing center goals: 15-letter words on the center row.  They give only a 9x bonus which is not as much as the 27x bonus for border goals (on rows 1 and 15).  Still, I believed they can give one or two hundred points more than just aimlessly wandering around after putting the two border goals.
+</p>
+
+<p>
+The biggest problem for me was how to select the third long word.  I already spent a minute searching for the list of the best two goals for each problem, and so decided to just pick the first few possible third goals greedily.
+I had limited success with the idea, as my program produced records for letters P (3288), R (3400) and U (3342).  I also got some non-record games with three long words for letters A (3067), G (2987), L (3027) and M (3118).
+</p>
+
+<p>
+You can <a href="http://azspcs.net/Contest/AlphabetCity/FinalReport?EntryID=1941945#V1941945">see</a>
+the three three-word record games in the final report,
+though they got "canonicalized" and thus turned in a not very readable way.
+Well, at least one can write a simple tool to swap the row and column
+for every move, and then use the visualizer.
+</p>
+
+<p>
+My guess in the mini-contest (3360 * 26 versus the actual average of ~3178) was based on the assumption that the people will be able to put three long words and add like 200 points to the score.  I believe the idea has more potential than I was able to unravel.
+</p>
+
+<h3>
+11. The tools I used.
+</h3>
+
+<p>
+My main programming language was <a href="http://dlang.org/">D</a>.
+I must say it is a convenient language which (1) allows to express higher level stuff in a short way when you just want to get things done, and (2) allows to express lower level optimizations when you need the program to be fast.  While learning the language, I've had quite a few insights, both related to the language and of broader applicability, thanks to the helpful community around it.
+</p>
+
+<p>
+The code statistics are ~230K code, ~10K lines, 195 commits
+to a local Subversion repository, all that now exported
+to <a href="https://github.com/GassaFM/alphabet-city/">GitHub</a>.
+</p>
+
+<p>
+I've also used a few tiny Python, awk and bash scripts where appropriate.
+</p>
+
+<p>
+That's it for this technical report.
+</p>
+
+<p>
+Ivan Kazmenko.
+</p>
+
+</body>
+</html>
